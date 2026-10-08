@@ -1,0 +1,3115 @@
+[
+ {
+  "name": "Verkada",
+  "website": "https://www.verkada.com",
+  "careers_url": "https://www.verkada.com/careers",
+  "industry": "Cloud physical security",
+  "category": "cybersecurity",
+  "subcategory": "Cloud-managed video security, access control and sensors",
+  "hq": "San Mateo, CA",
+  "az_presence": "Phoenix-area office (postings list Tempe, AZ)",
+  "ca_presence": "HQ in San Mateo; SE roles in Los Angeles",
+  "remote_policy": "Mostly in-office; ASE program is onsite five days a week",
+  "ats_type": "greenhouse",
+  "ats_token": "verkada",
+  "ats_verified": true,
+  "watch_status": "priority",
+  "watch_note": null,
+  "summary": "Verkada sells cloud-managed physical security: cameras, access control, sensors, alarms and visitor management on one platform.",
+  "data": {
+   "product": "Verkada's cloud-managed cameras and access control",
+   "standout": [
+    {
+     "action": "Review TCP/IP, DNS, DHCP, subnetting and VLANs, then practice explaining how a cloud-managed camera reaches the cloud from a locked-down network (outbound ports, PoE, what breaks).",
+     "why": "Verkada's SE postings list these exact fundamentals and say product experience is not required.",
+     "effort": "1-2 weeks"
+    },
+    {
+     "action": "Start a CCNA or Network+ study plan; list it on your resume as in progress once the exam is booked.",
+     "why": "SE postings name Network+, Security+, CCNA and AWS certifications as pluses.",
+     "effort": "6-10 weeks"
+    },
+    {
+     "action": "Prepare a 5-minute walkthrough of Verkada for a campus facilities buyer, with answers to two objections (privacy, cost).",
+     "why": "Campus and facilities teams are a core Verkada buyer; a walkthrough aimed at one shows you understand the customer, and any real campus-buyer story you have makes it stronger.",
+     "effort": "3 hours"
+    },
+    {
+     "action": "Ask a Verkada recruiter or SDR whether Tempe SDRs have moved into SE roles, and paste any public profiles you find into Career paths.",
+     "why": "Verkademy's stated path is to Account Executive; the SE path from SDR has no evidence yet.",
+     "effort": "30 minutes"
+    }
+   ]
+  },
+  "evidence": [
+   {
+    "field": "company.locations",
+    "value": "Offices include San Mateo (HQ), Phoenix, Austin, Tampa, Seattle, New York and several international sites.",
+    "url": "https://builtin.com/job/associate-solutions-engineer-san-mateo/2123506",
+    "title": "Built In: Associate Solutions Engineer, San Mateo",
+    "source_type": "third_party"
+   },
+   {
+    "field": "org.se_team",
+    "value": "SE postings ask for TCP/IP, DNS, DHCP and routing/switching fundamentals, and say physical-security product experience is not required.",
+    "url": "https://builtin.com/job/solutions-engineer/3186761",
+    "title": "Built In: Verkada Solutions Engineer",
+    "source_type": "third_party"
+   },
+   {
+    "field": "org.se_team",
+    "value": "SE postings prefer Linux, APIs and Python, and list Network+, Security+, CCNA and AWS Solutions Architect certifications as a plus.",
+    "url": "https://builtin.com/job/solutions-engineer-london/7148184",
+    "title": "Built In: Verkada Solutions Engineer, London",
+    "source_type": "third_party"
+   },
+   {
+    "field": "comp.base",
+    "value": "Glassdoor lists a median total pay of about $160K for Verkada Solutions Engineers (self-reported).",
+    "url": "https://www.glassdoor.com/Jobs/Verkada-Phoenix-Jobs-EI_IE2153775.0,7_IL.8,15_IC1133904.htm",
+    "title": "Glassdoor: Verkada jobs in Phoenix",
+    "source_type": "employee_reported"
+   }
+  ],
+  "programs": [
+   {
+    "name": "Associate Solutions Engineer (ASE) Program",
+    "role_title": "Associate Solutions Engineer, San Mateo",
+    "kind": "academy",
+    "target_family": "se",
+    "status": "rolling",
+    "summary": "Intensive technical program that trains recent graduates into Verkada Solutions Engineers.",
+    "data": {
+     "concerns": [
+      "Requires relocating to San Mateo and working onsite five days a week.",
+      "Hourly pay ($35-$40) annualizes to roughly $73K-$83K, below many SE academies; check whether it converts to salary plus variable after graduation."
+     ]
+    },
+    "evidence": [
+     {
+      "field": "program.description",
+      "value": "Created to fast-track recent graduates into Solutions Engineers.",
+      "url": "https://www.ziprecruiter.com/c/Verkada/Job/Associate-Solutions-Engineer,-San-Mateo/-in-San-Mateo,CA?jid=4779a1f52d629b27",
+      "title": "ZipRecruiter: Associate Solutions Engineer, San Mateo",
+      "source_type": "third_party"
+     },
+     {
+      "field": "program.training_content",
+      "value": "Modules cover computer networking, electrical engineering, security infrastructure, intro to cloud, the Verkada technology stack, hands-on field experience and Verkada Certified Engineer (VCE) training, with weekly assessments.",
+      "url": "https://www.tealhq.com/job/associate-solutions-engineer_7ea1a95d0ce36f491db0065b00079cfc0c54c",
+      "title": "Teal: Associate Solutions Engineer, San Mateo",
+      "source_type": "third_party"
+     },
+     {
+      "field": "program.next_role",
+      "value": "Graduates can transition into Solutions Engineer roles.",
+      "url": "https://www.tealhq.com/job/associate-solutions-engineer_7ea1a95d0ce36f491db0065b00079cfc0c54c",
+      "title": "Teal: Associate Solutions Engineer, San Mateo",
+      "source_type": "third_party"
+     },
+     {
+      "field": "program.location",
+      "value": "San Mateo, CA. Requires relocating to San Mateo and working onsite five days a week.",
+      "url": "https://builtin.com/job/associate-solutions-engineer-san-mateo/2123506",
+      "title": "Built In: Associate Solutions Engineer, San Mateo",
+      "source_type": "third_party"
+     },
+     {
+      "field": "comp.base",
+      "value": "$35 to $40 per hour (about $73K to $83K per year at 2,080 hours; the annual figure is computed, not posted).",
+      "url": "https://prosple.com/graduate-employers/verkada/jobs-internships/solutions-engineer-associate-san-mateo",
+      "title": "Prosple: Solutions Engineer Associate, San Mateo",
+      "source_type": "third_party"
+     },
+     {
+      "field": "program.degree_req",
+      "value": "Bachelor's in mechanical, electrical or computer engineering, math, physics or another STEM field. No visa sponsorship.",
+      "url": "https://prosple.com/graduate-employers/verkada/jobs-internships/solutions-engineer-associate-san-mateo",
+      "title": "Prosple: Solutions Engineer Associate, San Mateo",
+      "source_type": "third_party"
+     },
+     {
+      "field": "program.rolling",
+      "value": "A 2025 listing said 'start ASAP' with a July 4, 2025 apply-by date, which suggests rolling cohorts.",
+      "url": "https://prosple.com/graduate-employers/verkada/jobs-internships/solutions-engineer-associate-san-mateo",
+      "title": "Prosple: Solutions Engineer Associate, San Mateo",
+      "source_type": "third_party",
+      "confidence": "low",
+      "observed_on": "2025-07-04",
+      "note": "Inference from listing dates."
+     }
+    ]
+   },
+   {
+    "name": "Verkademy (Account Executive Development Program)",
+    "role_title": "Sales Development Representative (AAE), Phoenix",
+    "kind": "sales_academy",
+    "target_family": "ae",
+    "status": "open",
+    "summary": "SDR program in the Phoenix-area office that trains sales associates into Mid-Market Account Executives.",
+    "data": {
+     "concerns": [
+      "Stated path leads to Account Executive, not SE. No public evidence yet of Tempe SDRs moving into SE."
+     ]
+    },
+    "evidence": [
+     {
+      "field": "program.description",
+      "value": "Fast-tracks sales associates into Mid-Market Account Executives through modular tech-sales training.",
+      "url": "https://builtin.com/job/associate-account-executive-phoenix/2123500",
+      "title": "Built In: Sales Development Representative (AAE), Phoenix",
+      "source_type": "third_party"
+     },
+     {
+      "field": "program.next_role",
+      "value": "Graduates transition into Mid-Market Account Executive roles.",
+      "url": "https://builtin.com/job/associate-account-executive-phoenix/2123500",
+      "title": "Built In: Sales Development Representative (AAE), Phoenix",
+      "source_type": "third_party"
+     },
+     {
+      "field": "program.location",
+      "value": "Tempe, AZ (Phoenix office).",
+      "url": "https://job-boards.greenhouse.io/verkada/jobs/4135267007",
+      "title": "Verkada on Greenhouse: SDR (AAE), Phoenix",
+      "source_type": "official"
+     },
+     {
+      "field": "comp.base",
+      "value": "Employer-provided range of $55K to $60K base on Glassdoor; another listing showed $58,900 to $67,000.",
+      "url": "https://www.glassdoor.com/Jobs/Verkada-Phoenix-Jobs-EI_IE2153775.0,7_IL.8,15_IC1133904.htm",
+      "title": "Glassdoor: Verkada jobs in Phoenix",
+      "source_type": "third_party"
+     }
+    ]
+   }
+  ],
+  "jobs": [
+   {
+    "title": "Sales Development Representative (AAE), Phoenix",
+    "url": "https://job-boards.greenhouse.io/verkada/jobs/4135267007",
+    "source_is_original": true,
+    "program": "Verkademy (Account Executive Development Program)",
+    "location_text": "Tempe, AZ",
+    "posted_note": "Listed about 21 days before Oct 1, 2026 on a job board",
+    "description": "Verkademy, Verkada's Account Executive Development Program, fast-tracks sales associates into Mid-Market Account Executives. Prospect, qualify and follow up on a high volume of cold leads. Run discovery to understand customer needs and business problems. Generate sales-ready meetings for Account Executives. Use Salesforce and sales enablement tools. Consistently achieve quota. In-office at the Phoenix office. $55,000 - $60,000 base."
+   },
+   {
+    "title": "Associate Solutions Engineer, San Mateo",
+    "url": "https://builtin.com/job/associate-solutions-engineer-san-mateo/2123506",
+    "source_is_original": false,
+    "program": "Associate Solutions Engineer (ASE) Program",
+    "location_text": "San Mateo, CA",
+    "description": "The ASE program was created to fast-track recent graduates into Solutions Engineers. Intensive technical program with modules on computer networking, electrical engineering, security infrastructure, intro to cloud technologies and the Verkada technology stack, plus Verkada Certified Engineer training and hands-on field experience. Graduates transition into Solutions Engineer roles, the bridge between engineering and technical sales, working with customers and Account Executives as a trusted advisor. Bachelor's degree in a STEM field. Must relocate to San Mateo and work onsite five days per week. $35 to $40 hourly."
+   }
+  ]
+ },
+ {
+  "name": "Samsara",
+  "website": "https://www.samsara.com",
+  "careers_url": "https://www.samsara.com/company/careers",
+  "industry": "Connected operations / IoT SaaS",
+  "category": "software",
+  "subcategory": "IoT SaaS: telematics, video safety, equipment monitoring",
+  "hq": "San Francisco, CA",
+  "ca_presence": "HQ in San Francisco",
+  "remote_policy": "Associate SE roles posted as remote within US regions",
+  "ats_type": "greenhouse",
+  "ats_token": "samsara",
+  "ats_verified": false,
+  "watch_status": "strong",
+  "summary": "Samsara sells a connected-operations cloud: vehicle telematics, video-based safety, equipment monitoring and driver workflows for physical operations.",
+  "data": {
+   "product": "Samsara's connected operations platform",
+   "standout": [
+    {
+     "action": "Check which SE Desk regions exist before applying. A West or Mountain desk would put Arizona in scope; the regions seen so far are Midwest, Northeast, Southeast and TOLA.",
+     "why": "The remote roles appear to be assigned by region.",
+     "effort": "15 minutes"
+    },
+    {
+     "action": "Write a short Python script that calls a public REST API, then explain it as if it were a customer proof of concept.",
+     "why": "SE Desk associates script against the Samsara API for technical trials.",
+     "effort": "3-4 hours"
+    }
+   ]
+  },
+  "evidence": [
+   {
+    "field": "org.se_team",
+    "value": "Emerging Talent page lists Associate Sales Engineer roles on an SE Desk, remote in the US, split into regional desks (Midwest, Northeast, Southeast, TOLA).",
+    "url": "https://www.samsara.com/company/careers/emerging-talent",
+    "title": "Samsara Emerging Talent",
+    "source_type": "official"
+   }
+  ],
+  "programs": [
+   {
+    "name": "Emerging Talent: Associate Sales Engineer (SE Desk)",
+    "role_title": "Associate Sales Engineer, SE Desk",
+    "kind": "new_grad",
+    "target_family": "se",
+    "status": "unknown",
+    "summary": "Entry-level SE role supporting the sales team's technical questions, trials and API proofs of concept.",
+    "evidence": [
+     {
+      "field": "program.description",
+      "value": "Answer the global sales team's technical questions from a queue, support technical trials, and build scripts and integrations for proofs of concept.",
+      "url": "https://zapply.jobs/jobs/8d6e6da8-84a4-4a98-8b17-88803a156b0b/",
+      "title": "Associate Sales Engineer, SE Desk (job board copy)",
+      "source_type": "third_party",
+      "observed_on": "2026-02-17"
+     },
+     {
+      "field": "program.technical_req",
+      "value": "BS in electrical, computer science, mechanical or industrial engineering or related; well-versed in cloud software, networking or automation; basic electronics.",
+      "url": "https://www.samsara.com/company/careers/roles/7848351",
+      "title": "Samsara: Associate Sales Engineer, SE Desk - Southeast",
+      "source_type": "official"
+     },
+     {
+      "field": "program.yoe",
+      "value": "1+ years with customers in a pre-sales or support capacity is preferred, not required.",
+      "url": "https://www.samsara.com/company/careers/roles/7848351",
+      "title": "Samsara: Associate Sales Engineer, SE Desk - Southeast",
+      "source_type": "official"
+     },
+     {
+      "field": "program.work_mode",
+      "value": "Remote within the US, by regional desk.",
+      "url": "https://www.samsara.com/company/careers/emerging-talent",
+      "title": "Samsara Emerging Talent",
+      "source_type": "official"
+     }
+    ]
+   }
+  ],
+  "jobs": [
+   {
+    "title": "Associate Sales Engineer, SE Desk - Southeast",
+    "url": "https://www.samsara.com/company/careers/roles/7848351",
+    "source_is_original": true,
+    "program": "Emerging Talent: Associate Sales Engineer (SE Desk)",
+    "location_text": "Remote - US",
+    "description": "Understand how devices are installed well enough to explain it to a prospect. Educate customers on technical aspects of APIs and deploy scripts using the Samsara API in a test environment. Advocate for your Account Executives, prospects and customers. Liaise between product and sales. BS in Electrical Engineering, Computer Science, Mechanical Engineering, Industrial Engineering or related. Preferred 1+ years experience working with customers in a pre-sales or support capacity. Explain complex technical concepts to non-technical audiences. Basic understanding of electronics and electrical systems. Well-versed in cloud software, networking, automation and control systems."
+   }
+  ]
+ },
+ {
+  "name": "Axon",
+  "website": "https://www.axon.com",
+  "careers_url": "https://www.axon.com/careers",
+  "industry": "Public safety technology",
+  "category": "public_safety",
+  "subcategory": "Body cameras, TASER devices, evidence management cloud software",
+  "hq": "Scottsdale, AZ",
+  "az_presence": "Headquarters in Scottsdale",
+  "public_sector": true,
+  "remote_policy": "Hybrid: onsite Tuesday to Friday",
+  "watch_status": "strong",
+  "ats_type": "greenhouse",
+  "ats_token": "axon",
+  "ats_verified": false,
+  "summary": "Axon builds public-safety devices and cloud software (body cameras, TASER devices, evidence management) sold largely to police agencies and government.",
+  "data": {
+   "product": "Axon's evidence and body-camera platform",
+   "standout": [
+    {
+     "action": "Connect any public-sector or national-security coursework or project you have to Axon's Federal and public-sector rotations.",
+     "why": "The LDP sales track rotates through Federal and Enterprise teams; few new grads can speak to government buyers.",
+     "effort": "1 hour to prepare the story"
+    },
+    {
+     "action": "Ask in interviews which LDP rotations have led to sales engineering or technical roles.",
+     "why": "The program targets sales leadership; any SE path needs to be confirmed.",
+     "effort": "In interview"
+    }
+   ]
+  },
+  "evidence": [],
+  "programs": [
+   {
+    "name": "Leadership Development Program, Sales Track",
+    "role_title": "Leadership Development Program 2027 (Sales)",
+    "kind": "rotational",
+    "target_family": "mixed",
+    "status": "open",
+    "typical_open_window": "Listed in September for the following year's cohort",
+    "summary": "Two-year rotational program placing early-career talent across sales and go-to-market teams at Axon HQ.",
+    "data": {
+     "concerns": [
+      "Built for sales leadership, not SE; treat the SE path as possible, not likely."
+     ]
+    },
+    "evidence": [
+     {
+      "field": "program.rotations",
+      "value": "3 to 5 rotations over two years across sales teams such as Emerging Products, Inside Sales, Federal, Enterprise and Sales Strategy.",
+      "url": "https://www.axon.com/careers/job/7632184003",
+      "title": "Axon: Sales Development Program",
+      "source_type": "official"
+     },
+     {
+      "field": "program.mentorship",
+      "value": "Mentorship from LDP and SDP alumni, including Axon's president.",
+      "url": "https://www.axon.com/careers/job/7632184003",
+      "title": "Axon: Sales Development Program",
+      "source_type": "official"
+     },
+     {
+      "field": "program.start_date",
+      "value": "The previous cohort started in August 2026.",
+      "url": "https://www.axon.com/careers/job/7632184003",
+      "title": "Axon: Sales Development Program",
+      "source_type": "official",
+      "observed_on": "2026-08-01"
+     },
+     {
+      "field": "program.work_mode",
+      "value": "Scottsdale HQ, hybrid: onsite Tuesday to Friday, remote Mondays; rotations may include other offices.",
+      "url": "https://www.axon.com/careers/job/7632184003",
+      "title": "Axon: Sales Development Program",
+      "source_type": "official"
+     },
+     {
+      "field": "program.open_window",
+      "value": "A 2027 Sales Track listing was live in September 2026.",
+      "url": "https://www.glassdoor.com/Job/scottsdale-az-axon-jobs-SRCH_IL.0,13_IC1133911_KO14,18.htm",
+      "title": "Glassdoor: Axon jobs in Scottsdale",
+      "source_type": "third_party",
+      "observed_on": "2026-09-14"
+     },
+     {
+      "field": "comp.base",
+      "value": "Glassdoor estimate of $53K to $78K (an estimate, not employer-provided).",
+      "url": "https://www.glassdoor.com/Job/scottsdale-az-axon-jobs-SRCH_IL.0,13_IC1133911_KO14,18.htm",
+      "title": "Glassdoor: Axon jobs in Scottsdale",
+      "source_type": "third_party",
+      "confidence": "low"
+     }
+    ]
+   }
+  ],
+  "jobs": [
+   {
+    "title": "Leadership Development Program 2027 (Sales)",
+    "url": "https://www.glassdoor.com/Job/scottsdale-az-axon-jobs-SRCH_IL.0,13_IC1133911_KO14,18.htm",
+    "source_is_original": false,
+    "program": "Leadership Development Program, Sales Track",
+    "location_text": "Scottsdale, AZ",
+    "description": "Built for ambitious recent graduates. The Sales Track of Axon's Leadership Development Program places early-career talent in sales and go-to-market roles. Complete 3-5 rotations over two years across Domestic, International, Federal and Enterprise sales teams, with mentorship from program alumni. Hybrid schedule onsite Tuesdays through Fridays at Scottsdale headquarters. Customer-facing work with public safety agencies."
+   }
+  ]
+ },
+ {
+  "name": "Insight Enterprises",
+  "website": "https://www.insight.com",
+  "careers_url": "https://www.insight.com/en_US/careers/united-states.html",
+  "industry": "IT solutions provider",
+  "category": "it_solutions",
+  "subcategory": "Solutions integrator and reseller (cloud, security, infrastructure)",
+  "hq": "Chandler, AZ",
+  "az_presence": "Headquarters in Chandler",
+  "watch_status": "strong",
+  "summary": "Insight is a Chandler-based solutions integrator that sells and implements technology from partners like Microsoft, Cisco and Dell.",
+  "data": {
+   "standout": [
+    {
+     "action": "Ask how inside sales Account Executives move into presales (Technical Solution Architect) roles, and how long it takes.",
+     "why": "Insight posts presales roles in Chandler, but no AE-to-presales transitions are documented yet.",
+     "effort": "In interview"
+    }
+   ]
+  },
+  "evidence": [
+   {
+    "field": "org.se_team",
+    "value": "Presales roles such as Technical Solution Architect and Solution Principal are posted in Chandler.",
+    "url": "https://www.ziprecruiter.com/co/insight/Jobs/Sales-Intern/-in-Phoenix,AZ",
+    "title": "ZipRecruiter: Insight jobs in Phoenix",
+    "source_type": "third_party"
+   },
+   {
+    "field": "intern.conversion",
+    "value": "10-week summer internships and 15-week co-ops for students in technical or IT bachelor's programs.",
+    "url": "https://www.insight.com/en_US/careers/united-states/early-career-programs.html",
+    "title": "Insight early career programs",
+    "source_type": "official"
+   }
+  ],
+  "programs": [
+   {
+    "name": "Insight Sales Academy",
+    "role_title": "Account Executive - Inside Sales",
+    "kind": "sales_academy",
+    "target_family": "ae",
+    "status": "open",
+    "summary": "12-month sales training program for full-time account executives.",
+    "evidence": [
+     {
+      "field": "program.duration",
+      "value": "12-month training and development program; participants are hired full time.",
+      "url": "https://www.insight.com/en_US/careers/united-states/insight-sales-academy.html",
+      "title": "Insight Sales Academy",
+      "source_type": "official"
+     },
+     {
+      "field": "program.location",
+      "value": "Account executives hired in Conway, Chandler and Montreal.",
+      "url": "https://www.insight.com/en_US/careers/united-states/insight-sales-academy.html",
+      "title": "Insight Sales Academy",
+      "source_type": "official"
+     },
+     {
+      "field": "comp.base",
+      "value": "Inside Sales AE: $42,500 starting base plus uncapped commission.",
+      "url": "https://jobsearch.insight.com/job/Chandler-Account-Executive-Inside-Sales-AZ-85224/1375141000/",
+      "title": "Insight: Account Executive - Inside Sales",
+      "source_type": "official"
+     },
+     {
+      "field": "program.work_mode",
+      "value": "Hybrid at Chandler HQ: 3 days in office, 2 remote.",
+      "url": "https://jobsearch.insight.com/job/Chandler-Account-Executive-Inside-Sales-AZ-85224/1375141000/",
+      "title": "Insight: Account Executive - Inside Sales",
+      "source_type": "official"
+     }
+    ]
+   }
+  ],
+  "jobs": [
+   {
+    "title": "Account Executive - Inside Sales",
+    "url": "https://jobsearch.insight.com/job/Chandler-Account-Executive-Inside-Sales-AZ-85224/1375141000/",
+    "source_is_original": true,
+    "program": "Insight Sales Academy",
+    "location_text": "Chandler, AZ, US",
+    "description": "Location: Hybrid in our Chandler, AZ HQ office, 3 days/week in office, 2 days/week remote. Starting base at $42,500 plus uncapped commissions. Inside sales role focused on outbound calling, prospecting and building a new book of business. Cold calling and generating opportunities with partners like Microsoft, Cisco, Dell and Apple. Paid training and structured onboarding. Sales experience preferred; motivated early career talent encouraged. Clear path for growth."
+   }
+  ]
+ },
+ {
+  "name": "CDW",
+  "website": "https://www.cdw.com",
+  "careers_url": "https://www.cdwjobs.com",
+  "industry": "IT solutions provider",
+  "category": "it_solutions",
+  "subcategory": "IT reseller and services (hardware, software, cloud, security)",
+  "hq": "Vernon Hills, IL",
+  "az_presence": "Tempe office runs Account Representative cohorts",
+  "watch_status": "strong",
+  "watch_note": null,
+  "summary": "CDW sells and services IT for business, government, education and healthcare through account managers backed by solution architects.",
+  "data": {
+   "standout": [
+    {
+     "action": "Ask how Account Representatives move into inside or field Solution Architect roles, and how often it happens.",
+     "why": "CDW employs pre-sales Solution Architects, but no rep-to-SA transitions are documented yet.",
+     "effort": "In interview"
+    }
+   ]
+  },
+  "evidence": [
+   {
+    "field": "org.se_team",
+    "value": "CDW employs pre-sales and inside Solution Architects.",
+    "url": "https://www.glassdoor.com/Jobs/CDW-pre-sales-solutions-architect-Jobs-EI_IE2347.0,3_KO4,33.htm",
+    "title": "Glassdoor: CDW pre-sales solutions architect jobs",
+    "source_type": "third_party"
+   },
+   {
+    "field": "comp.base",
+    "value": "Glassdoor: Account Representative median total pay around $72K to $75K (self-reported).",
+    "url": "https://www.glassdoor.com/Jobs/CDW-pre-sales-solutions-architect-Jobs-EI_IE2347.0,3_KO4,33.htm",
+    "title": "Glassdoor: CDW salaries",
+    "source_type": "employee_reported"
+   },
+   {
+    "field": "review.sentiment",
+    "value": "A Phoenix reviewer says it suits new grads who want to make calls every day, but describes micromanagement and favoritism.",
+    "url": "https://www.indeed.com/cmp/Cdw/locations/AZ/Phoenix",
+    "title": "Indeed: CDW Phoenix reviews",
+    "source_type": "employee_reported",
+    "confidence": "low"
+   }
+  ],
+  "programs": [
+   {
+    "name": "Account Representative training program (Tempe cohorts)",
+    "role_title": "Account Representative - Tempe",
+    "kind": "sales_academy",
+    "target_family": "ae",
+    "status": "rolling",
+    "summary": "Cohort-based sales training for new Account Representatives in Tempe.",
+    "evidence": [
+     {
+      "field": "comp.base",
+      "value": "$35,000 base plus commission.",
+      "url": "https://builtin.com/job/account-representative-tempe-start-date-july-14-2025/6178972",
+      "title": "Built In: Account Representative - Tempe",
+      "source_type": "third_party",
+      "observed_on": "2025-07-14"
+     },
+     {
+      "field": "program.work_mode",
+      "value": "Hybrid training: in office during weeks 1 and 8 plus set days.",
+      "url": "https://builtin.com/job/account-representative-tempe-start-date-july-14-2025/6178972",
+      "title": "Built In: Account Representative - Tempe",
+      "source_type": "third_party"
+     },
+     {
+      "field": "program.start_date",
+      "value": "Cohorts start on fixed dates (2025 postings: July 14, September 15, October 5).",
+      "url": "https://www.glassdoor.com/Jobs/CDW-sales-Jobs-EI_IE2347.0,3_KO4,9.htm",
+      "title": "Glassdoor: CDW sales jobs",
+      "source_type": "third_party"
+     }
+    ]
+   }
+  ],
+  "jobs": []
+ },
+ {
+  "name": "Palo Alto Networks",
+  "website": "https://www.paloaltonetworks.com",
+  "careers_url": "https://jobs.paloaltonetworks.com",
+  "industry": "Cybersecurity",
+  "category": "cybersecurity",
+  "subcategory": "Network security, SASE, cloud security, SOC platform",
+  "hq": "Santa Clara, CA",
+  "ca_presence": "HQ in Santa Clara",
+  "watch_status": "edge",
+  "watch_note": "Texas location, kept because it is a formal SE academy in cybersecurity.",
+  "summary": "Palo Alto Networks sells network, cloud and SOC security platforms; its SE Academy trains recent graduates into field Systems Engineers.",
+  "data": {
+   "standout": [
+    {
+     "action": "Be able to explain a next-generation firewall versus a traditional firewall, and what SASE changes for a remote workforce.",
+     "why": "The academy immerses you in network, endpoint and cloud security; interviews probe the basics.",
+     "effort": "4-6 hours"
+    },
+    {
+     "action": "Set an alert for 'Associate Systems Engineer' at Palo Alto Networks from early 2027.",
+     "why": "Cohorts have started in August; the exact posting month is not documented.",
+     "effort": "5 minutes"
+    }
+   ]
+  },
+  "evidence": [
+   {
+    "field": "review.sentiment",
+    "value": "A first-year Associate Systems Engineer described leading sales initiatives, running conference demo booths and working in the Black Hat NOC.",
+    "url": "https://jobs.paloaltonetworks.com/en/palo-alto-networks-systems-engineering-academy-aliya-early-talent",
+    "title": "Palo Alto Networks: My first year as an ASE",
+    "source_type": "official"
+   }
+  ],
+  "programs": [
+   {
+    "name": "Systems Engineering Academy",
+    "role_title": "Associate Systems Engineer",
+    "kind": "academy",
+    "target_family": "se",
+    "status": "unknown",
+    "typical_open_window": "Cohorts start in August",
+    "data": {
+     "concerns": [
+      "Recent cohorts trained in Plano, TX; after the academy, field SE placement is by business need, which may not be Arizona or California."
+     ]
+    },
+    "summary": "Cohort program that trains recent graduates into field Systems Engineers through instruction, labs and rotations on SE teams.",
+    "evidence": [
+     {
+      "field": "program.location",
+      "value": "The August 2026 cohort was based in Plano, TX.",
+      "url": "https://job-boards.greenhouse.io/ripplematchinterns/jobs/8353111002",
+      "title": "RippleMatch: Associate Systems Engineer (August 2026)",
+      "source_type": "third_party",
+      "observed_on": "2026-08-01"
+     },
+     {
+      "field": "comp.base",
+      "value": "Expected $110,000 per year (base plus commission target for sales roles).",
+      "url": "https://job-boards.greenhouse.io/ripplematchinterns/jobs/8353111002",
+      "title": "RippleMatch: Associate Systems Engineer (August 2026)",
+      "source_type": "third_party"
+     },
+     {
+      "field": "program.duration",
+      "value": "Up to 24 months of formal technical instruction, hands-on labs, projects and professional development.",
+      "url": "https://prosple.com/graduate-employers/palo-alto-networks-global/jobs-internships/associate-systems-engineer",
+      "title": "Prosple: Associate Systems Engineer",
+      "source_type": "third_party"
+     },
+     {
+      "field": "program.rotations",
+      "value": "Participants are placed with several SE teams and rotate with senior SEs.",
+      "url": "https://prosple.com/graduate-employers/palo-alto-networks-global/jobs-internships/associate-systems-engineer",
+      "title": "Prosple: Associate Systems Engineer",
+      "source_type": "third_party"
+     },
+     {
+      "field": "program.next_role",
+      "value": "Graduates take field SE positions in cities across the US based on business needs.",
+      "url": "https://www.wayup.com/i-Computer-and-Network-Security-j-Systems-Engineer-Academy-Palo-Alto-Networks-101066139351595/",
+      "title": "WayUp: Systems Engineer Academy",
+      "source_type": "third_party"
+     },
+     {
+      "field": "program.conversion",
+      "value": "Field SE postings accept graduation from the Palo Alto Networks Academy in place of 3+ years of pre-sales experience.",
+      "url": "https://freehire.me/jobs/systems-engineer-presales-palo-alto-networks-7qyb5s4s",
+      "title": "Systems Engineer (Presales) job copy",
+      "source_type": "third_party"
+     },
+     {
+      "field": "program.start_date",
+      "value": "Postings for 2021, 2023 and 2026 all describe August starts.",
+      "url": "https://www.wayup.com/i-Computer-and-Network-Security-j-Associate-Systems-Engineer-Palo-Alto-Networks-427874582655537/",
+      "title": "WayUp: Associate Systems Engineer",
+      "source_type": "third_party"
+     }
+    ]
+   }
+  ],
+  "jobs": [],
+  "ats_type": "workday",
+  "ats_token": null,
+  "ats_host": "paloaltonetworks.wd5.myworkdayjobs.com",
+  "ats_site": "panwexternalcareers",
+  "ats_verified": true
+ },
+ {
+  "name": "Cisco",
+  "website": "https://www.cisco.com",
+  "careers_url": "https://careers.cisco.com",
+  "industry": "Networking and security",
+  "category": "cloud_networking",
+  "subcategory": "Networking, security, collaboration and observability",
+  "hq": "San Jose, CA",
+  "ca_presence": "HQ in San Jose",
+  "watch_status": "edge",
+  "ats_type": "workday",
+  "ats_host": "cisco.wd5.myworkdayjobs.com",
+  "ats_site": "Cisco_Careers",
+  "ats_verified": true,
+  "watch_note": "US CSAP cohort is in North Carolina; direct SE program, so kept as an edge case.",
+  "summary": "Cisco sells networking, security and collaboration technology; CSAP trains early-career hires into Solutions Engineers.",
+  "data": {
+   "standout": [
+    {
+     "action": "Work through Cisco Networking Academy toward CCNA. Its free Introduction to Cybersecurity course is a good first step.",
+     "why": "A 2024 CSAP posting listed CCNA as preferred.",
+     "effort": "8-12 weeks"
+    },
+    {
+     "action": "Document a small home lab (VLANs, a firewall, a VPN) with a one-page write-up linked from your resume.",
+     "why": "The 2026 posting accepts home labs, certifications or side projects as proof of technical curiosity.",
+     "effort": "1-2 weekends"
+    }
+   ]
+  },
+  "evidence": [],
+  "programs": [
+   {
+    "name": "Cisco Sales Associates Program (CSAP), Associate Solutions Engineer",
+    "role_title": "Associate Solutions Engineer - United States",
+    "kind": "academy",
+    "target_family": "se",
+    "status": "unknown",
+    "typical_open_window": "US posting appeared in mid-June (2026)",
+    "summary": "12-month global early-career program: bootcamp, three rotations, then a Solutions Engineer role.",
+    "evidence": [
+     {
+      "field": "program.rotations",
+      "value": "Months 1-3: bootcamp. Months 3-12: three rotational assignments in technical sales.",
+      "url": "https://cisco.wd5.myworkdayjobs.com/en-US/Cisco_Careers/job/Associate-Solutions-Engineer---United-States_2017853",
+      "title": "Cisco: Associate Solutions Engineer - United States",
+      "source_type": "official",
+      "observed_on": "2026-06-18"
+     },
+     {
+      "field": "program.next_role",
+      "value": "After 12 months, participants join Global Virtual Engineering as Solutions Engineers.",
+      "url": "https://cisco.wd5.myworkdayjobs.com/en-US/Cisco_Careers/job/Associate-Solutions-Engineer---United-States_2017853",
+      "title": "Cisco: Associate Solutions Engineer - United States",
+      "source_type": "official",
+      "observed_on": "2026-06-18"
+     },
+     {
+      "field": "program.mentorship",
+      "value": "Each participant is paired with a mentor who is a CSAP alum.",
+      "url": "https://cisco.wd5.myworkdayjobs.com/en-US/Cisco_Careers/job/Associate-Solutions-Engineer---United-States_2017853",
+      "title": "Cisco: Associate Solutions Engineer - United States",
+      "source_type": "official"
+     },
+     {
+      "field": "program.location",
+      "value": "US cohort is based in Research Triangle Park, NC.",
+      "url": "https://cisco.wd5.myworkdayjobs.com/en-US/Cisco_Careers/job/Associate-Solutions-Engineer---United-States_2017853",
+      "title": "Cisco: Associate Solutions Engineer - United States",
+      "source_type": "official"
+     },
+     {
+      "field": "comp.base",
+      "value": "NYC metro range $72,000 to $104,300; non-metro NY and Washington $68,400 to $99,100. For quota-based roles these include base plus target incentive.",
+      "url": "https://careers.cisco.com/global/en/job/CISCISGLOBAL2017853EXTERNALENGLOBAL/Associate-Solutions-Engineer-United-States",
+      "title": "Cisco careers: Associate Solutions Engineer",
+      "source_type": "official"
+     },
+     {
+      "field": "program.eligibility",
+      "value": "Technical degree, or a non-traditional background with proof of technical curiosity such as a home lab, certification or side project. No sponsorship.",
+      "url": "https://www.dreamworkhq.com/job/82e75b13-9e85-4915-9a1a-0cf4dba613f6",
+      "title": "Associate Solutions Engineer (job copy)",
+      "source_type": "third_party"
+     },
+     {
+      "field": "program.technical_req",
+      "value": "The 2024 US posting listed CCNA and 1-3 years of adjacent experience as preferred.",
+      "url": "https://www.wayup.com/i-Computer-Networking-j-Associate-Solutions-Engineer-Full-Time-United-States-Cisco-443272141739718/",
+      "title": "WayUp: CSAP Associate Solutions Engineer (2024)",
+      "source_type": "third_party"
+     },
+     {
+      "field": "program.open_window",
+      "value": "The US posting is dated June 18, 2026.",
+      "url": "https://cisco.wd5.myworkdayjobs.com/en-US/Cisco_Careers/job/Associate-Solutions-Engineer---United-States_2017853",
+      "title": "Cisco: Associate Solutions Engineer - United States",
+      "source_type": "official",
+      "observed_on": "2026-06-18"
+     }
+    ]
+   }
+  ],
+  "jobs": [
+   {
+    "title": "Associate Solutions Engineer - United States",
+    "url": "https://cisco.wd5.myworkdayjobs.com/en-US/Cisco_Careers/job/Associate-Solutions-Engineer---United-States_2017853",
+    "source_is_original": true,
+    "program": "Cisco Sales Associates Program (CSAP), Associate Solutions Engineer",
+    "location_text": "Research Triangle Park, NC",
+    "posted": "2026-06-18",
+    "description": "Cisco Sales Associates Program (CSAP), a 12-month early-in-career program. Month 1-3: immersive bootcamp training. Month 3-12: three rotational assignments for real-world technical sales experience. Beyond 12 months: transition into a Solutions Engineer role in Global Virtual Engineering, the technical presales organization. Collaborate with Associate Sales Representatives across Collaboration, Security, Networking and Cloud. Paired with a mentor who is a CSAP alumnus. Technical degree or non-traditional background with proof of technical curiosity like a home lab, certification or side project. NYC metro range $72,000.00 - $104,300.00 including base and target incentive."
+   }
+  ]
+ },
+ {
+  "name": "Amazon Web Services",
+  "website": "https://aws.amazon.com",
+  "careers_url": "https://www.amazon.jobs",
+  "industry": "Cloud infrastructure",
+  "category": "cloud_networking",
+  "subcategory": "Cloud infrastructure and services",
+  "hq": "Seattle, WA",
+  "watch_status": "edge",
+  "ats_type": "amazon",
+  "ats_token": "amazon",
+  "ats_verified": false,
+  "watch_note": "Early-career SA programs train in Dallas or Seattle; direct technical pre-sales path.",
+  "summary": "AWS hires early-career Solutions Architects into cohort programs that lead to customer-facing SA roles.",
+  "data": {
+   "standout": [
+    {
+     "action": "Take AWS Cloud Practitioner Essentials on AWS Skill Builder, then aim for the Solutions Architect Associate exam.",
+     "why": "Preferred qualifications include AWS certification, and hands-on cloud work is a common gap for new grads.",
+     "effort": "4-8 weeks"
+    },
+    {
+     "action": "Deploy something small on AWS (static site plus a Lambda function) and present it in five minutes.",
+     "why": "Preferred qualifications mention implementing a cloud solution in a school project; quals also ask for presentation experience.",
+     "effort": "1 weekend"
+    }
+   ]
+  },
+  "evidence": [],
+  "programs": [
+   {
+    "name": "AWS Emerging Talent: Solutions Architect (AWSI)",
+    "role_title": "Solutions Architect, AWSI - 2027",
+    "kind": "new_grad",
+    "target_family": "se",
+    "status": "open",
+    "summary": "Six-month mentored program with real customer engagements, leading to a field Solutions Architect role.",
+    "evidence": [
+     {
+      "field": "program.start_date",
+      "value": "Start dates are tentatively January 4 and July 6, 2027.",
+      "url": "https://www.amazon.jobs/en/jobs/10506956/solutions-architect-awsi-2027",
+      "title": "Amazon: Solutions Architect, AWSI - 2027",
+      "source_type": "official"
+     },
+     {
+      "field": "program.location",
+      "value": "The first 6 months are in Dallas, TX or Seattle, WA.",
+      "url": "https://www.amazon.jobs/en/jobs/10506956/solutions-architect-awsi-2027",
+      "title": "Amazon: Solutions Architect, AWSI - 2027",
+      "source_type": "official"
+     },
+     {
+      "field": "program.next_role",
+      "value": "After the program, participants become field Solutions Architects.",
+      "url": "https://www.amazon.jobs/en/jobs/10506956/solutions-architect-awsi-2027",
+      "title": "Amazon: Solutions Architect, AWSI - 2027",
+      "source_type": "official"
+     },
+     {
+      "field": "program.technical_req",
+      "value": "Experience with two or more of networking fundamentals, security, storage or databases, and operating systems; a modern programming language; presenting to customers or stakeholders.",
+      "url": "https://zapply.jobs/jobs/9b2e30c7-419e-496b-90aa-8d4b9079b4d7/",
+      "title": "Solutions Architect, AWSI - 2027 (job copy)",
+      "source_type": "third_party"
+     }
+    ]
+   },
+   {
+    "name": "Associate Solutions Architect, Early Career (AGS-Tech)",
+    "role_title": "Associate Solutions Architect, AGS-Tech, Early Career - 2027",
+    "kind": "new_grad",
+    "target_family": "se",
+    "status": "open",
+    "summary": "Cohort-based accelerated development program for early-career Solutions Architects.",
+    "data": {
+     "concerns": [
+      "Starts January 25, 2027, which is before a May 2027 graduation."
+     ]
+    },
+    "evidence": [
+     {
+      "field": "program.start_date",
+      "value": "Start dates are tentatively set for January 25, 2027.",
+      "url": "https://www.amazon.jobs/en/jobs/10558472/associate-solutions-architect-ags-tech-early-career-2027",
+      "title": "Amazon: Associate Solutions Architect, AGS-Tech, Early Career - 2027",
+      "source_type": "official"
+     },
+     {
+      "field": "comp.base",
+      "value": "$121,500 per year listed for Arlington, Austin and Seattle.",
+      "url": "https://www.dreamworkhq.com/job/a7bf9acf-8911-4238-aaf7-8c40df3e51ae",
+      "title": "Job board copy of the AGS-Tech posting",
+      "source_type": "third_party"
+     }
+    ]
+   }
+  ],
+  "jobs": [
+   {
+    "title": "Solutions Architect, AWSI - 2027",
+    "url": "https://www.amazon.jobs/en/jobs/10506956/solutions-architect-awsi-2027",
+    "source_is_original": true,
+    "program": "AWS Emerging Talent: Solutions Architect (AWSI)",
+    "location_text": "Dallas, TX; Seattle, WA",
+    "description": "AWS Emerging Talent Program for Solutions Architects. Start dates are tentatively set to occur January 4 and July 6 of 2027. 6-month mentorship in Dallas, Texas or Seattle, WA. Engage directly with real customers on business challenges and help customers architect solutions; then progress to a field Solutions Architect advising strategic customers. Basic qualifications: experience with two or more of networking fundamentals, security, storage or databases, operating systems; communicating with technical and non-technical audiences including executive stakeholders; presentations to customers; programming with a modern language such as Python. Preferred: a cloud-based solution in a school project; AWS Associate-level certification."
+   },
+   {
+    "title": "Associate Solutions Architect, AGS-Tech, Early Career - 2027",
+    "url": "https://www.amazon.jobs/en/jobs/10558472/associate-solutions-architect-ags-tech-early-career-2027",
+    "source_is_original": true,
+    "program": "Associate Solutions Architect, Early Career (AGS-Tech)",
+    "location_text": "Arlington, VA; Austin, TX; Seattle, WA",
+    "description": "Structured, cohort-based accelerated development program for early career Solutions Architects. Help customers craft scalable cloud architectures; work with startups to large enterprises within weeks. Start dates are tentatively set to occur January 25, 2027. $121,500 per year (job board listing)."
+   }
+  ]
+ },
+ {
+  "name": "Salesforce",
+  "website": "https://www.salesforce.com",
+  "careers_url": "https://careers.salesforce.com",
+  "industry": "Enterprise software",
+  "category": "software",
+  "subcategory": "CRM and AI agents",
+  "hq": "San Francisco, CA",
+  "ca_presence": "HQ in San Francisco",
+  "watch_status": "monitor",
+  "summary": "Salesforce sells CRM and AI agent software; its Success Graduate program trains new grads as Associate Solution Engineers.",
+  "data": {
+   "standout": [
+    {
+     "action": "Earn a couple of free Trailhead badges on Salesforce basics and build one small demo org.",
+     "why": "The ASE role involves demo design and builds; Trailhead is free.",
+     "effort": "1 weekend"
+    }
+   ]
+  },
+  "evidence": [],
+  "programs": [
+   {
+    "name": "Success Graduate Program, Associate Solution Engineer",
+    "role_title": "Associate Solution Engineer (New Grad)",
+    "kind": "academy",
+    "target_family": "se",
+    "status": "unknown",
+    "summary": "First year in two phases starting with an academy; then a role in the Solution Engineering organization.",
+    "evidence": [
+     {
+      "field": "program.next_role",
+      "value": "The first year runs in two phases starting with an academy; after 12 months participants move into their next Solution Engineering role.",
+      "url": "https://www.salesforce.com/company/careers/university-recruiting/sales/success-grad-solution-eng/",
+      "title": "Salesforce: Success Grads, Solution Engineering",
+      "source_type": "official",
+      "confidence": "medium",
+      "note": "Official page is several years old."
+     },
+     {
+      "field": "comp.base",
+      "value": "$80,920 base in the 2025 California and New York postings, plus incentive compensation and equity.",
+      "url": "https://simplify.jobs/p/b4b6d100-1680-4fce-b6dc-ef5961421b23/Associate-Solution-Engineer--New-Grad",
+      "title": "Simplify: Associate Solution Engineer - New Grad",
+      "source_type": "third_party"
+     },
+     {
+      "field": "program.location",
+      "value": "2025 locations: San Francisco, New York, Chicago, Atlanta, Indianapolis; office-based.",
+      "url": "https://simplify.jobs/p/b4b6d100-1680-4fce-b6dc-ef5961421b23/Associate-Solution-Engineer--New-Grad",
+      "title": "Simplify: Associate Solution Engineer - New Grad",
+      "source_type": "third_party"
+     },
+     {
+      "field": "program.eligibility",
+      "value": "Within a year of completing a bachelor's or advanced degree as of the start date.",
+      "url": "https://www.themuse.com/jobs/salesforce/associate-solution-engineer-success-graduate-new-grad-e2193f",
+      "title": "The Muse: Associate Solution Engineer, Success Graduate",
+      "source_type": "third_party"
+     },
+     {
+      "field": "program.open_window",
+      "value": "The 2025 posting was dated April 8, 2025.",
+      "url": "https://jobs.omegavp.com/companies/salesforce-2/jobs/48566799-associate-solution-engineer-new-grad",
+      "title": "Associate Solution Engineer (New Grad) job copy",
+      "source_type": "third_party",
+      "confidence": "low",
+      "observed_on": "2025-04-08"
+     }
+    ]
+   }
+  ],
+  "jobs": [],
+  "ats_type": "workday",
+  "ats_token": null,
+  "ats_host": "salesforce.wd12.myworkdayjobs.com",
+  "ats_site": "External_Career_Site",
+  "ats_verified": true
+ },
+ {
+  "name": "ServiceNow",
+  "website": "https://www.servicenow.com",
+  "careers_url": "https://careers.servicenow.com",
+  "industry": "Enterprise software",
+  "category": "software",
+  "subcategory": "Workflow automation platform",
+  "hq": "Santa Clara, CA",
+  "ca_presence": "HQ in Santa Clara; past academy cohorts in San Diego",
+  "watch_status": "monitor",
+  "summary": "ServiceNow sells a workflow automation platform; its Solution Consulting Academy trains early-career Solution Consultants.",
+  "data": {},
+  "evidence": [],
+  "programs": [
+   {
+    "name": "Solution Consulting (SC) Academy",
+    "role_title": "Associate Solution Consultant, SC Academy",
+    "kind": "academy",
+    "target_family": "se",
+    "status": "unknown",
+    "summary": "5 to 6 month academy for early-career Solution Consultants.",
+    "evidence": [
+     {
+      "field": "program.outcomes",
+      "value": "In 2020, 93% of the 22 academy graduates continued in solution consulting at ServiceNow.",
+      "url": "https://www.servicenow.com/blogs/2021/solution-consulting-academy-helps-veterans",
+      "title": "ServiceNow blog: SC Academy",
+      "source_type": "official",
+      "observed_on": "2021-01-01"
+     },
+     {
+      "field": "program.duration",
+      "value": "5 to 6 months, depending on year and region.",
+      "url": "https://www.builtinchicago.org/job/associate-solution-consultant-sc-academy/256087",
+      "title": "Built In Chicago: Associate Solution Consultant, SC Academy",
+      "source_type": "third_party"
+     },
+     {
+      "field": "comp.base",
+      "value": "About $72K for a remote cohort starting October 2024.",
+      "url": "https://www.builtinchicago.org/job/associate-solution-consultant-sc-academy/256087",
+      "title": "Built In Chicago: Associate Solution Consultant, SC Academy",
+      "source_type": "third_party",
+      "observed_on": "2024-10-01"
+     },
+     {
+      "field": "program.training_content",
+      "value": "Demo training, value selling, ITIL, RFP and proposal work, demo data and scripts, technical writing and business value consulting.",
+      "url": "https://www.builtinchicago.org/job/associate-solution-consultant-sc-academy/256087",
+      "title": "Built In Chicago: Associate Solution Consultant, SC Academy",
+      "source_type": "third_party"
+     },
+     {
+      "field": "program.location",
+      "value": "Past cohorts: San Diego (1-3 days in office, July 2023 start), Addison TX, Waltham MA, and remote.",
+      "url": "https://www.wayup.com/i-j-ServiceNow-702222108561620/",
+      "title": "WayUp: ServiceNow SC Academy",
+      "source_type": "third_party",
+      "observed_on": "2023-07-01"
+     },
+     {
+      "field": "program.yoe",
+      "value": "A 2022 posting asked for 1-3 years of experience, which could include internships.",
+      "url": "https://simplify.jobs/p/63887176-1ab5-4ee7-ba25-dfad6fc4a09d/Associate-Solution-Consultant",
+      "title": "Simplify: Associate Solution Consultant",
+      "source_type": "third_party",
+      "observed_on": "2022-08-30"
+     }
+    ]
+   }
+  ],
+  "jobs": [],
+  "ats_type": "smartrecruiters",
+  "ats_token": "ServiceNow",
+  "ats_host": null,
+  "ats_site": null,
+  "ats_verified": true
+ },
+ {
+  "name": "SAP",
+  "website": "https://www.sap.com",
+  "careers_url": "https://jobs.sap.com",
+  "industry": "Enterprise software",
+  "category": "software",
+  "subcategory": "ERP and business applications",
+  "hq": "Walldorf, Germany",
+  "ca_presence": "Academy historically trained in Dublin, CA",
+  "watch_status": "monitor",
+  "summary": "SAP sells enterprise applications; its Academy for Customer Success trains early-career presales Solution Advisors.",
+  "data": {},
+  "evidence": [],
+  "programs": [
+   {
+    "name": "SAP Academy for Customer Success (Presales)",
+    "role_title": "Solution Advisor Associate - SAP Academy for Customer Success",
+    "kind": "academy",
+    "target_family": "se",
+    "status": "unknown",
+    "summary": "10-month presales academy inside a three-year development journey.",
+    "evidence": [
+     {
+      "field": "program.duration",
+      "value": "A 10-month program within a three-year development journey.",
+      "url": "https://www.wayup.com/i-Computer-Software-j-Solution-Advisor-Associate-SAP-Academy-for-Customer-Success-USA-Hybrid-SAP-364245952003091/",
+      "title": "WayUp: Solution Advisor Associate, SAP Academy",
+      "source_type": "third_party"
+     },
+     {
+      "field": "program.eligibility",
+      "value": "Early-career talent; no current or future visa sponsorship.",
+      "url": "https://www.wayup.com/i-Computer-Software-j-Solution-Advisor-Associate-SAP-Academy-for-Customer-Success-USA-Hybrid-SAP-364245952003091/",
+      "title": "WayUp: Solution Advisor Associate, SAP Academy",
+      "source_type": "third_party"
+     },
+     {
+      "field": "travel.percent",
+      "value": "Expected travel 0 to 100%.",
+      "url": "https://www.wayup.com/i-Computer-Software-j-Solution-Advisor-Associate-SAP-Academy-for-Customer-Success-USA-Hybrid-SAP-364245952003091/",
+      "title": "WayUp: Solution Advisor Associate, SAP Academy",
+      "source_type": "third_party"
+     },
+     {
+      "field": "program.location",
+      "value": "Classroom training has historically been held in Dublin, CA.",
+      "url": "https://ee.kaist.ac.kr/jobs/8446/",
+      "title": "SAP Sales/Presales Academy posting",
+      "source_type": "third_party",
+      "confidence": "low"
+     }
+    ]
+   }
+  ],
+  "jobs": []
+ },
+ {
+  "name": "Zscaler",
+  "website": "https://www.zscaler.com",
+  "careers_url": "https://www.zscaler.com/careers",
+  "industry": "Cybersecurity",
+  "category": "cybersecurity",
+  "subcategory": "Zero trust and secure access (SSE/SASE)",
+  "hq": "San Jose, CA",
+  "ca_presence": "HQ in San Jose",
+  "watch_status": "monitor",
+  "summary": "Zscaler sells cloud zero-trust security; it has run a graduate program for Associate Solutions Engineers.",
+  "data": {
+   "standout": [
+    {
+     "action": "Try the Zscaler Certified Sales Engineer learning path on the Zscaler partner academy (about 3 hours, no prerequisites).",
+     "why": "It teaches the exact positioning SEs use. Access may require a partner account; check before relying on it.",
+     "effort": "3 hours"
+    }
+   ]
+  },
+  "evidence": [
+   {
+    "field": "program.certifications",
+    "value": "The partner academy offers a Zscaler Certified Sales Engineer path: about 3 hours, no prerequisites.",
+    "url": "https://partneracademy.zscaler.com/path/zscaler-sales-engineer",
+    "title": "Zscaler Partner Academy: Sales Engineer",
+    "source_type": "official"
+   }
+  ],
+  "programs": [
+   {
+    "name": "Zscaler Graduate Program, Associate Solutions Engineer",
+    "role_title": "Associate Sales Engineer - Zscaler Graduate Program",
+    "kind": "academy",
+    "target_family": "se",
+    "status": "unknown",
+    "summary": "Entry-level SE program moving from a service-center SE role into commercial or partner SE roles.",
+    "evidence": [
+     {
+      "field": "program.next_role",
+      "value": "Month 6: full-time Solutions Engineer in the Zscaler Service Center. Month 12: Commercial or Partner Solutions Engineer.",
+      "url": "https://www.career.com/job/zscaler/associate-sales-engineer-zscaler-graduate-program/j202403161016414518960",
+      "title": "Associate Sales Engineer - Zscaler Graduate Program",
+      "source_type": "third_party",
+      "observed_on": "2024-03-16"
+     },
+     {
+      "field": "program.location",
+      "value": "2024 listing in Boston, MA; no relocation offered.",
+      "url": "https://www.career.com/job/zscaler/associate-sales-engineer-zscaler-graduate-program/j202403161016414518960",
+      "title": "Associate Sales Engineer - Zscaler Graduate Program",
+      "source_type": "third_party"
+     }
+    ]
+   }
+  ],
+  "jobs": [],
+  "ats_type": "greenhouse",
+  "ats_token": "zscaler",
+  "ats_host": null,
+  "ats_site": null,
+  "ats_verified": true
+ },
+ {
+  "name": "CrowdStrike",
+  "website": "https://www.crowdstrike.com",
+  "careers_url": "https://www.crowdstrike.com/careers",
+  "industry": "Cybersecurity",
+  "category": "cybersecurity",
+  "subcategory": "Endpoint, cloud and identity security (XDR)",
+  "hq": "Austin, TX",
+  "watch_status": "monitor",
+  "summary": "CrowdStrike sells endpoint and cloud security; no new-grad SE program was found, but it runs sales technical internships.",
+  "data": {},
+  "evidence": [
+   {
+    "field": "intern.conversion",
+    "value": "Sales Technical Interns work toward one of the three main SE certifications and can extend into a part-time semester internship; $28 to $32 per hour.",
+    "url": "https://prosple.com/graduate-employers/crowdstrike-usa/jobs-internships/sales-technical-intern",
+    "title": "Prosple: CrowdStrike Sales Technical Intern",
+    "source_type": "third_party"
+   },
+   {
+    "field": "program.open_window",
+    "value": "Summer 2027 sales intern postings went live September 16, 2026, in Austin.",
+    "url": "https://www.extern.com/post/crowdstrike-internship-guide",
+    "title": "Extern: CrowdStrike internship guide",
+    "source_type": "third_party",
+    "confidence": "medium",
+    "observed_on": "2026-09-16"
+   },
+   {
+    "field": "comp.base",
+    "value": "Glassdoor: Sales Engineers with 1-3 years report roughly $92K to $139K total pay (self-reported).",
+    "url": "https://www.glassdoor.com/Salary/CrowdStrike-Sales-Engineer-Salaries-E795976_D_KO12,26.htm",
+    "title": "Glassdoor: CrowdStrike Sales Engineer salaries",
+    "source_type": "employee_reported"
+   },
+   {
+    "field": "org.se_team",
+    "value": "Runs a Sales Engineering organization with entry roles requiring 2+ years.",
+    "url": "https://www.ziprecruiter.com/Jobs/Technical-Sales-Engineer-Crowdstrike",
+    "title": "ZipRecruiter: CrowdStrike SE jobs",
+    "source_type": "third_party"
+   }
+  ],
+  "programs": [],
+  "jobs": [],
+  "ats_type": "workday",
+  "ats_token": null,
+  "ats_host": "crowdstrike.wd5.myworkdayjobs.com",
+  "ats_site": "crowdstrikecareers",
+  "ats_verified": true
+ },
+ {
+  "name": "Microsoft",
+  "website": "https://www.microsoft.com",
+  "careers_url": "https://careers.microsoft.com",
+  "industry": "Enterprise software and cloud",
+  "category": "cloud_networking",
+  "subcategory": "Cloud, AI and productivity software",
+  "hq": "Redmond, WA",
+  "watch_status": "monitor",
+  "summary": "Microsoft's MCAPS Early in Profession program develops early-career sales and technical presales talent.",
+  "data": {},
+  "evidence": [],
+  "programs": [
+   {
+    "name": "MCAPS Early in Profession (EiP)",
+    "role_title": "MCAPS EiP (technical and sales tracks)",
+    "kind": "rotational",
+    "target_family": "mixed",
+    "status": "unknown",
+    "summary": "Three-year development program with sales and technical presales roles.",
+    "evidence": [
+     {
+      "field": "program.duration",
+      "value": "A three-year development program for future sales and technical leaders.",
+      "url": "https://careers.microsoft.com/v2/global/en/MCAPSEIP.html",
+      "title": "Microsoft: MCAPS EiP",
+      "source_type": "official"
+     },
+     {
+      "field": "program.description",
+      "value": "Tracks include presales roles that align technical solutions with customer goals and drive technical wins.",
+      "url": "https://careers.microsoft.com/v2/global/en/MCAPSEIP.html",
+      "title": "Microsoft: MCAPS EiP",
+      "source_type": "official"
+     }
+    ]
+   }
+  ],
+  "jobs": []
+ },
+ {
+  "name": "Google",
+  "website": "https://about.google",
+  "careers_url": "https://www.google.com/about/careers/applications/",
+  "industry": "Cloud and advertising",
+  "category": "cloud_networking",
+  "subcategory": "Google Cloud and Google Customer Solutions",
+  "hq": "Mountain View, CA",
+  "ca_presence": "HQ in Mountain View; roles in San Francisco",
+  "watch_status": "monitor",
+  "summary": "Google hires university graduates into Google Customer Solutions sales roles; no US new-grad Customer Engineer track was found in this research pass.",
+  "data": {},
+  "evidence": [],
+  "programs": [
+   {
+    "name": "Google Customer Solutions University Graduate (Sales)",
+    "role_title": "Customer Growth Associate, University Graduate, 2027 Start",
+    "kind": "new_grad",
+    "target_family": "ae",
+    "status": "open",
+    "summary": "B2B advertising sales role for 2027 graduates.",
+    "evidence": [
+     {
+      "field": "program.start_date",
+      "value": "Prioritizing candidates who can start in July 2027.",
+      "url": "https://www.google.com/about/careers/applications/jobs/results/121628144896484038-customer-growth-associate-google-customer-solutions-university-graduate-2027-start-english",
+      "title": "Google: Customer Growth Associate, 2027 Start",
+      "source_type": "official"
+     },
+     {
+      "field": "comp.base",
+      "value": "$72,000 to $102,000 per year listed for San Francisco and New York.",
+      "url": "https://www.indeed.com/q-google-l-california-jobs.html",
+      "title": "Indeed: Google jobs in California",
+      "source_type": "third_party"
+     }
+    ]
+   }
+  ],
+  "jobs": [
+   {
+    "title": "Customer Growth Associate, Google Customer Solutions, University Graduate, 2027 Start (English)",
+    "url": "https://www.google.com/about/careers/applications/jobs/results/121628144896484038-customer-growth-associate-google-customer-solutions-university-graduate-2027-start-english",
+    "source_is_original": true,
+    "program": "Google Customer Solutions University Graduate (Sales)",
+    "location_text": "San Francisco, CA, USA; New York, NY, USA",
+    "description": "Due to business needs, we are prioritizing candidates that are available to start in July 2027. Bachelor's degree or equivalent practical experience in a B2B sales or business development role. Experience in advertising, consultative sales or business development through roles, internships, projects or classes. Customer-facing sales role. Preferred: Google Ads certification; managing a portfolio against customer goals. $72,000 - $102,000 a year."
+   }
+  ]
+ },
+ {
+  "name": "Canon",
+  "watch_status": "monitor",
+  "category": "it_solutions",
+  "watch_note": null,
+  "data": {},
+  "evidence": [],
+  "programs": [],
+  "jobs": [],
+  "website": "https://usa.canon.com"
+ },
+ {
+  "name": "ReliaQuest",
+  "watch_status": "monitor",
+  "category": "cybersecurity",
+  "watch_note": null,
+  "data": {},
+  "evidence": [],
+  "programs": [],
+  "jobs": [],
+  "ats_type": "workday",
+  "ats_token": null,
+  "ats_host": "reliaquest.wd5.myworkdayjobs.com",
+  "ats_site": "ReliaQuest_Careers",
+  "ats_verified": true,
+  "website": "https://www.reliaquest.com"
+ },
+ {
+  "name": "Varonis",
+  "website": "https://www.varonis.com",
+  "careers_url": "https://careers.varonis.com",
+  "industry": "Cybersecurity",
+  "category": "cybersecurity",
+  "subcategory": "Data security: who can access sensitive data, and threat detection on it",
+  "az_presence": "Phoenix-area sales office: SDR, territory development and mid-market sales roles posted in Phoenix and Tempe",
+  "watch_status": "strong",
+  "ats_type": "jobvite",
+  "ats_token": "varonis",
+  "ats_verified": false,
+  "watch_note": "Arizona sales hub with a local Sales Engineer team.",
+  "summary": "Varonis (Nasdaq: VRNS) sells data security software that maps who can access sensitive data and detects threats against it.",
+  "data": {
+   "product": "Varonis' data security platform",
+   "standout": [
+    {
+     "action": "Learn the basics of data security posture management: why over-permissive file and cloud access is a breach risk, and how Varonis maps it. Prepare a two-minute explanation.",
+     "why": "Varonis positions itself differently from conventional cybersecurity vendors; showing you understand that angle stands out for an SDR.",
+     "effort": "2-3 hours"
+    },
+    {
+     "action": "Ask the Phoenix SDR team how SDRs move onto the local Sales Engineer team, and paste any public profiles you find into Career paths.",
+     "why": "Mid-market reps in Phoenix are aligned with a local SE, so the SE team is close by. Transition evidence would upgrade this to a LIKELY path.",
+     "effort": "30 minutes"
+    }
+   ]
+  },
+  "evidence": [
+   {
+    "field": "org.se_team",
+    "value": "Mid-Market Sales Representatives in Phoenix are aligned with a local Sales Engineer.",
+    "url": "https://www.indeed.com/viewjob?jk=efe96dd04f22f72a",
+    "title": "Indeed: Varonis Mid-Market Sales Representative, Phoenix",
+    "source_type": "third_party"
+   },
+   {
+    "field": "company.locations",
+    "value": "Sales roles posted in Phoenix and Tempe, AZ, including an in-office SDR role.",
+    "url": "https://builtin.com/job/sales-development-representative/11071416",
+    "title": "Built In: Varonis SDR, Phoenix",
+    "source_type": "third_party",
+    "observed_on": "2026-09-08"
+   },
+   {
+    "field": "program.eligibility",
+    "value": "SDR requirements: a bachelor's degree, or 1+ years of B2B sales; high call volume; Salesforce CRM; onsite in the Phoenix area.",
+    "url": "https://jobs.jobvite.com/varonis-internal/job/okDbvfwn",
+    "title": "Varonis careers: Sales Development Representative",
+    "source_type": "official",
+    "confidence": "medium",
+    "observed_on": "2024-12-31",
+    "note": "Official posting, but about 21 months old."
+   },
+   {
+    "field": "comp.base",
+    "value": "Territory Development Representative in Phoenix listed at $49,600 to $82,400.",
+    "url": "https://www.ziprecruiter.com/c/Varonis/Job/Territory-Development-Representative/-in-Phoenix,AZ?jid=0aa74d2c8bdddd9b",
+    "title": "ZipRecruiter: Varonis Territory Development Representative",
+    "source_type": "third_party"
+   },
+   {
+    "field": "comp.base",
+    "value": "Indeed salary estimates: Sales Engineer about $89K; Inside Sales Representative about $55K (estimates).",
+    "url": "https://www.indeed.com/cmp/varonis/salaries/sales-representative/phoenix-az?period=hourly",
+    "title": "Indeed: Varonis salaries",
+    "source_type": "employee_reported",
+    "confidence": "low"
+   }
+  ],
+  "programs": [],
+  "jobs": [
+   {
+    "title": "Sales Development Representative",
+    "url": "https://builtin.com/job/sales-development-representative/11071416",
+    "source_is_original": false,
+    "location_text": "Phoenix, AZ",
+    "description": "The Sales Development Representative is the first point of contact for Varonis, a data security company. Identify prospective customers and qualify decision makers, run high-volume phone and email outreach, present Varonis products, follow up on marketing and channel partner leads, book meetings, and partner with Account Managers on sales strategy. Learn the Varonis sales process and core products. Maintain account activity in Salesforce (CRM). Bachelor's degree or 1+ years of B2B sales experience. Onsite in the Phoenix, Arizona area."
+   },
+   {
+    "title": "Territory Development Representative",
+    "url": "https://www.ziprecruiter.com/c/Varonis/Job/Territory-Development-Representative/-in-Phoenix,AZ?jid=0aa74d2c8bdddd9b",
+    "source_is_original": false,
+    "location_text": "Phoenix, AZ",
+    "description": "First point of contact for Varonis prospects in an assigned territory. Identify decision makers, partner with Account Managers on strategy, and run cold calling, prospecting and meeting booking. $49,600 to $82,400 annually."
+   }
+  ]
+ },
+ {
+  "name": "Sectigo",
+  "website": "https://www.sectigo.com",
+  "industry": "Cybersecurity",
+  "category": "cybersecurity",
+  "subcategory": "Digital certificates, PKI and certificate lifecycle management",
+  "az_presence": "Scottsdale office (SDR role listed)",
+  "watch_status": "monitor",
+  "summary": "Sectigo sells digital certificates and certificate lifecycle management (PKI) for websites, devices and identities.",
+  "data": {},
+  "evidence": [
+   {
+    "field": "comp.base",
+    "value": "Sales Development Representative in Scottsdale, AZ listed at $60K (employer-provided).",
+    "url": "https://www.glassdoor.com/Job/arizona-cloud-platform-sales-representative-jobs-SRCH_IL.0,7_IS483_KO8,43.htm",
+    "title": "Glassdoor: Arizona sales jobs",
+    "source_type": "third_party"
+   }
+  ],
+  "programs": [],
+  "jobs": [
+   {
+    "title": "Sales Development Representative",
+    "url": "https://www.glassdoor.com/Job/arizona-cloud-platform-sales-representative-jobs-SRCH_IL.0,7_IS483_KO8,43.htm",
+    "source_is_original": false,
+    "location_text": "Scottsdale, AZ",
+    "description": "Sales Development Representative at Sectigo, a digital certificate and PKI security company. Bachelor's degree in marketing, business or a related field strongly preferred. Business development and market research skills. $60,000."
+   }
+  ]
+ },
+ {
+  "name": "GoDaddy",
+  "watch_status": "monitor",
+  "category": "software",
+  "subcategory": "Domains, hosting and small-business software",
+  "az_presence": "Arizona office (not yet verified by the agent; confirm on the company's careers page)",
+  "ca_presence": null,
+  "data": {},
+  "evidence": [],
+  "programs": [],
+  "jobs": [],
+  "website": "https://www.godaddy.com"
+ },
+ {
+  "name": "Avnet",
+  "watch_status": "monitor",
+  "category": "it_solutions",
+  "subcategory": "Electronics distribution and technical field sales",
+  "az_presence": "Arizona office (not yet verified by the agent; confirm on the company's careers page)",
+  "ca_presence": null,
+  "data": {},
+  "evidence": [],
+  "programs": [],
+  "jobs": [],
+  "ats_type": "workday",
+  "ats_token": null,
+  "ats_host": "avnet.wd1.myworkdayjobs.com",
+  "ats_site": "external",
+  "ats_verified": true,
+  "website": "https://www.avnet.com"
+ },
+ {
+  "name": "Microchip Technology",
+  "watch_status": "monitor",
+  "category": "cloud_networking",
+  "subcategory": "Semiconductors (field applications engineering)",
+  "az_presence": "Arizona office (not yet verified by the agent; confirm on the company's careers page)",
+  "ca_presence": null,
+  "data": {},
+  "evidence": [],
+  "programs": [],
+  "jobs": [],
+  "website": "https://www.microchip.com"
+ },
+ {
+  "name": "Blue Yonder",
+  "watch_status": "monitor",
+  "category": "software",
+  "subcategory": "Supply chain software",
+  "az_presence": "Arizona office (not yet verified by the agent; confirm on the company's careers page)",
+  "ca_presence": null,
+  "data": {},
+  "evidence": [],
+  "programs": [],
+  "jobs": [],
+  "ats_type": "workday",
+  "ats_token": null,
+  "ats_host": "jda.wd5.myworkdayjobs.com",
+  "ats_site": "JDA_Careers",
+  "ats_verified": true,
+  "website": "https://www.blueyonder.com"
+ },
+ {
+  "name": "Gen Digital",
+  "watch_status": "monitor",
+  "category": "cybersecurity",
+  "subcategory": "Consumer cybersecurity (Norton, LifeLock, Avast)",
+  "az_presence": "Arizona office (not yet verified by the agent; confirm on the company's careers page)",
+  "ca_presence": null,
+  "data": {},
+  "evidence": [],
+  "programs": [],
+  "jobs": [],
+  "ats_type": "ashby",
+  "ats_token": "gen-digital",
+  "ats_host": null,
+  "ats_site": null,
+  "ats_verified": true,
+  "website": "https://www.gendigital.com"
+ },
+ {
+  "name": "Okta",
+  "watch_status": "monitor",
+  "category": "cybersecurity",
+  "subcategory": "Identity and access management",
+  "az_presence": null,
+  "ca_presence": "San Francisco HQ",
+  "data": {},
+  "evidence": [],
+  "programs": [],
+  "jobs": [],
+  "website": "https://www.okta.com"
+ },
+ {
+  "name": "Cloudflare",
+  "watch_status": "monitor",
+  "category": "cybersecurity",
+  "subcategory": "Network security and edge cloud",
+  "az_presence": null,
+  "ca_presence": "San Francisco HQ",
+  "data": {},
+  "evidence": [],
+  "programs": [],
+  "jobs": [],
+  "website": "https://www.cloudflare.com"
+ },
+ {
+  "name": "Datadog",
+  "watch_status": "monitor",
+  "category": "software",
+  "subcategory": "Observability and security monitoring",
+  "az_presence": null,
+  "ca_presence": null,
+  "data": {},
+  "evidence": [],
+  "programs": [],
+  "jobs": [],
+  "website": "https://www.datadoghq.com"
+ },
+ {
+  "name": "Rubrik",
+  "watch_status": "monitor",
+  "category": "cybersecurity",
+  "subcategory": "Data security and cyber recovery",
+  "az_presence": null,
+  "ca_presence": "Palo Alto HQ",
+  "data": {},
+  "evidence": [],
+  "programs": [],
+  "jobs": [],
+  "website": "https://www.rubrik.com"
+ },
+ {
+  "name": "SentinelOne",
+  "watch_status": "monitor",
+  "category": "cybersecurity",
+  "subcategory": "Endpoint and cloud security (XDR)",
+  "az_presence": null,
+  "ca_presence": "Mountain View HQ",
+  "data": {},
+  "evidence": [],
+  "programs": [],
+  "jobs": [],
+  "website": "https://www.sentinelone.com"
+ },
+ {
+  "name": "Netskope",
+  "watch_status": "monitor",
+  "category": "cybersecurity",
+  "subcategory": "Secure access (SASE/SSE)",
+  "az_presence": null,
+  "ca_presence": "Santa Clara HQ",
+  "data": {},
+  "evidence": [],
+  "programs": [],
+  "jobs": [],
+  "website": "https://www.netskope.com"
+ },
+ {
+  "name": "Snowflake",
+  "watch_status": "monitor",
+  "category": "cloud_networking",
+  "subcategory": "Data cloud",
+  "az_presence": null,
+  "ca_presence": "California offices",
+  "data": {},
+  "evidence": [],
+  "programs": [],
+  "jobs": [],
+  "ats_type": "ashby",
+  "ats_token": "snowflake",
+  "ats_host": null,
+  "ats_site": null,
+  "ats_verified": true,
+  "website": "https://www.snowflake.com"
+ },
+ {
+  "name": "OpenAI",
+  "watch_status": "monitor",
+  "category": "ai",
+  "subcategory": "AI models and enterprise AI",
+  "az_presence": null,
+  "ca_presence": "San Francisco HQ",
+  "data": {},
+  "evidence": [],
+  "programs": [],
+  "jobs": [],
+  "ats_type": "ashby",
+  "ats_token": "openai",
+  "ats_host": null,
+  "ats_site": null,
+  "ats_verified": true,
+  "website": "https://www.openai.com"
+ },
+ {
+  "name": "Anthropic",
+  "watch_status": "monitor",
+  "category": "ai",
+  "subcategory": "AI models and enterprise AI",
+  "az_presence": null,
+  "ca_presence": "San Francisco HQ",
+  "data": {},
+  "evidence": [],
+  "programs": [],
+  "jobs": [],
+  "ats_type": "greenhouse",
+  "ats_token": "anthropic",
+  "ats_host": null,
+  "ats_site": null,
+  "ats_verified": true,
+  "website": "https://www.anthropic.com"
+ },
+ {
+  "name": "Proofpoint",
+  "watch_status": "monitor",
+  "category": "cybersecurity",
+  "subcategory": "Email and data security",
+  "az_presence": null,
+  "ca_presence": "Sunnyvale HQ",
+  "data": {},
+  "evidence": [],
+  "programs": [],
+  "jobs": [],
+  "ats_type": "workday",
+  "ats_token": null,
+  "ats_host": "proofpoint.wd5.myworkdayjobs.com",
+  "ats_site": "proofpointcareers",
+  "ats_verified": true,
+  "website": "https://www.proofpoint.com"
+ },
+ {
+  "name": "Illumio",
+  "watch_status": "monitor",
+  "category": "cybersecurity",
+  "subcategory": "Zero trust segmentation",
+  "az_presence": null,
+  "ca_presence": "Sunnyvale HQ",
+  "data": {},
+  "evidence": [],
+  "programs": [],
+  "jobs": [],
+  "ats_type": "ashby",
+  "ats_token": "illumio",
+  "ats_host": null,
+  "ats_site": null,
+  "ats_verified": true,
+  "website": "https://www.illumio.com"
+ },
+ {
+  "name": "1Password",
+  "watch_status": "monitor",
+  "category": "cybersecurity",
+  "subcategory": "Password and access management",
+  "az_presence": null,
+  "ca_presence": null,
+  "data": {},
+  "evidence": [],
+  "programs": [],
+  "jobs": [],
+  "ats_type": "ashby",
+  "ats_token": "1password",
+  "ats_host": null,
+  "ats_site": null,
+  "ats_verified": true,
+  "website": "https://www.1password.com"
+ },
+ {
+  "name": "Vanta",
+  "watch_status": "monitor",
+  "category": "cybersecurity",
+  "subcategory": "Security compliance automation",
+  "az_presence": null,
+  "ca_presence": "San Francisco HQ",
+  "data": {},
+  "evidence": [],
+  "programs": [],
+  "jobs": [],
+  "ats_type": "ashby",
+  "ats_token": "vanta",
+  "ats_host": null,
+  "ats_site": null,
+  "ats_verified": true,
+  "website": "https://www.vanta.com"
+ },
+ {
+  "name": "Glean",
+  "watch_status": "monitor",
+  "category": "ai",
+  "subcategory": "Enterprise AI search and assistants",
+  "az_presence": null,
+  "ca_presence": "Palo Alto HQ",
+  "data": {},
+  "evidence": [],
+  "programs": [],
+  "jobs": [],
+  "ats_type": "greenhouse",
+  "ats_token": "gleanwork",
+  "ats_host": null,
+  "ats_site": null,
+  "ats_verified": true,
+  "website": "https://www.glean.com"
+ },
+ {
+  "name": "Twilio",
+  "watch_status": "monitor",
+  "category": "software",
+  "subcategory": "Communications APIs",
+  "az_presence": null,
+  "ca_presence": "San Francisco HQ",
+  "data": {},
+  "evidence": [],
+  "programs": [],
+  "jobs": [],
+  "ats_type": "greenhouse",
+  "ats_token": "twilio",
+  "ats_host": null,
+  "ats_site": null,
+  "ats_verified": true,
+  "website": "https://www.twilio.com"
+ },
+ {
+  "name": "Saviynt",
+  "watch_status": "monitor",
+  "category": "cybersecurity",
+  "subcategory": "Identity governance",
+  "az_presence": null,
+  "ca_presence": "El Segundo HQ",
+  "data": {},
+  "evidence": [],
+  "programs": [],
+  "jobs": [],
+  "ats_type": "lever",
+  "ats_token": "saviynt",
+  "ats_host": null,
+  "ats_site": null,
+  "ats_verified": true,
+  "website": "https://www.saviynt.com"
+ },
+ {
+  "name": "Ping Identity",
+  "watch_status": "monitor",
+  "category": "cybersecurity",
+  "subcategory": "Identity and access management",
+  "az_presence": null,
+  "ca_presence": null,
+  "data": {},
+  "evidence": [],
+  "programs": [],
+  "jobs": [],
+  "ats_type": "greenhouse",
+  "ats_token": "pingidentity",
+  "ats_host": null,
+  "ats_site": null,
+  "ats_verified": true,
+  "website": "https://www.pingidentity.com"
+ },
+ {
+  "name": "Nerdio",
+  "watch_status": "monitor",
+  "category": "cloud_networking",
+  "subcategory": "Microsoft cloud desktop management",
+  "az_presence": null,
+  "ca_presence": null,
+  "data": {},
+  "evidence": [],
+  "programs": [],
+  "jobs": [],
+  "website": "https://www.getnerdio.com"
+ },
+ {
+  "name": "Fortinet",
+  "website": "https://www.fortinet.com",
+  "category": "cybersecurity",
+  "subcategory": "Network security and firewalls",
+  "watch_status": "monitor",
+  "watch_note": "Cybersecurity company (curated). Scans count its open SE roles and find entry sales roles in your area.",
+  "data": {},
+  "evidence": [],
+  "programs": [],
+  "jobs": []
+ },
+ {
+  "name": "Check Point Software",
+  "website": "https://www.checkpoint.com",
+  "category": "cybersecurity",
+  "subcategory": "Network and cloud security",
+  "watch_status": "monitor",
+  "watch_note": "Cybersecurity company (curated). Scans count its open SE roles and find entry sales roles in your area.",
+  "data": {},
+  "evidence": [],
+  "programs": [],
+  "jobs": []
+ },
+ {
+  "name": "Tenable",
+  "website": "https://www.tenable.com",
+  "category": "cybersecurity",
+  "subcategory": "Exposure and vulnerability management",
+  "watch_status": "monitor",
+  "watch_note": "Cybersecurity company (curated). Scans count its open SE roles and find entry sales roles in your area.",
+  "data": {},
+  "evidence": [],
+  "programs": [],
+  "jobs": []
+ },
+ {
+  "name": "Rapid7",
+  "website": "https://www.rapid7.com",
+  "category": "cybersecurity",
+  "subcategory": "Security operations and vulnerability management",
+  "watch_status": "monitor",
+  "watch_note": "Cybersecurity company (curated). Scans count its open SE roles and find entry sales roles in your area.",
+  "data": {},
+  "evidence": [],
+  "programs": [],
+  "jobs": []
+ },
+ {
+  "name": "Qualys",
+  "website": "https://www.qualys.com",
+  "category": "cybersecurity",
+  "subcategory": "Vulnerability management (Foothill Ranch, CA)",
+  "watch_status": "monitor",
+  "watch_note": "Cybersecurity company (curated). Scans count its open SE roles and find entry sales roles in your area.",
+  "data": {},
+  "evidence": [],
+  "programs": [],
+  "jobs": []
+ },
+ {
+  "name": "CyberArk",
+  "website": "https://www.cyberark.com",
+  "category": "cybersecurity",
+  "subcategory": "Identity security and privileged access",
+  "watch_status": "monitor",
+  "watch_note": "Cybersecurity company (curated). Scans count its open SE roles and find entry sales roles in your area.",
+  "data": {},
+  "evidence": [],
+  "programs": [],
+  "jobs": []
+ },
+ {
+  "name": "SailPoint",
+  "website": "https://www.sailpoint.com",
+  "category": "cybersecurity",
+  "subcategory": "Identity governance",
+  "watch_status": "monitor",
+  "watch_note": "Cybersecurity company (curated). Scans count its open SE roles and find entry sales roles in your area.",
+  "data": {},
+  "evidence": [],
+  "programs": [],
+  "jobs": [],
+  "ats_type": "workday",
+  "ats_token": null,
+  "ats_host": "sailpoint.wd1.myworkdayjobs.com",
+  "ats_site": "SailPoint",
+  "ats_verified": true
+ },
+ {
+  "name": "Abnormal Security",
+  "website": "https://www.abnormalsecurity.com",
+  "category": "cybersecurity",
+  "subcategory": "AI email security",
+  "watch_status": "monitor",
+  "watch_note": "Cybersecurity company (curated). Scans count its open SE roles and find entry sales roles in your area.",
+  "data": {},
+  "evidence": [],
+  "programs": [],
+  "jobs": []
+ },
+ {
+  "name": "Wiz",
+  "website": "https://www.wiz.io",
+  "category": "cybersecurity",
+  "subcategory": "Cloud security",
+  "watch_status": "monitor",
+  "watch_note": "Cybersecurity company (curated). Scans count its open SE roles and find entry sales roles in your area.",
+  "data": {},
+  "evidence": [],
+  "programs": [],
+  "jobs": []
+ },
+ {
+  "name": "Snyk",
+  "website": "https://www.snyk.io",
+  "category": "cybersecurity",
+  "subcategory": "Developer security",
+  "watch_status": "monitor",
+  "watch_note": "Cybersecurity company (curated). Scans count its open SE roles and find entry sales roles in your area.",
+  "data": {},
+  "evidence": [],
+  "programs": [],
+  "jobs": []
+ },
+ {
+  "name": "Orca Security",
+  "website": "https://www.orca.security",
+  "category": "cybersecurity",
+  "subcategory": "Cloud security",
+  "watch_status": "monitor",
+  "watch_note": "Cybersecurity company (curated). Scans count its open SE roles and find entry sales roles in your area.",
+  "data": {},
+  "evidence": [],
+  "programs": [],
+  "jobs": []
+ },
+ {
+  "name": "Tanium",
+  "website": "https://www.tanium.com",
+  "category": "cybersecurity",
+  "subcategory": "Endpoint management and security",
+  "watch_status": "monitor",
+  "watch_note": "Cybersecurity company (curated). Scans count its open SE roles and find entry sales roles in your area.",
+  "data": {},
+  "evidence": [],
+  "programs": [],
+  "jobs": []
+ },
+ {
+  "name": "Arctic Wolf",
+  "website": "https://www.arcticwolf.com",
+  "category": "cybersecurity",
+  "subcategory": "Managed detection and response",
+  "watch_status": "monitor",
+  "watch_note": "Cybersecurity company (curated). Scans count its open SE roles and find entry sales roles in your area.",
+  "data": {},
+  "evidence": [],
+  "programs": [],
+  "jobs": []
+ },
+ {
+  "name": "Huntress",
+  "website": "https://www.huntress.com",
+  "category": "cybersecurity",
+  "subcategory": "Managed security for small business",
+  "watch_status": "monitor",
+  "watch_note": "Cybersecurity company (curated). Scans count its open SE roles and find entry sales roles in your area.",
+  "data": {},
+  "evidence": [],
+  "programs": [],
+  "jobs": []
+ },
+ {
+  "name": "Expel",
+  "website": "https://www.expel.com",
+  "category": "cybersecurity",
+  "subcategory": "Managed detection and response",
+  "watch_status": "monitor",
+  "watch_note": "Cybersecurity company (curated). Scans count its open SE roles and find entry sales roles in your area.",
+  "data": {},
+  "evidence": [],
+  "programs": [],
+  "jobs": []
+ },
+ {
+  "name": "Red Canary",
+  "website": "https://www.redcanary.com",
+  "category": "cybersecurity",
+  "subcategory": "Managed detection and response",
+  "watch_status": "monitor",
+  "watch_note": "Cybersecurity company (curated). Scans count its open SE roles and find entry sales roles in your area.",
+  "data": {},
+  "evidence": [],
+  "programs": [],
+  "jobs": []
+ },
+ {
+  "name": "Sophos",
+  "website": "https://www.sophos.com",
+  "category": "cybersecurity",
+  "subcategory": "Endpoint and network security",
+  "watch_status": "monitor",
+  "watch_note": "Cybersecurity company (curated). Scans count its open SE roles and find entry sales roles in your area.",
+  "data": {},
+  "evidence": [],
+  "programs": [],
+  "jobs": [],
+  "ats_type": "lever",
+  "ats_token": "sophos",
+  "ats_host": null,
+  "ats_site": null,
+  "ats_verified": true
+ },
+ {
+  "name": "Mimecast",
+  "website": "https://www.mimecast.com",
+  "category": "cybersecurity",
+  "subcategory": "Email security",
+  "watch_status": "monitor",
+  "watch_note": "Cybersecurity company (curated). Scans count its open SE roles and find entry sales roles in your area.",
+  "data": {},
+  "evidence": [],
+  "programs": [],
+  "jobs": [],
+  "ats_type": "workday",
+  "ats_token": null,
+  "ats_host": "mimecast.wd5.myworkdayjobs.com",
+  "ats_site": "Mimecast-Careers",
+  "ats_verified": true
+ },
+ {
+  "name": "KnowBe4",
+  "website": "https://www.knowbe4.com",
+  "category": "cybersecurity",
+  "subcategory": "Security awareness training",
+  "watch_status": "monitor",
+  "watch_note": "Cybersecurity company (curated). Scans count its open SE roles and find entry sales roles in your area.",
+  "data": {},
+  "evidence": [],
+  "programs": [],
+  "jobs": [],
+  "ats_type": "greenhouse",
+  "ats_token": "knowbe4",
+  "ats_host": null,
+  "ats_site": null,
+  "ats_verified": true
+ },
+ {
+  "name": "Imperva",
+  "website": "https://www.imperva.com",
+  "category": "cybersecurity",
+  "subcategory": "Application and data security",
+  "watch_status": "monitor",
+  "watch_note": "Cybersecurity company (curated). Scans count its open SE roles and find entry sales roles in your area.",
+  "data": {},
+  "evidence": [],
+  "programs": [],
+  "jobs": []
+ },
+ {
+  "name": "DigiCert",
+  "website": "https://www.digicert.com",
+  "category": "cybersecurity",
+  "subcategory": "Digital certificates and PKI",
+  "watch_status": "monitor",
+  "watch_note": "Cybersecurity company (curated). Scans count its open SE roles and find entry sales roles in your area.",
+  "data": {},
+  "evidence": [],
+  "programs": [],
+  "jobs": []
+ },
+ {
+  "name": "Keyfactor",
+  "website": "https://www.keyfactor.com",
+  "category": "cybersecurity",
+  "subcategory": "Machine identity and PKI",
+  "watch_status": "monitor",
+  "watch_note": "Cybersecurity company (curated). Scans count its open SE roles and find entry sales roles in your area.",
+  "data": {},
+  "evidence": [],
+  "programs": [],
+  "jobs": []
+ },
+ {
+  "name": "Akamai",
+  "website": "https://www.akamai.com",
+  "category": "cybersecurity",
+  "subcategory": "Edge security and CDN",
+  "watch_status": "monitor",
+  "watch_note": "Cybersecurity company (curated). Scans count its open SE roles and find entry sales roles in your area.",
+  "data": {},
+  "evidence": [],
+  "programs": [],
+  "jobs": []
+ },
+ {
+  "name": "Vectra AI",
+  "website": "https://www.vectra.ai",
+  "category": "cybersecurity",
+  "subcategory": "AI threat detection",
+  "watch_status": "monitor",
+  "watch_note": "Cybersecurity company (curated). Scans count its open SE roles and find entry sales roles in your area.",
+  "data": {},
+  "evidence": [],
+  "programs": [],
+  "jobs": []
+ },
+ {
+  "name": "Darktrace",
+  "website": "https://www.darktrace.com",
+  "category": "cybersecurity",
+  "subcategory": "AI threat detection",
+  "watch_status": "monitor",
+  "watch_note": "Cybersecurity company (curated). Scans count its open SE roles and find entry sales roles in your area.",
+  "data": {},
+  "evidence": [],
+  "programs": [],
+  "jobs": [],
+  "ats_type": "workday",
+  "ats_token": null,
+  "ats_host": "darktrace.wd3.myworkdayjobs.com",
+  "ats_site": "DarktaceExternal",
+  "ats_verified": true
+ },
+ {
+  "name": "Securonix",
+  "website": "https://www.securonix.com",
+  "category": "cybersecurity",
+  "subcategory": "SIEM and security analytics",
+  "watch_status": "monitor",
+  "watch_note": "Cybersecurity company (curated). Scans count its open SE roles and find entry sales roles in your area.",
+  "data": {},
+  "evidence": [],
+  "programs": [],
+  "jobs": []
+ },
+ {
+  "name": "Exabeam",
+  "website": "https://www.exabeam.com",
+  "category": "cybersecurity",
+  "subcategory": "SIEM and security operations",
+  "watch_status": "monitor",
+  "watch_note": "Cybersecurity company (curated). Scans count its open SE roles and find entry sales roles in your area.",
+  "data": {},
+  "evidence": [],
+  "programs": [],
+  "jobs": []
+ },
+ {
+  "name": "Recorded Future",
+  "website": "https://www.recordedfuture.com",
+  "category": "cybersecurity",
+  "subcategory": "Threat intelligence",
+  "watch_status": "monitor",
+  "watch_note": "Cybersecurity company (curated). Scans count its open SE roles and find entry sales roles in your area.",
+  "data": {},
+  "evidence": [],
+  "programs": [],
+  "jobs": []
+ },
+ {
+  "name": "ZeroFox",
+  "website": "https://www.zerofox.com",
+  "category": "cybersecurity",
+  "subcategory": "External threat protection",
+  "watch_status": "monitor",
+  "watch_note": "Cybersecurity company (curated). Scans count its open SE roles and find entry sales roles in your area.",
+  "data": {},
+  "evidence": [],
+  "programs": [],
+  "jobs": []
+ },
+ {
+  "name": "Bugcrowd",
+  "website": "https://www.bugcrowd.com",
+  "category": "cybersecurity",
+  "subcategory": "Crowdsourced security testing",
+  "watch_status": "monitor",
+  "watch_note": "Cybersecurity company (curated). Scans count its open SE roles and find entry sales roles in your area.",
+  "data": {},
+  "evidence": [],
+  "programs": [],
+  "jobs": []
+ },
+ {
+  "name": "HackerOne",
+  "website": "https://www.hackerone.com",
+  "category": "cybersecurity",
+  "subcategory": "Crowdsourced security testing",
+  "watch_status": "monitor",
+  "watch_note": "Cybersecurity company (curated). Scans count its open SE roles and find entry sales roles in your area.",
+  "data": {},
+  "evidence": [],
+  "programs": [],
+  "jobs": []
+ },
+ {
+  "name": "Optiv",
+  "website": "https://www.optiv.com",
+  "category": "cybersecurity",
+  "subcategory": "Security solutions integrator",
+  "watch_status": "monitor",
+  "watch_note": "Cybersecurity company (curated). Scans count its open SE roles and find entry sales roles in your area.",
+  "data": {},
+  "evidence": [],
+  "programs": [],
+  "jobs": []
+ },
+ {
+  "name": "GuidePoint Security",
+  "website": "https://www.guidepointsecurity.com",
+  "category": "cybersecurity",
+  "subcategory": "Security solutions integrator",
+  "watch_status": "monitor",
+  "watch_note": "Cybersecurity company (curated). Scans count its open SE roles and find entry sales roles in your area.",
+  "data": {},
+  "evidence": [],
+  "programs": [],
+  "jobs": [],
+  "ats_type": "greenhouse",
+  "ats_token": "guidepointsecurity",
+  "ats_host": null,
+  "ats_site": null,
+  "ats_verified": true
+ },
+ {
+  "name": "Kudelski Security",
+  "website": "https://www.kudelskisecurity.com",
+  "category": "cybersecurity",
+  "subcategory": "Cybersecurity services",
+  "watch_status": "monitor",
+  "watch_note": "Cybersecurity company (curated). Scans count its open SE roles and find entry sales roles in your area.",
+  "data": {},
+  "evidence": [],
+  "programs": [],
+  "jobs": []
+ },
+ {
+  "name": "BlueVoyant",
+  "website": "https://www.bluevoyant.com",
+  "category": "cybersecurity",
+  "subcategory": "Managed security services",
+  "watch_status": "monitor",
+  "watch_note": "Cybersecurity company (curated). Scans count its open SE roles and find entry sales roles in your area.",
+  "data": {},
+  "evidence": [],
+  "programs": [],
+  "jobs": []
+ },
+ {
+  "name": "Delinea",
+  "website": "https://www.delinea.com",
+  "category": "cybersecurity",
+  "subcategory": "Privileged access management",
+  "watch_status": "monitor",
+  "watch_note": "Cybersecurity company (curated). Scans count its open SE roles and find entry sales roles in your area.",
+  "data": {},
+  "evidence": [],
+  "programs": [],
+  "jobs": []
+ },
+ {
+  "name": "BeyondTrust",
+  "website": "https://www.beyondtrust.com",
+  "category": "cybersecurity",
+  "subcategory": "Privileged access management",
+  "watch_status": "monitor",
+  "watch_note": "Cybersecurity company (curated). Scans count its open SE roles and find entry sales roles in your area.",
+  "data": {},
+  "evidence": [],
+  "programs": [],
+  "jobs": []
+ },
+ {
+  "name": "Keeper Security",
+  "website": "https://www.keepersecurity.com",
+  "category": "cybersecurity",
+  "subcategory": "Password and privileged access management",
+  "watch_status": "monitor",
+  "watch_note": "Cybersecurity company (curated). Scans count its open SE roles and find entry sales roles in your area.",
+  "data": {},
+  "evidence": [],
+  "programs": [],
+  "jobs": []
+ },
+ {
+  "name": "Bitwarden",
+  "website": "https://www.bitwarden.com",
+  "category": "cybersecurity",
+  "subcategory": "Password management",
+  "watch_status": "monitor",
+  "watch_note": "Cybersecurity company (curated). Scans count its open SE roles and find entry sales roles in your area.",
+  "data": {},
+  "evidence": [],
+  "programs": [],
+  "jobs": []
+ },
+ {
+  "name": "JumpCloud",
+  "website": "https://www.jumpcloud.com",
+  "category": "cybersecurity",
+  "subcategory": "Directory and device management",
+  "watch_status": "monitor",
+  "watch_note": "Cybersecurity company (curated). Scans count its open SE roles and find entry sales roles in your area.",
+  "data": {},
+  "evidence": [],
+  "programs": [],
+  "jobs": []
+ },
+ {
+  "name": "Teleport",
+  "website": "https://www.goteleport.com",
+  "category": "cybersecurity",
+  "subcategory": "Infrastructure access",
+  "watch_status": "monitor",
+  "watch_note": "Cybersecurity company (curated). Scans count its open SE roles and find entry sales roles in your area.",
+  "data": {},
+  "evidence": [],
+  "programs": [],
+  "jobs": []
+ },
+ {
+  "name": "StrongDM",
+  "website": "https://www.strongdm.com",
+  "category": "cybersecurity",
+  "subcategory": "Infrastructure access",
+  "watch_status": "monitor",
+  "watch_note": "Cybersecurity company (curated). Scans count its open SE roles and find entry sales roles in your area.",
+  "data": {},
+  "evidence": [],
+  "programs": [],
+  "jobs": []
+ },
+ {
+  "name": "Island",
+  "website": "https://www.island.io",
+  "category": "cybersecurity",
+  "subcategory": "Enterprise browser security",
+  "watch_status": "monitor",
+  "watch_note": "Cybersecurity company (curated). Scans count its open SE roles and find entry sales roles in your area.",
+  "data": {},
+  "evidence": [],
+  "programs": [],
+  "jobs": []
+ },
+ {
+  "name": "Cato Networks",
+  "website": "https://www.catonetworks.com",
+  "category": "cybersecurity",
+  "subcategory": "SASE",
+  "watch_status": "monitor",
+  "watch_note": "Cybersecurity company (curated). Scans count its open SE roles and find entry sales roles in your area.",
+  "data": {},
+  "evidence": [],
+  "programs": [],
+  "jobs": []
+ },
+ {
+  "name": "Axonius",
+  "website": "https://www.axonius.com",
+  "category": "cybersecurity",
+  "subcategory": "Cyber asset management",
+  "watch_status": "monitor",
+  "watch_note": "Cybersecurity company (curated). Scans count its open SE roles and find entry sales roles in your area.",
+  "data": {},
+  "evidence": [],
+  "programs": [],
+  "jobs": []
+ },
+ {
+  "name": "Armis",
+  "website": "https://www.armis.com",
+  "category": "cybersecurity",
+  "subcategory": "Asset and IoT security",
+  "watch_status": "monitor",
+  "watch_note": "Cybersecurity company (curated). Scans count its open SE roles and find entry sales roles in your area.",
+  "data": {},
+  "evidence": [],
+  "programs": [],
+  "jobs": []
+ },
+ {
+  "name": "Claroty",
+  "website": "https://www.claroty.com",
+  "category": "cybersecurity",
+  "subcategory": "OT and IoT security",
+  "watch_status": "monitor",
+  "watch_note": "Cybersecurity company (curated). Scans count its open SE roles and find entry sales roles in your area.",
+  "data": {},
+  "evidence": [],
+  "programs": [],
+  "jobs": []
+ },
+ {
+  "name": "Dragos",
+  "website": "https://www.dragos.com",
+  "category": "cybersecurity",
+  "subcategory": "Industrial cybersecurity",
+  "watch_status": "monitor",
+  "watch_note": "Cybersecurity company (curated). Scans count its open SE roles and find entry sales roles in your area.",
+  "data": {},
+  "evidence": [],
+  "programs": [],
+  "jobs": []
+ },
+ {
+  "name": "Forescout",
+  "website": "https://www.forescout.com",
+  "category": "cybersecurity",
+  "subcategory": "Device security",
+  "watch_status": "monitor",
+  "watch_note": "Cybersecurity company (curated). Scans count its open SE roles and find entry sales roles in your area.",
+  "data": {},
+  "evidence": [],
+  "programs": [],
+  "jobs": []
+ },
+ {
+  "name": "Cyera",
+  "website": "https://www.cyera.io",
+  "category": "cybersecurity",
+  "subcategory": "Data security posture",
+  "watch_status": "monitor",
+  "watch_note": "Cybersecurity company (curated). Scans count its open SE roles and find entry sales roles in your area.",
+  "data": {},
+  "evidence": [],
+  "programs": [],
+  "jobs": []
+ },
+ {
+  "name": "BigID",
+  "website": "https://www.bigid.com",
+  "category": "cybersecurity",
+  "subcategory": "Data security and privacy",
+  "watch_status": "monitor",
+  "watch_note": "Cybersecurity company (curated). Scans count its open SE roles and find entry sales roles in your area.",
+  "data": {},
+  "evidence": [],
+  "programs": [],
+  "jobs": []
+ },
+ {
+  "name": "Drata",
+  "website": "https://www.drata.com",
+  "category": "cybersecurity",
+  "subcategory": "Security compliance automation (San Diego)",
+  "watch_status": "monitor",
+  "watch_note": "Cybersecurity company (curated). Scans count its open SE roles and find entry sales roles in your area.",
+  "data": {},
+  "evidence": [],
+  "programs": [],
+  "jobs": []
+ },
+ {
+  "name": "Secureframe",
+  "website": "https://www.secureframe.com",
+  "category": "cybersecurity",
+  "subcategory": "Security compliance automation",
+  "watch_status": "monitor",
+  "watch_note": "Cybersecurity company (curated). Scans count its open SE roles and find entry sales roles in your area.",
+  "data": {},
+  "evidence": [],
+  "programs": [],
+  "jobs": [],
+  "ats_type": "lever",
+  "ats_token": "secureframe",
+  "ats_host": null,
+  "ats_site": null,
+  "ats_verified": true
+ },
+ {
+  "name": "Tines",
+  "website": "https://www.tines.com",
+  "category": "cybersecurity",
+  "subcategory": "Security automation",
+  "watch_status": "monitor",
+  "watch_note": "Cybersecurity company (curated). Scans count its open SE roles and find entry sales roles in your area.",
+  "data": {},
+  "evidence": [],
+  "programs": [],
+  "jobs": []
+ },
+ {
+  "name": "Cribl",
+  "website": "https://www.cribl.io",
+  "category": "cybersecurity",
+  "subcategory": "Security and observability data",
+  "watch_status": "monitor",
+  "watch_note": "Cybersecurity company (curated). Scans count its open SE roles and find entry sales roles in your area.",
+  "data": {},
+  "evidence": [],
+  "programs": [],
+  "jobs": []
+ },
+ {
+  "name": "Chainguard",
+  "website": "https://www.chainguard.dev",
+  "category": "cybersecurity",
+  "subcategory": "Software supply chain security",
+  "watch_status": "monitor",
+  "watch_note": "Cybersecurity company (curated). Scans count its open SE roles and find entry sales roles in your area.",
+  "data": {},
+  "evidence": [],
+  "programs": [],
+  "jobs": []
+ },
+ {
+  "name": "Checkmarx",
+  "website": "https://www.checkmarx.com",
+  "category": "cybersecurity",
+  "subcategory": "Application security",
+  "watch_status": "monitor",
+  "watch_note": "Cybersecurity company (curated). Scans count its open SE roles and find entry sales roles in your area.",
+  "data": {},
+  "evidence": [],
+  "programs": [],
+  "jobs": []
+ },
+ {
+  "name": "Veracode",
+  "website": "https://www.veracode.com",
+  "category": "cybersecurity",
+  "subcategory": "Application security",
+  "watch_status": "monitor",
+  "watch_note": "Cybersecurity company (curated). Scans count its open SE roles and find entry sales roles in your area.",
+  "data": {},
+  "evidence": [],
+  "programs": [],
+  "jobs": []
+ },
+ {
+  "name": "Cofense",
+  "website": "https://www.cofense.com",
+  "category": "cybersecurity",
+  "subcategory": "Phishing defense",
+  "watch_status": "monitor",
+  "watch_note": "Cybersecurity company (curated). Scans count its open SE roles and find entry sales roles in your area.",
+  "data": {},
+  "evidence": [],
+  "programs": [],
+  "jobs": []
+ },
+ {
+  "name": "Material Security",
+  "website": "https://www.material.security",
+  "category": "cybersecurity",
+  "subcategory": "Email security",
+  "watch_status": "monitor",
+  "watch_note": "Cybersecurity company (curated). Scans count its open SE roles and find entry sales roles in your area.",
+  "data": {},
+  "evidence": [],
+  "programs": [],
+  "jobs": []
+ },
+ {
+  "name": "Silverfort",
+  "website": "https://www.silverfort.com",
+  "category": "cybersecurity",
+  "subcategory": "Identity protection",
+  "watch_status": "monitor",
+  "watch_note": "Cybersecurity company (curated). Scans count its open SE roles and find entry sales roles in your area.",
+  "data": {},
+  "evidence": [],
+  "programs": [],
+  "jobs": []
+ },
+ {
+  "name": "Semperis",
+  "website": "https://www.semperis.com",
+  "category": "cybersecurity",
+  "subcategory": "Identity resilience",
+  "watch_status": "monitor",
+  "watch_note": "Cybersecurity company (curated). Scans count its open SE roles and find entry sales roles in your area.",
+  "data": {},
+  "evidence": [],
+  "programs": [],
+  "jobs": []
+ },
+ {
+  "name": "Lookout",
+  "website": "https://www.lookout.com",
+  "category": "cybersecurity",
+  "subcategory": "Mobile and cloud security",
+  "watch_status": "monitor",
+  "watch_note": "Cybersecurity company (curated). Scans count its open SE roles and find entry sales roles in your area.",
+  "data": {},
+  "evidence": [],
+  "programs": [],
+  "jobs": []
+ },
+ {
+  "name": "Zimperium",
+  "website": "https://www.zimperium.com",
+  "category": "cybersecurity",
+  "subcategory": "Mobile security",
+  "watch_status": "monitor",
+  "watch_note": "Cybersecurity company (curated). Scans count its open SE roles and find entry sales roles in your area.",
+  "data": {},
+  "evidence": [],
+  "programs": [],
+  "jobs": []
+ },
+ {
+  "name": "Ivanti",
+  "website": "https://www.ivanti.com",
+  "category": "cybersecurity",
+  "subcategory": "IT and security management",
+  "watch_status": "monitor",
+  "watch_note": "Cybersecurity company (curated). Scans count its open SE roles and find entry sales roles in your area.",
+  "data": {},
+  "evidence": [],
+  "programs": [],
+  "jobs": [],
+  "ats_type": "greenhouse",
+  "ats_token": "a3c41b8b71eff8c4",
+  "ats_host": null,
+  "ats_site": null,
+  "ats_verified": true
+ },
+ {
+  "name": "Automox",
+  "website": "https://www.automox.com",
+  "category": "cybersecurity",
+  "subcategory": "Patch and endpoint management",
+  "watch_status": "monitor",
+  "watch_note": "Cybersecurity company (curated). Scans count its open SE roles and find entry sales roles in your area.",
+  "data": {},
+  "evidence": [],
+  "programs": [],
+  "jobs": []
+ },
+ {
+  "name": "Horizon3.ai",
+  "website": "https://www.horizon3.ai",
+  "category": "cybersecurity",
+  "subcategory": "Autonomous penetration testing",
+  "watch_status": "monitor",
+  "watch_note": "Cybersecurity company (curated). Scans count its open SE roles and find entry sales roles in your area.",
+  "data": {},
+  "evidence": [],
+  "programs": [],
+  "jobs": []
+ },
+ {
+  "name": "Pentera",
+  "website": "https://www.pentera.io",
+  "category": "cybersecurity",
+  "subcategory": "Automated security validation",
+  "watch_status": "monitor",
+  "watch_note": "Cybersecurity company (curated). Scans count its open SE roles and find entry sales roles in your area.",
+  "data": {},
+  "evidence": [],
+  "programs": [],
+  "jobs": []
+ },
+ {
+  "name": "Trend Micro",
+  "website": "https://www.trendmicro.com",
+  "category": "cybersecurity",
+  "subcategory": "Endpoint and cloud security",
+  "watch_status": "monitor",
+  "watch_note": "Cybersecurity company (curated). Scans count its open SE roles and find entry sales roles in your area.",
+  "data": {},
+  "evidence": [],
+  "programs": [],
+  "jobs": [],
+  "ats_type": "workday",
+  "ats_token": null,
+  "ats_host": "trendmicro.wd3.myworkdayjobs.com",
+  "ats_site": "External",
+  "ats_verified": true
+ },
+ {
+  "name": "ESET",
+  "website": "https://www.eset.com",
+  "category": "cybersecurity",
+  "subcategory": "Endpoint security",
+  "watch_status": "monitor",
+  "watch_note": "Cybersecurity company (curated). Scans count its open SE roles and find entry sales roles in your area.",
+  "data": {},
+  "evidence": [],
+  "programs": [],
+  "jobs": []
+ },
+ {
+  "name": "Malwarebytes",
+  "website": "https://www.malwarebytes.com",
+  "category": "cybersecurity",
+  "subcategory": "Endpoint security",
+  "watch_status": "monitor",
+  "watch_note": "Cybersecurity company (curated). Scans count its open SE roles and find entry sales roles in your area.",
+  "data": {},
+  "evidence": [],
+  "programs": [],
+  "jobs": []
+ },
+ {
+  "name": "Barracuda",
+  "website": "https://www.barracuda.com",
+  "category": "cybersecurity",
+  "subcategory": "Email and network security",
+  "watch_status": "monitor",
+  "watch_note": "Cybersecurity company (curated). Scans count its open SE roles and find entry sales roles in your area.",
+  "data": {},
+  "evidence": [],
+  "programs": [],
+  "jobs": []
+ },
+ {
+  "name": "WatchGuard",
+  "website": "https://www.watchguard.com",
+  "category": "cybersecurity",
+  "subcategory": "Network and endpoint security",
+  "watch_status": "monitor",
+  "watch_note": "Cybersecurity company (curated). Scans count its open SE roles and find entry sales roles in your area.",
+  "data": {},
+  "evidence": [],
+  "programs": [],
+  "jobs": []
+ },
+ {
+  "name": "SonicWall",
+  "website": "https://www.sonicwall.com",
+  "category": "cybersecurity",
+  "subcategory": "Network security",
+  "watch_status": "monitor",
+  "watch_note": "Cybersecurity company (curated). Scans count its open SE roles and find entry sales roles in your area.",
+  "data": {},
+  "evidence": [],
+  "programs": [],
+  "jobs": []
+ },
+ {
+  "name": "Infoblox",
+  "website": "https://www.infoblox.com",
+  "category": "cybersecurity",
+  "subcategory": "DNS security and network services",
+  "watch_status": "monitor",
+  "watch_note": "Cybersecurity company (curated). Scans count its open SE roles and find entry sales roles in your area.",
+  "data": {},
+  "evidence": [],
+  "programs": [],
+  "jobs": []
+ },
+ {
+  "name": "Netwrix",
+  "website": "https://www.netwrix.com",
+  "category": "cybersecurity",
+  "subcategory": "Data and identity security",
+  "watch_status": "monitor",
+  "watch_note": "Cybersecurity company (curated). Scans count its open SE roles and find entry sales roles in your area.",
+  "data": {},
+  "evidence": [],
+  "programs": [],
+  "jobs": []
+ },
+ {
+  "name": "Coalition",
+  "website": "https://www.coalitioninc.com",
+  "category": "cybersecurity",
+  "subcategory": "Cyber insurance and security",
+  "watch_status": "monitor",
+  "watch_note": "Cybersecurity company (curated). Scans count its open SE roles and find entry sales roles in your area.",
+  "data": {},
+  "evidence": [],
+  "programs": [],
+  "jobs": []
+ },
+ {
+  "name": "ThreatLocker",
+  "website": "https://www.threatlocker.com",
+  "category": "cybersecurity",
+  "subcategory": "Zero trust endpoint protection",
+  "watch_status": "monitor",
+  "watch_note": "Cybersecurity company (curated). Scans count its open SE roles and find entry sales roles in your area.",
+  "data": {},
+  "evidence": [],
+  "programs": [],
+  "jobs": [],
+  "ats_type": "greenhouse",
+  "ats_token": "threatlocker",
+  "ats_host": null,
+  "ats_site": null,
+  "ats_verified": true
+ },
+ {
+  "name": "Blackpoint Cyber",
+  "website": "https://www.blackpointcyber.com",
+  "category": "cybersecurity",
+  "subcategory": "Managed detection and response",
+  "watch_status": "monitor",
+  "watch_note": "Cybersecurity company (curated). Scans count its open SE roles and find entry sales roles in your area.",
+  "data": {},
+  "evidence": [],
+  "programs": [],
+  "jobs": []
+ },
+ {
+  "name": "NinjaOne",
+  "website": "https://www.ninjaone.com",
+  "category": "cybersecurity",
+  "subcategory": "Endpoint management",
+  "watch_status": "monitor",
+  "watch_note": "Cybersecurity company (curated). Scans count its open SE roles and find entry sales roles in your area.",
+  "data": {},
+  "evidence": [],
+  "programs": [],
+  "jobs": []
+ },
+ {
+  "name": "Kaseya",
+  "website": "https://www.kaseya.com",
+  "category": "cybersecurity",
+  "subcategory": "IT and security management for MSPs",
+  "watch_status": "monitor",
+  "watch_note": "Cybersecurity company (curated). Scans count its open SE roles and find entry sales roles in your area.",
+  "data": {},
+  "evidence": [],
+  "programs": [],
+  "jobs": []
+ },
+ {
+  "name": "ConnectWise",
+  "website": "https://www.connectwise.com",
+  "category": "cybersecurity",
+  "subcategory": "IT management and security for MSPs",
+  "watch_status": "monitor",
+  "watch_note": "Cybersecurity company (curated). Scans count its open SE roles and find entry sales roles in your area.",
+  "data": {},
+  "evidence": [],
+  "programs": [],
+  "jobs": []
+ },
+ {
+  "name": "Aura",
+  "website": "https://www.aura.com",
+  "category": "cybersecurity",
+  "subcategory": "Consumer identity protection",
+  "watch_status": "monitor",
+  "watch_note": "Cybersecurity company (curated). Scans count its open SE roles and find entry sales roles in your area.",
+  "data": {},
+  "evidence": [],
+  "programs": [],
+  "jobs": []
+ },
+ {
+  "name": "Socure",
+  "website": "https://www.socure.com",
+  "category": "cybersecurity",
+  "subcategory": "Identity verification and fraud",
+  "watch_status": "monitor",
+  "watch_note": "Cybersecurity company (curated). Scans count its open SE roles and find entry sales roles in your area.",
+  "data": {},
+  "evidence": [],
+  "programs": [],
+  "jobs": []
+ },
+ {
+  "name": "Persona",
+  "website": "https://www.withpersona.com",
+  "category": "cybersecurity",
+  "subcategory": "Identity verification",
+  "watch_status": "monitor",
+  "watch_note": "Cybersecurity company (curated). Scans count its open SE roles and find entry sales roles in your area.",
+  "data": {},
+  "evidence": [],
+  "programs": [],
+  "jobs": [],
+  "ats_type": "ashby",
+  "ats_token": "persona",
+  "ats_host": null,
+  "ats_site": null,
+  "ats_verified": true
+ },
+ {
+  "name": "Elastic",
+  "website": "https://www.elastic.co",
+  "category": "cybersecurity",
+  "subcategory": "Search, observability and security",
+  "watch_status": "monitor",
+  "watch_note": "Cybersecurity company (curated). Scans count its open SE roles and find entry sales roles in your area.",
+  "data": {},
+  "evidence": [],
+  "programs": [],
+  "jobs": []
+ },
+ {
+  "name": "Sumo Logic",
+  "website": "https://www.sumologic.com",
+  "category": "cybersecurity",
+  "subcategory": "Security and observability analytics",
+  "watch_status": "monitor",
+  "watch_note": "Cybersecurity company (curated). Scans count its open SE roles and find entry sales roles in your area.",
+  "data": {},
+  "evidence": [],
+  "programs": [],
+  "jobs": []
+ },
+ {
+  "name": "Splunk",
+  "website": "https://www.splunk.com",
+  "category": "cybersecurity",
+  "subcategory": "SIEM and observability",
+  "watch_status": "monitor",
+  "watch_note": "Cybersecurity company (curated). Scans count its open SE roles and find entry sales roles in your area.",
+  "data": {},
+  "evidence": [],
+  "programs": [],
+  "jobs": []
+ },
+ {
+  "name": "Cohesity",
+  "website": "https://www.cohesity.com",
+  "category": "cybersecurity",
+  "subcategory": "Data security and recovery",
+  "watch_status": "monitor",
+  "watch_note": "Cybersecurity company (curated). Scans count its open SE roles and find entry sales roles in your area.",
+  "data": {},
+  "evidence": [],
+  "programs": [],
+  "jobs": [],
+  "ats_type": "workday",
+  "ats_token": null,
+  "ats_host": "cohesity.wd5.myworkdayjobs.com",
+  "ats_site": "Cohesity_Careers",
+  "ats_verified": true
+ },
+ {
+  "name": "Veeam",
+  "website": "https://www.veeam.com",
+  "category": "cybersecurity",
+  "subcategory": "Data backup and recovery",
+  "watch_status": "monitor",
+  "watch_note": "Cybersecurity company (curated). Scans count its open SE roles and find entry sales roles in your area.",
+  "data": {},
+  "evidence": [],
+  "programs": [],
+  "jobs": []
+ },
+ {
+  "name": "Druva",
+  "website": "https://www.druva.com",
+  "category": "cybersecurity",
+  "subcategory": "Data security and backup",
+  "watch_status": "monitor",
+  "watch_note": "Cybersecurity company (curated). Scans count its open SE roles and find entry sales roles in your area.",
+  "data": {},
+  "evidence": [],
+  "programs": [],
+  "jobs": []
+ },
+ {
+  "name": "Commvault",
+  "website": "https://www.commvault.com",
+  "category": "cybersecurity",
+  "subcategory": "Data protection and cyber resilience",
+  "watch_status": "monitor",
+  "watch_note": "Cybersecurity company (curated). Scans count its open SE roles and find entry sales roles in your area.",
+  "data": {},
+  "evidence": [],
+  "programs": [],
+  "jobs": [],
+  "ats_type": "greenhouse",
+  "ats_token": "commvault",
+  "ats_host": null,
+  "ats_site": null,
+  "ats_verified": true
+ },
+ {
+  "name": "OneTrust",
+  "website": "https://www.onetrust.com",
+  "category": "cybersecurity",
+  "subcategory": "Privacy and trust management",
+  "watch_status": "monitor",
+  "watch_note": "Cybersecurity company (curated). Scans count its open SE roles and find entry sales roles in your area.",
+  "data": {},
+  "evidence": [],
+  "programs": [],
+  "jobs": []
+ },
+ {
+  "name": "Trellix",
+  "website": "https://www.trellix.com",
+  "category": "cybersecurity",
+  "subcategory": "Extended detection and response",
+  "watch_status": "monitor",
+  "watch_note": "Cybersecurity company (curated). Scans count its open SE roles and find entry sales roles in your area.",
+  "data": {},
+  "evidence": [],
+  "programs": [],
+  "jobs": []
+ },
+ {
+  "name": "Entrust",
+  "website": "https://www.entrust.com",
+  "category": "cybersecurity",
+  "subcategory": "Identity and digital security",
+  "watch_status": "monitor",
+  "watch_note": "Cybersecurity company (curated). Scans count its open SE roles and find entry sales roles in your area.",
+  "data": {},
+  "evidence": [],
+  "programs": [],
+  "jobs": [],
+  "ats_type": "workday",
+  "ats_token": null,
+  "ats_host": "entrust.wd1.myworkdayjobs.com",
+  "ats_site": "entrustcareers",
+  "ats_verified": true
+ },
+ {
+  "name": "Thales",
+  "website": "https://www.thalesgroup.com",
+  "category": "cybersecurity",
+  "subcategory": "Data security and encryption",
+  "watch_status": "monitor",
+  "watch_note": "Cybersecurity company (curated). Scans count its open SE roles and find entry sales roles in your area.",
+  "data": {},
+  "evidence": [],
+  "programs": [],
+  "jobs": [],
+  "ats_type": "workday",
+  "ats_token": null,
+  "ats_host": "thales.wd3.myworkdayjobs.com",
+  "ats_site": "Careers",
+  "ats_verified": true
+ },
+ {
+  "name": "Arkose Labs",
+  "website": "https://www.arkoselabs.com",
+  "category": "cybersecurity",
+  "subcategory": "Bot and fraud prevention",
+  "watch_status": "monitor",
+  "watch_note": "Cybersecurity company (curated). Scans count its open SE roles and find entry sales roles in your area.",
+  "data": {},
+  "evidence": [
+   {
+    "field": "org.se_team",
+    "value": "A Senior Solution Consultant role (fraud and abuse prevention, sales engineering experience) is listed for Scottsdale, AZ, remote OK.",
+    "url": "https://www.ziprecruiter.com/Jobs/Cyber-Security-Sales/-in-Phoenix,AZ/2",
+    "title": "ZipRecruiter: cybersecurity sales jobs in Phoenix",
+    "source_type": "third_party"
+   }
+  ],
+  "programs": [],
+  "jobs": [],
+  "az_presence": "Scottsdale-linked solution consulting role listed as remote-OK"
+ },
+ {
+  "name": "Appgate",
+  "website": "https://www.appgate.com",
+  "category": "cybersecurity",
+  "subcategory": "Zero trust network access",
+  "watch_status": "monitor",
+  "watch_note": "Cybersecurity company (curated). Scans count its open SE roles and find entry sales roles in your area.",
+  "data": {},
+  "evidence": [
+   {
+    "field": "company.locations",
+    "value": "Appgate, a zero trust network access company, has listed a Regional Sales Director role in Phoenix, AZ.",
+    "url": "https://www.ziprecruiter.com/Jobs/Cyber-Security-Sales/--in-Arizona",
+    "title": "ZipRecruiter: cybersecurity sales jobs in Arizona",
+    "source_type": "third_party"
+   }
+  ],
+  "programs": [],
+  "jobs": [],
+  "az_presence": "Phoenix sales role listed"
+ }
+]

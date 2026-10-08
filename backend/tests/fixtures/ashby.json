@@ -1,0 +1,4 @@
+{"jobs": [{"id": "j1", "title": "Solutions Engineer, New Grad", "location": "Phoenix, AZ", "secondaryLocations": [{"location": "Remote"}],
+  "isRemote": false, "workplaceType": "Hybrid", "descriptionPlain": "Pre-sales role supporting account executives.", "publishedAt": "2026-09-20T00:00:00.000Z",
+  "jobUrl": "https://jobs.ashbyhq.com/acme/j1", "applyUrl": "https://jobs.ashbyhq.com/acme/j1/application",
+  "compensation": {"summaryComponents": [{"compensationType": "Salary", "interval": "1 YEAR", "minValue": 85000, "maxValue": 100000, "currencyCode": "USD"}]}}]}

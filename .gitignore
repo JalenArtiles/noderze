@@ -1,0 +1,29 @@
+# Personal data: stays on your computer, never on GitHub
+backend/.env
+frontend/.env.local
+backend/data/
+backend/seed/profile.json
+backend/seed/personal.json
+docs/RESEARCH_SNAPSHOT.md
+*.docx
+!backend/tests/fixtures/*.docx
+logs/
+
+# Build output and caches
+frontend/node_modules/
+frontend/.next/
+frontend/.next-staging/
+frontend/.next-old-*/
+frontend/tsconfig.tsbuildinfo
+backend/tests/test.db*
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+
+# Editors and OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini

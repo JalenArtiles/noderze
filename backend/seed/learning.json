@@ -1,0 +1,110 @@
+[
+ {
+  "skill_area": "networking",
+  "title": "Cisco Networking Academy courses toward CCNA",
+  "provider": "Cisco Networking Academy",
+  "url": "https://www.netacad.com",
+  "cost": "Free courses; exam fee applies",
+  "kind": "course",
+  "why": "Networking is the first technical screen for most security and infrastructure SE roles, and Cisco's own CSAP posting listed CCNA as preferred."
+ },
+ {
+  "skill_area": "networking",
+  "title": "CompTIA Network+ video course",
+  "provider": "Professor Messer",
+  "url": "https://www.professormesser.com",
+  "cost": "Free videos; exam fee applies",
+  "kind": "cert",
+  "why": "Verkada SE postings list Network+ as a plus; it is a faster credential than CCNA."
+ },
+ {
+  "skill_area": "network_security",
+  "title": "Home firewall lab with pfSense",
+  "provider": "Netgate pfSense CE",
+  "url": "https://www.pfsense.org",
+  "cost": "Free software",
+  "kind": "lab",
+  "why": "A documented lab gives you a hands-on story and counts as proof of technical curiosity in Cisco's CSAP posting."
+ },
+ {
+  "skill_area": "security",
+  "title": "CompTIA Security+ video course",
+  "provider": "Professor Messer",
+  "url": "https://www.professormesser.com",
+  "cost": "Free videos; exam fee applies",
+  "kind": "cert",
+  "why": "Security+ is the common baseline credential named in security SE postings."
+ },
+ {
+  "skill_area": "cloud",
+  "title": "AWS Cloud Practitioner Essentials",
+  "provider": "AWS Skill Builder",
+  "url": "https://skillbuilder.aws",
+  "cost": "Free course; exam fee applies",
+  "kind": "course",
+  "why": "Cloud is your largest gap; AWS early-career SA programs list AWS certification as preferred."
+ },
+ {
+  "skill_area": "linux",
+  "title": "Linux Journey",
+  "provider": "linuxjourney.com",
+  "url": "https://linuxjourney.com",
+  "cost": "Free",
+  "kind": "course",
+  "why": "Trials and POCs often run on Linux; Verkada SE postings prefer Linux experience."
+ },
+ {
+  "skill_area": "apis",
+  "title": "Postman learning center: REST API basics",
+  "provider": "Postman",
+  "url": "https://learning.postman.com",
+  "cost": "Free",
+  "kind": "course",
+  "why": "SE Desk roles at Samsara script against a public API during trials."
+ },
+ {
+  "skill_area": "programming",
+  "title": "Automate the Boring Stuff with Python",
+  "provider": "Al Sweigart",
+  "url": "https://automatetheboringstuff.com",
+  "cost": "Free online",
+  "kind": "course",
+  "why": "A small script during a proof of concept builds technical credibility quickly."
+ },
+ {
+  "skill_area": "demo",
+  "title": "Record a 3-minute product walkthrough for one target company",
+  "provider": "Self-directed",
+  "url": null,
+  "cost": "Free",
+  "kind": "project",
+  "why": "Demos are the most visible part of the SE job and a frequent interview round; a recording also works as an outreach attachment."
+ },
+ {
+  "skill_area": "presentation",
+  "title": "Five-minute technical explanation, recorded and reviewed",
+  "provider": "Self-directed",
+  "url": null,
+  "cost": "Free",
+  "kind": "project",
+  "why": "SE interviews almost always include a presentation or mock customer call."
+ },
+ {
+  "skill_area": "crm",
+  "title": "Salesforce Trailhead: CRM basics",
+  "provider": "Salesforce Trailhead",
+  "url": "https://trailhead.salesforce.com",
+  "cost": "Free",
+  "kind": "course",
+  "why": "Shows CRM fluency beyond a single tool and helps with Salesforce's own ASE program."
+ },
+ {
+  "skill_area": "discovery",
+  "title": "Write and rehearse 10 discovery questions for one target buyer",
+  "provider": "Self-directed",
+  "url": null,
+  "cost": "Free",
+  "kind": "project",
+  "why": "Discovery separates SEs from product experts and is tested in role plays."
+ }
+]

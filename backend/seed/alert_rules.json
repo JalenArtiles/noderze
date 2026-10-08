@@ -1,0 +1,63 @@
+[
+ {
+  "name": "Daily: SE and solutions roles at watched companies",
+  "cron": "0 7 * * *",
+  "params": {
+   "watch_statuses": [
+    "priority",
+    "strong",
+    "monitor",
+    "edge"
+   ],
+   "min_score": 55
+  },
+  "enabled": false
+ },
+ {
+  "name": "Mondays: SE development programs",
+  "cron": "0 7 * * 1",
+  "params": {
+   "require_program": true,
+   "search": true,
+   "min_score": 40
+  }
+ },
+ {
+  "name": "Daily: Arizona and California roles",
+  "cron": "30 7 * * *",
+  "params": {
+   "states": [
+    "AZ",
+    "CA"
+   ],
+   "min_score": 50
+  }
+ },
+ {
+  "name": "Daily: new-grad feed and job APIs",
+  "cron": "15 */6 * * *",
+  "params": {
+   "workflow": "import_feeds"
+  }
+ },
+ {
+  "name": "Sundays: wide scan of 2,600+ company job boards",
+  "cron": "0 2 * * 0",
+  "params": {
+   "workflow": "wide_scan"
+  }
+ },
+ {
+  "name": "Every 3 hours: watched companies (live updates)",
+  "cron": "0 7-22/3 * * *",
+  "params": {
+   "watch_statuses": [
+    "priority",
+    "strong",
+    "monitor",
+    "edge"
+   ],
+   "min_score": 0
+  }
+ }
+]

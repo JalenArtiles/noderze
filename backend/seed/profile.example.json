@@ -1,0 +1,93 @@
+{
+ "_about": "A sample candidate so Noderze runs out of the box. Copy this file to profile.json (gitignored) and make it yours.",
+ "name": "Sample Candidate",
+ "headline": "Early-career technical sales candidate",
+ "location": "Tempe, AZ",
+ "degree_short": "Applied Computing with a cybersecurity focus",
+ "education": [
+  {
+   "school": "Arizona State University",
+   "degree": "B.S. Applied Computing (Cybersecurity)",
+   "expected_graduation": "2027-05"
+  }
+ ],
+ "expected_graduation": "2027-05",
+ "available_start": "2027-07",
+ "career_target": [
+  "Sales Engineer",
+  "Solutions Engineer",
+  "Technical Sales Engineer",
+  "Solutions Consultant",
+  "Pre-Sales Engineer"
+ ],
+ "industries": [
+  "Cybersecurity",
+  "Enterprise software",
+  "SaaS",
+  "Cloud and infrastructure",
+  "Networking and security"
+ ],
+ "locations": {
+  "primary_states": [
+   "AZ"
+  ],
+  "remote_ok": true,
+  "acceptable_regions": [
+   "socal"
+  ],
+  "edge_states": [],
+  "note": "Arizona base first, remote US next, Southern California acceptable."
+ },
+ "comp_target": 55000,
+ "skills": {
+  "programming": "Python, Java, SQL, Bash",
+  "technical": "Computer networks, Network security, Wireshark, Operating systems",
+  "data_ai": "Prompt engineering, JSON, Git",
+  "sales": "B2B sales, Prospecting, Cold calling, CRM, Discovery, Customer-facing communication"
+ },
+ "coursework": [
+  "Network Security",
+  "Computer Networks",
+  "Operating Systems",
+  "Database Systems",
+  "Secure Coding Concepts",
+  "Data Structures and Algorithms",
+  "Essentials of Selling"
+ ],
+ "certifications": [],
+ "not_held": [
+  "CCNA",
+  "Network+",
+  "Security+",
+  "AWS certification",
+  "Security clearance"
+ ],
+ "experience_highlights": [
+  "Sales Development Intern, Example Networks (Summer 2025): cold calling, prospecting, CRM hygiene, worked with Account Executives."
+ ],
+ "strengths": [],
+ "interview_style": "",
+ "story_hook": null,
+ "writing_preferences": {
+  "no_em_dashes": true
+ },
+ "work_authorization": null,
+ "open_questions": [],
+ "vocab_extra": [],
+ "focus": {
+  "industry": "cybersecurity",
+  "entry_roles": [
+   "SDR",
+   "BDR",
+   "ADR",
+   "Associate AE",
+   "AE",
+   "Inside sales"
+  ],
+  "long_term_goal": "Sales Engineer / Solutions Engineer / Solutions Architect",
+  "requires_se_team": true,
+  "note": "ASE roles and SE programs stay high priority in their own section."
+ },
+ "profile_version": 2,
+ "verified_claims": []
+}

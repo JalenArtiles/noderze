@@ -1,0 +1,5 @@
+[{"id": "abc-123", "text": "Associate Solutions Engineer", "hostedUrl": "https://jobs.lever.co/acme/abc-123", "applyUrl": "https://jobs.lever.co/acme/abc-123/apply",
+  "categories": {"location": "San Francisco, CA", "allLocations": ["San Francisco, CA", "Remote - US"], "commitment": "Full-time", "team": "Sales"},
+  "createdAt": 1790000000000, "descriptionPlain": "Join our SE academy. Work with account executives on demos.",
+  "lists": [{"text": "Requirements", "content": "<li>Networking fundamentals</li><li>Python</li>"}], "additionalPlain": "",
+  "workplaceType": "hybrid", "salaryRange": {"currency": "USD", "interval": "per-year-salary", "min": 90000, "max": 110000}}]

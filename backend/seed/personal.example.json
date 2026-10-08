@@ -1,0 +1,9 @@
+{
+ "_about": "Your own notes about companies, merged over companies.json when you run scripts/seed_db.py. This file is gitignored so it never reaches GitHub. Lists replace the public list; programs are matched by name. Copy this file to personal.json to use it.",
+ "companies": {
+  "Verkada": {
+   "watch_status": "priority",
+   "watch_note": "Met their recruiter at the fall career fair."
+  }
+ }
+}
