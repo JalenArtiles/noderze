@@ -13,6 +13,19 @@ log = logging.getLogger(__name__)
 _scheduler = None
 
 
+_DAYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat", "sun"]
+
+
+def crontab_days(expr: str) -> str:
+    """Standard crontab counts days from Sunday = 0, but APScheduler counts from Monday = 0, so "0 2 * * 0"
+    would run on Mondays. Day numbers are rewritten as names, which both read the same way."""
+    import re
+    parts = expr.split()
+    if len(parts) == 5:
+        parts[4] = re.sub(r"(?<![/\d])([0-7])(?!\d)", lambda m: _DAYS[int(m.group(1))], parts[4])
+    return " ".join(parts)
+
+
 def reload() -> None:
     global _scheduler
     if not settings.enable_scheduler:
@@ -33,7 +46,7 @@ def reload() -> None:
     try:
         for rule in db.scalars(select(AlertRule).where(AlertRule.enabled.is_(True))):
             try:
-                trigger = CronTrigger.from_crontab(rule.cron, timezone=settings.timezone)
+                trigger = CronTrigger.from_crontab(crontab_days(rule.cron), timezone=settings.timezone)
             except ValueError:
                 log.warning("Bad cron for rule %s: %s", rule.id, rule.cron)
                 continue

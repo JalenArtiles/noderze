@@ -89,3 +89,15 @@ def test_fingerprint_changes_with_sources(tmp_path, monkeypatch):
     two = FB.fingerprint()
     (tmp_path / "tsconfig.json").write_text('{"x": 1}')
     assert FB.fingerprint() == two
+
+
+def test_crontab_day_numbers_mean_what_crontab_means():
+    import datetime, zoneinfo
+    from apscheduler.triggers.cron import CronTrigger
+    from app.scheduler import crontab_days
+    assert crontab_days("0 2 * * 0") == "0 2 * * sun" and crontab_days("0 7 * * 1-5") == "0 7 * * mon-fri"
+    assert crontab_days("15 */6 * * *") == "15 */6 * * *" and crontab_days("0 7 * * */2") == "0 7 * * */2"
+    tz = zoneinfo.ZoneInfo("America/Phoenix")
+    monday = datetime.datetime(2026, 10, 12, 13, 0, tzinfo=tz)
+    nxt = CronTrigger.from_crontab(crontab_days("0 2 * * 0"), timezone="America/Phoenix").get_next_fire_time(None, monday)
+    assert nxt.strftime("%a") == "Sun"
