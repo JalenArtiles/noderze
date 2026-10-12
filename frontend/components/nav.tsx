@@ -13,7 +13,7 @@ export default function Nav() {
   const path = usePathname();
   return (
     <nav className="nav" aria-label="Main">
-      <Link href="/" className="brand"><img src="/icon-192.png" alt="" /><div><b>Noderze</b><span>Cyber sales to Sales Engineering</span></div></Link>
+      <Link href="/" className="brand"><img src="/icon-192.png" alt="" /><div><b>Noderze</b><span>Your route to Sales Engineering</span></div></Link>
       {GROUPS.map(([g, links]) => (
         <div key={g}><div className="group">{g}</div>
           {links.map(([href, l, Icon]) => (

@@ -190,7 +190,7 @@ def list_programs(db: Session = Depends(get_db)):
         out.append({"id": p.id, "name": p.name, "company": p.company.name, "company_id": p.company_id,
                     "role_title": p.role_title, "kind": p.kind, "target_family": p.target_family, "status": p.status,
                     "typical_open_window": p.typical_open_window, "summary": p.summary,
-                    "watch_status": p.company.watch_status,
+                    "watch_status": p.company.watch_status, "company_website": p.company.website,
                     "headline": {k: (facts.get(k) or [{}])[0].get("value") for k in
                                  ("program.duration", "program.location", "comp.base", "program.next_role")}})
     return out
@@ -303,7 +303,8 @@ def _job_matches(j: Job, state: str | None, remote: bool, industry: str | None, 
 def list_jobs(category: str | None = None, company_id: int | None = None, min_score: float = 0,
               include_inactive: bool = False, include_hidden: bool = False, new: bool = False,
               state: str | None = None, remote: bool = False, industry: str | None = None, q: str | None = None,
-              fits: bool = False, limit: int = 300, db: Session = Depends(get_db)):
+              fits: bool = False, limit: int = 300, lite: bool = False, db: Session = Depends(get_db)):
+    """`lite` leaves out the score breakdown and fit analysis, for lists that show hundreds of roles."""
     query = select(Job).where(Job.score_total >= min_score).order_by(Job.score_total.desc())
     if category:
         query = query.where(Job.category.in_(category.split(",")))
@@ -316,9 +317,16 @@ def list_jobs(category: str | None = None, company_id: int | None = None, min_sc
     if new:
         query = query.where(Job.id.in_(select(Alert.job_id).where(Alert.seen.is_(False))))
     apps = dict(db.execute(select(Application.job_id, Application.stage)).all())
-    out = [research.job_brief(j) | {"application_stage": apps.get(j.id), "company_website": j.company.website if j.company else None}
-           for j in db.scalars(query) if _job_matches(j, state, remote, industry, q, fits)]
-    return out[:limit]
+    heavy = ("score_breakdown", "analysis", "comp_note")
+    out = []
+    for j in db.scalars(query):
+        if not _job_matches(j, state, remote, industry, q, fits):
+            continue
+        b = research.job_brief(j) | {"application_stage": apps.get(j.id), "company_website": j.company.website if j.company else None}
+        out.append({k: v for k, v in b.items() if k not in heavy} if lite else b)
+        if len(out) >= limit:
+            break
+    return out
 
 
 @router.get("/home")
@@ -470,9 +478,10 @@ def run_workflow(kind: str, body: WorkflowIn, db: Session = Depends(get_db)):
 
 
 def run_dict(r: SearchRun) -> dict:
+    from ..workflows import run_view
     return {"id": r.id, "kind": r.kind, "subject": r.subject, "status": r.status, "error": r.error, "log": r.log,
             "result": r.result, "started_at": r.started_at.isoformat(),
-            "finished_at": r.finished_at.isoformat() if r.finished_at else None}
+            "finished_at": r.finished_at.isoformat() if r.finished_at else None, "view": run_view(r)}
 
 
 @router.get("/runs/{rid}")

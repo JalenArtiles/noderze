@@ -76,6 +76,7 @@ A few problems that came up and how they were solved:
 
 - **"Database is locked" under concurrent scans.** Fixed with SQLite WAL mode and a busy timeout, commits after each posting, and single-flight workflows. Scans left running by a restart are cleaned up at startup.
 - **Updating a running app safely.** The UI is fingerprinted from its source. When the source changes, it builds into a staging folder while the old version keeps serving, then swaps in. A failed build leaves the running version untouched and shows a notice.
+- **Readable progress for long tasks.** Workflows record their plan, a one-line result per step, and warnings as structured data. The interface shows a short checklist that leads with the results, with the raw log one click away.
 - **Rescoring speed.** A full rescore of 1,864 postings went from about two minutes to about 21 seconds. The keyword matcher now runs one shared boundary check per position instead of one per term, with a small cache. The scores came out identical on every posting before and after.
 - **Privacy by design.** My real profile, company notes, resume and database live in gitignored files. The repo ships a sample profile, and the tests generate a fictional resume.
 
@@ -105,7 +106,7 @@ npm install && npm run dev                            # open http://localhost:30
 To make it yours, copy `backend/seed/profile.example.json` to `backend/seed/profile.json` and upload your resume on the Resume page. The [user guide](docs/USER_GUIDE.md) covers the Windows app, scheduled scans and troubleshooting.
 
 ```bash
-cd backend && pytest -q    # 41 tests
+cd backend && pytest -q    # 46 tests
 ```
 
 ## Project layout

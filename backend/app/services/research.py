@@ -44,7 +44,7 @@ FIELDS = {
     "interview.process": "Interview process", "interview.stages": "Interview stages",
     "interview.technical": "Technical interview requirements", "interview.presentation": "Presentation or demo requirement",
     "travel.percent": "Expected travel", "intern.conversion": "Internship to full-time conversion",
-    "org.se_team": "Sales / solutions engineering organization", "review.sentiment": "What participants and employees say",
+    "org.se_team": "Sales / solutions engineering organization", "org.se_team_live": "SE team, from their own job board", "review.sentiment": "What participants and employees say",
     "company.products": "Products", "company.market": "Target market", "company.locations": "Office locations",
     "company.remote_policy": "Remote policy",
 }
@@ -168,7 +168,7 @@ def deep_research(db: Session, company: Company, log, job: Job | None = None, ma
             stats["queries"] += 1
             results = search(q, n=6)
             if not results:
-                log(f"No search results for: {q} (is a search provider configured?)")
+                log(f"No results for: {q}")
             for r in results:
                 if r.url in seen:
                     continue

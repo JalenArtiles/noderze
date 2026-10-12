@@ -6,7 +6,7 @@ import logging
 from sqlalchemy import update
 
 from .db import SessionLocal
-from .models import Alert
+from .models import Alert, Company
 from .services.jobs_engine import rescore_all
 from .services.profile import get_profile, load_seed_profile
 
@@ -33,9 +33,17 @@ def _rescore(db) -> None:
     rescore_all(db)
 
 
+GENERIC_NOTE = "Cybersecurity company (curated)."
+
+
+def _clear_generic_notes(db) -> None:
+    # Boilerplate seed notes repeated on every curated company; a note should only say something specific.
+    db.execute(update(Company).where(Company.watch_note.like(GENERIC_NOTE + "%")).values(watch_note=None))
+
+
 # rescore_v3_2: enterprise/strategic AE roles, foreign postings and state-limited remote roles left the entry list.
 STEPS = [("alerts_baseline_v1", _baseline_alerts), ("available_start_v1", _start_month), ("rescore_v3_1", _rescore),
-         ("rescore_v3_2", _rescore)]
+         ("rescore_v3_2", _rescore), ("generic_notes_v1", _clear_generic_notes)]
 
 
 def run() -> None:

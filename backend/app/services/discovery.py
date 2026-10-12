@@ -158,14 +158,17 @@ def discover_company(db: Session, f: PoliteFetcher, company: Company, log) -> di
     stats = {"company": company.name, "company_id": company.id, "fetched": 0, "relevant": 0, "new": 0, "updated": 0,
              "closed": 0, "first_scan": False}
     if not ensure_ats(db, f, company, log):
+        stats["board"] = "missing"
         return stats
     try:
         postings = fetch_postings(f, company.ats_type, company.ats_token, company.ats_host, company.ats_site, log)
     except FetchBlocked as e:
-        log(f"{company.name}: {e}")
+        log(f"{company.name}: {e}", "warn")
+        stats["board"] = "blocked"
         return stats
     except Exception as e:  # bad token, network
-        log(f"{company.name}: could not read {company.ats_type} board ({e.__class__.__name__}: {e})")
+        log(f"{company.name}: could not read {company.ats_type} board ({e.__class__.__name__}: {e})", "warn")
+        stats["board"] = "unreadable"
         return stats
     stats["first_scan"] = first = not db.scalar(
         select(Job.id).where(Job.company_id == company.id, Job.source == company.ats_type).limit(1))

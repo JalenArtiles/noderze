@@ -6,12 +6,18 @@ const TOKEN = process.env.NEXT_PUBLIC_AGENT_TOKEN || "";
 
 export async function api<T = any>(path: string, opts: { method?: string; body?: any; form?: FormData } = {}): Promise<T> {
   const method = opts.method || (opts.body !== undefined || opts.form ? "POST" : "GET");
-  const res = await fetch(BASE + path, {
-    method,
-    headers: { ...(opts.form ? {} : { "Content-Type": "application/json" }), "X-Agent-Token": TOKEN },
-    body: opts.form ?? (opts.body !== undefined ? JSON.stringify(opts.body) : undefined),
-    cache: "no-store",
-  });
+  let res: Response;
+  try {
+    res = await fetch(BASE + path, {
+      method,
+      headers: { ...(opts.form ? {} : { "Content-Type": "application/json" }), "X-Agent-Token": TOKEN },
+      body: opts.form ?? (opts.body !== undefined ? JSON.stringify(opts.body) : undefined),
+      cache: "no-store",
+    });
+  } catch {
+    // The browser hides the real cause of a failed request, which is usually a server error or a stopped server.
+    throw new Error("Noderze's server didn't answer, or it hit an error doing this. Try again; if it keeps happening, restart Noderze and check logs\\backend.log.");
+  }
   if (!res.ok) {
     let msg: any = `${res.status} ${res.statusText}`;
     try { msg = (await res.json()).detail ?? msg; } catch {}

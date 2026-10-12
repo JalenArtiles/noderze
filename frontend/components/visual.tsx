@@ -5,11 +5,11 @@ const PALETTE = ["#8c1d40", "#2563eb", "#0d9488", "#7c3aed", "#d97706", "#0f766e
 const hash = (s: string) => Array.from(s || "?").reduce((a, c) => (a * 31 + c.charCodeAt(0)) >>> 0, 7);
 
 /** Company logo from the company's own site favicon (via Google's favicon service), with a colored initials fallback. */
-export function CompanyLogo({ name, website, size = "md" }: { name: string; website?: string | null; size?: "md" | "lg" }) {
+export function CompanyLogo({ name, website, size = "md" }: { name: string; website?: string | null; size?: "sm" | "md" | "lg" }) {
   const [failed, setFailed] = useState(false);
   let domain = "";
   try { domain = website ? new URL(website.startsWith("http") ? website : `https://${website}`).hostname.replace(/^www\./, "") : ""; } catch {}
-  const cls = `logo ${size === "lg" ? "lg" : ""}`;
+  const cls = `logo ${size === "md" ? "" : size}`;
   if (!domain || failed) {
     const initials = (name || "?").split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join("").toUpperCase();
     return <span className={`${cls} initials`} style={{ background: PALETTE[hash(name) % PALETTE.length] }} aria-hidden>{initials}</span>;
@@ -19,13 +19,13 @@ export function CompanyLogo({ name, website, size = "md" }: { name: string; webs
 
 export function ScoreRing({ value, size = "md" }: { value: number; size?: "md" | "lg" }) {
   const v = Math.max(0, Math.min(100, Math.round(value || 0)));
-  const px = size === "lg" ? 84 : 64, stroke = size === "lg" ? 8 : 7, r = (px - stroke) / 2, c = 2 * Math.PI * r;
-  const color = v >= 75 ? "#16a34a" : v >= 60 ? "#f59e0b" : "#94a3b8";
+  const px = size === "lg" ? 80 : 58, stroke = size === "lg" ? 7 : 6, r = (px - stroke) / 2, c = 2 * Math.PI * r;
+  const color = v >= 75 ? "#16803c" : v >= 60 ? "#d58512" : "#94a3b8";
   return (
-    <div className={`ring ${size === "lg" ? "lg" : ""}`} title={`Fit score ${v} out of 100`}>
-      <svg width={px} height={px}><circle cx={px / 2} cy={px / 2} r={r} stroke="#e8ebf2" strokeWidth={stroke} fill="none" />
+    <div className="ring" style={{ width: px, height: px }} title={`Fit score ${v} out of 100`}>
+      <svg width={px} height={px} aria-hidden><circle cx={px / 2} cy={px / 2} r={r} stroke="#eceff4" strokeWidth={stroke} fill="none" />
         <circle cx={px / 2} cy={px / 2} r={r} stroke={color} strokeWidth={stroke} fill="none" strokeLinecap="round" strokeDasharray={`${(c * v) / 100} ${c}`} /></svg>
-      <b className="num">{v}</b>
+      <b className="num" style={{ fontSize: size === "lg" ? "1.55rem" : "1.15rem" }}>{v}</b>
     </div>
   );
 }

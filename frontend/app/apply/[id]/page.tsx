@@ -3,12 +3,13 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { Check, Copy, Download, ExternalLink, UserSearch } from "lucide-react";
-import { Err, PathBadge } from "@/components/ui";
+import { Err, PageHeader, PathBadge } from "@/components/ui";
 import { CompanyLogo, ScoreRing } from "@/components/visual";
 import { api, fileUrl } from "@/lib/api";
 
 const DRAFTS: [string, string][] = [["recruiter_connect", "Recruiter connection note"], ["sdr_manager", "SDR manager note"], ["alumni", "ASU alumni note"], ["recruiter_followup", "Follow-up after they accept"]];
 const CAT: Record<string, string> = { fix: "Fix", reorder: "Reorder", keywords: "Keywords", summary: "Summary", rewrite: "Rewrite" };
+const GROUPS: [string, string][] = [["on_resume", "Already on your resume"], ["added", "Added from your experience"], ["missing", "Missing. Click \"I have this\" only if it's true"]];
 
 export default function Apply() {
   const { id } = useParams() as { id: string };
@@ -18,6 +19,7 @@ export default function Apply() {
   const [person, setPerson] = useState<string>("");
   const [kind, setKind] = useState("recruiter_connect");
   const [copied, setCopied] = useState(false);
+  const [allChanges, setAllChanges] = useState(false);
   const load = useCallback(async (fresh = false) => {
     setBusy(true);
     try { setD(await api(`/api/apply/${id}${fresh ? "?fresh=true" : ""}`, { body: {} })); setErr(null); } catch (e: any) { setErr(e.message); }
@@ -33,86 +35,94 @@ export default function Apply() {
     load();
   }
   async function applied() { await api(`/api/applications/${d.application_id}`, { method: "PATCH", body: { stage: "applied" } }); load(); }
-  if (err) return <><Err msg={err} />{err.includes("resume") && <p><Link className="btn" href="/resume">Upload your resume</Link></p>}</>;
-  if (!d) return <div className="panel empty">Tailoring your resume to this company's keywords...</div>;
+  if (err) return <><Err msg={err} />{err.includes("resume") && <p style={{ marginTop: "1rem" }}><Link className="btn primary" href="/resume">Upload your resume</Link></p>}</>;
+  if (!d) return <div className="panel empty"><h3>Tailoring your resume</h3><p>Matching your experience to the keywords this company screens for.</p></div>;
   const j = d.job;
   const first = person ? person.split(" ")[0] : "there";
   const msg = (d.drafts[kind] || "").replaceAll("{first}", first);
   const terms = d.ats.terms;
+  const edits = allChanges ? d.edits : d.edits.slice(0, 5);
   return (
     <>
-      <div className="spread">
-        <div className="row" style={{ flexWrap: "nowrap", alignItems: "flex-start" }}>
-          <CompanyLogo name={j.company} website={j.company_website} size="lg" />
-          <div><div className="small"><Link href={`/companies/${j.company_id}`}>{j.company}</Link></div><h1>{j.title}</h1>
-            <div className="row small"><PathBadge value={j.path_class} /><span className="muted">{j.location_text}</span>
-              {d.se_team?.open_se_roles > 0 && <span className="badge good">SE team: {d.se_team.open_se_roles} open SE roles</span>}
-              {j.needs_verification && <span className="badge warn">Confirm the posting is still open</span>}
-              {d.stage === "applied" && <span className="badge good"><Check size={12} />Applied</span>}</div></div>
+      <PageHeader
+        crumb={<Link href={`/companies/${j.company_id}`}>{j.company}</Link>}
+        title={<span className="ph-id"><CompanyLogo name={j.company} website={j.company_website} size="lg" /><span>{j.title}</span></span>}
+        actions={<><ScoreRing value={j.score_total} /><Link className="btn" href={`/jobs/${j.id}`}>Why it fits</Link></>}>
+        <div className="meta">
+          <PathBadge value={j.path_class} /><span className="tag">{j.location_text}</span>
+          {d.se_team?.open_se_roles > 0 && <span className="tag info">{d.se_team.open_se_roles} open SE roles</span>}
+          {j.needs_verification && <span className="tag warn">Check the posting is still open</span>}
+          {d.stage === "applied" && <span className="tag good"><Check />Applied</span>}
         </div>
-        <ScoreRing value={j.score_total} size="lg" />
-      </div>
+      </PageHeader>
 
-      <section className="panel stack" style={{ marginTop: "1.2rem" }}>
-        <div className="step"><span className="num-badge">1</span><div>
-          <h2 style={{ marginTop: 0 }}>Your resume, tailored to {j.company}'s keywords</h2>
-          <div className="row" style={{ gap: "1.2rem" }}>
-            <div style={{ textAlign: "center" }}><ScoreRing value={d.ats.before} /><div className="small muted">Before</div></div>
-            <span className="muted" style={{ fontSize: "1.4rem" }}>to</span>
-            <div style={{ textAlign: "center" }}><ScoreRing value={d.ats.after} /><div className="small muted">After</div></div>
-            <p className="small muted" style={{ maxWidth: "48ch" }}>Keyword match is how applicant tracking systems rank resumes. Noderze only adds terms your experience supports; anything else stays missing until you confirm it.</p>
+      <div className="steps-v">
+        <section className="panel">
+          <span className="badge-n">1</span>
+          <div className="spread" style={{ alignItems: "center" }}>
+            <div><h2>Your resume, tailored to {j.company}</h2>
+              <p className="small muted" style={{ marginTop: ".3rem", maxWidth: "56ch" }}>Applicant tracking systems rank resumes by keyword match. Noderze only adds terms your experience supports.</p></div>
+            <div className="row" style={{ gap: ".6rem" }}>
+              <div style={{ textAlign: "center" }}><ScoreRing value={d.ats.before} /><div className="tiny muted">Before</div></div>
+              <div style={{ textAlign: "center" }}><ScoreRing value={d.ats.after} /><div className="tiny muted">After</div></div>
+            </div>
           </div>
-          <div className="chips" style={{ margin: ".8rem 0" }}>
-            {terms.map((t: any) => (
-              <span key={t.term} className={`kw ${t.status}`} title={t.typical ? "Typical for this role type (posting text was short)" : `${t.mentions} mention(s) in this posting`}>
-                {t.status === "on_resume" ? <Check size={13} /> : null}{t.term}
-                {t.status === "missing" && <button onClick={() => claim(t.term)} title="Only if it's true for you">I have this</button>}</span>))}
+          <div style={{ marginTop: "1rem" }}>
+            {GROUPS.map(([k, title]) => {
+              const items = terms.filter((t: any) => t.status === k);
+              return items.length ? (
+                <div key={k} className="kwgroup"><h4>{title} ({items.length})</h4>
+                  <div className="chips">{items.map((t: any) => (
+                    <span key={t.term} className={`kw ${t.status}`} title={t.typical ? "Typical for this kind of role (the posting text was short)" : `${t.mentions} mention(s) in this posting`}>
+                      {t.status === "on_resume" && <Check />}{t.term}
+                      {t.status === "missing" && <button onClick={() => claim(t.term)} title="Only if it's true for you">I have this</button>}</span>))}</div></div>) : null;
+            })}
           </div>
-          <div className="small muted">Green: already on your resume. Blue: added from your experience. Gray: missing; click "I have this" only if it's true.</div>
-          <h3 style={{ marginTop: "1rem" }}>Changes made</h3>
-          {d.edits.map((e: any) => (
-            <div key={e.id} className="fact row small" style={{ flexWrap: "nowrap", alignItems: "flex-start" }}>
-              <span className="badge">{CAT[e.category] || e.category}</span>
-              <span style={{ flex: 1 }}>{e.kind === "replace_text" ? <>{e.find} becomes <b>{e.replace}</b></> : e.kind === "reorder" ? "Most relevant bullet moved first" : (e.text || e.after)}
-                {e.flags?.length > 0 && <span style={{ color: "var(--red)", display: "block" }}>{e.flags.join(" ")}</span>}</span>
-              <button className="btn secondary small" onClick={() => toggle(e)}>{e.status === "approved" ? "Undo" : "Use"}</button>
+          <hr />
+          <h3 style={{ marginBottom: ".2rem" }}>Changes to your resume</h3>
+          {edits.map((e: any) => (
+            <div key={e.id} className="change">
+              <span className="tag">{CAT[e.category] || e.category}</span>
+              <div className="grow">{e.kind === "replace_text" ? <>{e.find} becomes <b>{e.replace}</b></> : e.kind === "reorder" ? "Most relevant line moved first" : (e.text || e.after)}
+                {e.flags?.length > 0 && <div className="flag">{e.flags.join(" ")}</div>}</div>
+              <button className={`btn sm ${e.status === "approved" ? "" : "dark"}`} onClick={() => toggle(e)}>{e.status === "approved" ? "Undo" : "Use"}</button>
             </div>))}
-          <div className="row" style={{ marginTop: ".8rem" }}>
-            <a className="btn primary" href={fileUrl(`/api/resume/versions/${d.version_id}/download`)}><Download />Download tailored resume (.docx)</a>
+          {d.edits.length > 5 && <button className="btn quiet sm" onClick={() => setAllChanges(!allChanges)}>{allChanges ? "Show fewer" : `Show all ${d.edits.length} changes`}</button>}
+          <div className="row" style={{ marginTop: "1rem" }}>
+            <a className="btn primary" href={fileUrl(`/api/resume/versions/${d.version_id}/download`)}><Download />Download tailored resume</a>
             {busy && <span className="small muted">Updating...</span>}</div>
-        </div></div>
-      </section>
+        </section>
 
-      <section className="panel" style={{ marginTop: ".9rem" }}>
-        <div className="step"><span className="num-badge">2</span><div>
-          <h2 style={{ marginTop: 0 }}>Apply</h2>
-          <p className="small muted">Opens the company's own application page. Upload the tailored resume you just downloaded.</p>
+        <section className="panel">
+          <span className="badge-n">2</span>
+          <h2>Apply on {j.company}'s site</h2>
+          <p className="small muted" style={{ margin: ".3rem 0 .9rem" }}>Upload the tailored resume you just downloaded, then mark it applied so Noderze can remind you to follow up.</p>
           <div className="row">
-            {d.apply_url && <a className="btn gold" href={d.apply_url} target="_blank" rel="noreferrer"><ExternalLink />Open the application page</a>}
-            <button className="btn secondary" onClick={applied} disabled={d.stage === "applied"}><Check />{d.stage === "applied" ? "Marked as applied" : "I applied"}</button>
-            <Link className="btn secondary" href={`/applications/${d.application_id}`}>Cover letter and answers</Link>
+            {d.apply_url && <a className="btn gold" href={d.apply_url} target="_blank" rel="noreferrer"><ExternalLink />Open the application</a>}
+            <button className="btn" onClick={applied} disabled={d.stage === "applied"}><Check />{d.stage === "applied" ? "Marked as applied" : "I applied"}</button>
+            <Link className="btn quiet" href={`/applications/${d.application_id}`}>Cover letter and answers</Link>
           </div>
-        </div></div>
-      </section>
+        </section>
 
-      <section className="panel" id="recruiter" style={{ marginTop: ".9rem" }}>
-        <div className="step"><span className="num-badge">3</span><div>
-          <h2 style={{ marginTop: 0 }}>Reach a recruiter or hiring manager</h2>
-          <p className="small muted">These open LinkedIn in your own browser, where you're logged in. Pick someone, paste the message, and send it yourself. Noderze never messages anyone for you.</p>
+        <section className="panel" id="recruiter">
+          <span className="badge-n">3</span>
+          <h2>Reach a recruiter or hiring manager</h2>
+          <p className="small muted" style={{ margin: ".3rem 0 .9rem" }}>These open LinkedIn in your browser. Pick someone, copy the message and send it yourself. Noderze never messages anyone for you.</p>
+          <div className="chips" style={{ marginBottom: ".7rem" }}>{d.links.map((l: any) => <a key={l.label} className="chip" href={l.url} target="_blank" rel="noreferrer" title={l.why}><UserSearch />{l.label}</a>)}</div>
           {d.people.length > 0 && <div className="chips" style={{ marginBottom: ".7rem" }}>
             {d.people.slice(0, 8).map((p: any) => (
               <button key={p.id} className={`chip ${person === p.name ? "on" : ""}`} onClick={() => setPerson(p.name)} title={p.reason}>
                 {p.connection ? "Connection: " : ""}{p.name}{p.title ? `, ${p.title}` : ""}</button>))}</div>}
-          <div className="chips">{d.links.map((l: any) => <a key={l.label} className="chip" href={l.url} target="_blank" rel="noreferrer" title={l.why}><UserSearch />{l.label}</a>)}</div>
-          <div className="row" style={{ margin: ".9rem 0 .4rem" }}>
-            <label className="small">Their first name <input value={person} onChange={(e) => setPerson(e.target.value)} placeholder="e.g. Taylor" style={{ width: 160 }} /></label>
-            <select value={kind} onChange={(e) => setKind(e.target.value)}>{DRAFTS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select></div>
+          <div className="form" style={{ maxWidth: 560, margin: ".4rem 0 .7rem" }}>
+            <label className="field">Their first name<input value={person} onChange={(e) => setPerson(e.target.value)} placeholder="e.g. Taylor" /></label>
+            <label className="field">Message<select value={kind} onChange={(e) => setKind(e.target.value)}>{DRAFTS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select></label>
+          </div>
           <div className="msg">{msg}</div>
-          <div className="row" style={{ marginTop: ".5rem" }}>
-            <button className="btn" onClick={() => { navigator.clipboard.writeText(msg); setCopied(true); setTimeout(() => setCopied(false), 2000); }}><Copy />{copied ? "Copied" : "Copy message"}</button>
-            <span className="small muted">{msg.length} characters{kind !== "recruiter_followup" ? " (LinkedIn connection notes allow up to 200 on free accounts)" : ""}</span></div>
-        </div></div>
-      </section>
+          <div className="row" style={{ marginTop: ".6rem" }}>
+            <button className="btn dark" onClick={() => { navigator.clipboard.writeText(msg); setCopied(true); setTimeout(() => setCopied(false), 2000); }}><Copy />{copied ? "Copied" : "Copy message"}</button>
+            <span className="small muted">{msg.length} characters{kind !== "recruiter_followup" ? ". Free LinkedIn accounts allow 200 in a connection note." : ""}</span></div>
+        </section>
+      </div>
     </>
   );
 }

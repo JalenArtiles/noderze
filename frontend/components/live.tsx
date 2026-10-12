@@ -3,9 +3,11 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { Bell, RefreshCw } from "lucide-react";
 import { api } from "@/lib/api";
+import { useActivity } from "@/components/activity";
 
 /** Live bar: polls for new data every minute, refreshes open pages automatically, and offers a manual refresh. */
 export default function LiveBar() {
+  const act = useActivity();
   const [u, setU] = useState<any>(null);
   const [busy, setBusy] = useState(false);
   const [ago, setAgo] = useState("");
@@ -39,22 +41,19 @@ export default function LiveBar() {
   }, [u]);
   async function refresh() {
     setBusy(true);
-    try {
-      const { run_id } = await api("/api/workflows/discover_jobs", { body: {} });
-      let r: any;
-      do { await new Promise((ok) => setTimeout(ok, 3000)); r = await api(`/api/runs/${run_id}`); window.dispatchEvent(new Event("noderze:data")); } while (r.status === "running");
-    } catch {}
-    await poll(); setBusy(false);
+    // Shown as a small progress pill rather than the side panel: a full scan of every board takes a while.
+    try { await act.start({ kind: "discover_jobs", body: {}, label: "Scanning job boards", key: "refresh", quiet: true, onDone: () => { poll(); setBusy(false); } }); }
+    catch { setBusy(false); }
   }
   const upd = u?.app_update;
   return (
-    <div className="livebar">
-      {(upd?.state === "building" || upd?.state === "swapping") && <span className="badge new">Updating Noderze, about 2 minutes. It reloads on its own.</span>}
-      {upd?.state === "failed" && <span className="badge warn" title={upd.error || ""}>An update didn't apply. Noderze is still running the previous version.</span>}
+    <div className="topbar">
+      {(upd?.state === "building" || upd?.state === "swapping") && <span className="tag new">Updating Noderze. It reloads on its own in about 2 minutes.</span>}
+      {upd?.state === "failed" && <span className="tag warn" title={upd.error || ""}>An update didn't apply. Noderze is still running the previous version.</span>}
       <span className={`dot ${busy ? "busy" : ""}`} aria-hidden />
-      <span className="small">{busy ? "Scanning job boards..." : `Live. Last scan ${ago}`}</span>
-      {u?.unseen > 0 && <Link href="/opportunities?new=1" className="pill"><Bell size={13} />{u.unseen} new</Link>}
-      <button className="btn secondary small" onClick={refresh} disabled={busy}><RefreshCw size={14} />Refresh now</button>
+      <span className="small">{busy ? "Scanning job boards" : `Last scan ${ago}`}</span>
+      {u?.unseen > 0 && <Link href="/opportunities?new=1" className="new"><Bell size={13} />{u.unseen} new</Link>}
+      <button className="btn sm" onClick={refresh} disabled={busy}><RefreshCw />Scan now</button>
     </div>
   );
 }

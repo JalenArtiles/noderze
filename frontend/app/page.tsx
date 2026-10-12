@@ -1,19 +1,19 @@
 "use client";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { ArrowUpRight, Briefcase, Building2, GraduationCap, Globe, MapPin, Shield, Sun, TrendingUp } from "lucide-react";
-import { Err, PathBadge } from "@/components/ui";
-import { CAT_LABEL } from "@/components/ui";
+import { ArrowUpRight, Briefcase, GraduationCap, Globe, MapPin, Shield, Sun, TrendingUp } from "lucide-react";
+import { Callout, Err, JobList, PathBadge, SectionHead } from "@/components/ui";
 import { CompanyLogo, RouteArt, ScoreRing } from "@/components/visual";
 import { useApi } from "@/lib/api";
 
 const TILE_ICON: Record<string, any> = { programs: GraduationCap, az: Sun, socal: MapPin, remote: Globe, cyber: Shield, goal: TrendingUp };
 
 export default function Home() {
-  const { data, error, reload } = useApi("/api/home");
+  const { data, error } = useApi("/api/home");
   const [greet, setGreet] = useState("Hello");
   useEffect(() => { const h = new Date().getHours(); setGreet(h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening"); }, []);
   const best = data?.best;
+  const setupNeeded = data && (!data.status.llm || data.status.search_provider === "none");
   return (
     <>
       <Err msg={error} />
@@ -22,66 +22,63 @@ export default function Home() {
         <div className="grid">
           <div>
             <h1>{greet}{data?.name ? `, ${data.name}` : ""}.</h1>
-            <p className="sub">{data ? `Entry sales roles at cybersecurity companies with real SE teams, in Arizona, remote or Southern California. ${data.totals.companies} companies watched, scanned every three hours.` : "Loading your matches..."}</p>
-            <div className="row" style={{ marginTop: ".9rem", alignItems: "flex-start" }}>
-              <Link className="btn gold" href="/companies">See companies hiring</Link>
-              <Link className="btn ghost" href="/companies">Browse companies</Link>
+            <p className="sub">{data ? `${data.totals.jobs} roles across ${data.totals.companies} companies, rescanned every three hours. Here's where to start.` : "Loading your matches..."}</p>
+            <div className="row" style={{ marginTop: "1.1rem" }}>
+              <Link className="btn gold" href="/companies">Browse companies hiring</Link>
+              <Link className="btn on-dark" href="/opportunities">All roles</Link>
             </div>
           </div>
           {best && (
             <div className="bestmove">
-              <span className="tag"><ArrowUpRight size={14} />Your best move</span>
-              <div className="row" style={{ marginTop: ".7rem", flexWrap: "nowrap", alignItems: "flex-start" }}>
+              <span className="tag"><ArrowUpRight />Your best move</span>
+              <div className="row" style={{ marginTop: ".75rem", flexWrap: "nowrap", alignItems: "flex-start", gap: ".8rem" }}>
                 <CompanyLogo name={best.company} website={best.company_website} size="lg" />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div className="small muted">{best.company}</div>
-                  <h3 style={{ fontSize: "1.15rem", margin: ".1rem 0 .3rem" }}>{best.title}</h3>
+                  <h3 style={{ fontSize: "1.12rem", margin: ".1rem 0 .35rem" }}>{best.title}</h3>
                   <div className="row small"><PathBadge value={best.path_class} /><span className="muted">{best.location_text}</span></div>
                 </div>
-                <ScoreRing value={best.score_total} size="lg" />
+                <ScoreRing value={best.score_total} />
               </div>
-              <p className="small muted" style={{ margin: ".6rem 0" }}>{best.score_breakdown?.career_path?.reasons?.[0]}</p>
-              <div className="row"><Link className="btn primary small" href={`/apply/${best.id}`}>Apply</Link>
-                <Link className="btn secondary small" href={`/jobs/${best.id}`}>See why it fits</Link></div>
+              <p className="small muted" style={{ margin: ".7rem 0 .8rem" }}>{best.score_breakdown?.career_path?.reasons?.[0]?.replace(/^\w+: /, "")}</p>
+              <div className="row"><Link className="btn primary sm" href={`/apply/${best.id}`}>Apply</Link>
+                <Link className="btn sm" href={`/jobs/${best.id}`}>See why it fits</Link></div>
             </div>)}
         </div>
       </section>
-      {data && (!data.status.llm || data.status.search_provider === "none") && (
-        <div className="notice" style={{ marginBottom: "1rem" }}>Job board scans work now. Deep research and recruiter discovery need a search provider, and smarter writing needs an Anthropic key. Add them in backend/.env when you're ready.</div>)}
 
-      <h2>Explore by interest</h2>
-      <div className="tiles">
-        {data?.tiles.map((t: any) => { const Icon = TILE_ICON[t.key] || Briefcase; return (
-          <Link key={t.key} href={t.href} className={`tile ${t.tone}`}><span className="icon"><Icon /></span><span className="count num">{t.count}</span><b>{t.label}</b><span>{t.hint}</span></Link>); })}
+      {setupNeeded && <div style={{ marginTop: "1rem" }}><Callout action={<Link href="/settings#connections">Finish setup</Link>}>
+        Job scans work. Web research, people search and smarter writing switch on when you add a search provider and an Anthropic key.</Callout></div>}
+
+      <div className="sec">
+        <SectionHead title="Explore" />
+        <div className="tiles">
+          {data?.tiles.map((t: any) => { const Icon = TILE_ICON[t.key] || Briefcase; return (
+            <Link key={t.key} href={t.href} className={`tile ${t.tone}`}>
+              <span className="top"><span className="icon"><Icon /></span><span className="count num">{t.count}</span></span>
+              <b>{t.label}</b><span className="hint">{t.hint}</span></Link>); })}
+        </div>
       </div>
 
-      <div className="spread" style={{ alignItems: "baseline" }}><h2>Top matches for you</h2><Link href="/opportunities" className="small">See all <ArrowUpRight size={13} /></Link></div>
-      <div className="grid3">
-        {data?.top.map((j: any) => (
-          <Link key={j.id} href={`/apply/${j.id}`} className={`card mini ${j.category}`}>
-            <div className="row" style={{ flexWrap: "nowrap", alignItems: "flex-start" }}>
-              <CompanyLogo name={j.company} website={j.company_website} />
-              <div style={{ flex: 1, minWidth: 0 }}><div className="cat">{CAT_LABEL[j.category]}</div><b style={{ display: "block", lineHeight: 1.25 }}>{j.title}</b><span className="small muted">{j.company}</span></div>
-              <ScoreRing value={j.score_total} />
-            </div>
-            <div className="row small"><PathBadge value={j.path_class} /><span className="muted"><MapPin size={12} /> {j.location_text}</span></div>
-          </Link>))}
-        {data && !data.top.length && <div className="panel empty">No matches yet. Click Refresh now at the top right.</div>}
-      </div>
-
-      <div className="grid2" style={{ marginTop: "1.6rem" }}>
-        <section className="panel"><h2 style={{ marginTop: 0 }}>Do this today</h2>
-          {!data?.today?.length && <p className="muted">Nothing urgent.</p>}
-          <ol className="today">{data?.today?.map((a: any, i: number) => (
-            <li key={i}><span className="n">{i + 1}</span><div><Link href={a.link}><b>{a.text}</b></Link><div className="small muted">{a.why}</div></div></li>))}</ol>
-        </section>
-        <section className="panel"><h2 style={{ marginTop: 0 }}>Your pipeline</h2>
-          <div className="pipe">{data && Object.entries(data.pipeline).map(([k, v]: any) => <Link key={k} href="/applications" style={{ color: "inherit" }}><div><b className="num">{v}</b><span>{k}</span></div></Link>)}</div>
-          <h3 style={{ marginTop: "1.1rem" }}>Next moves</h3>
-          {data?.next_moves?.map((m: any, i: number) => <div key={i} className="fact"><Link href={m.link}>{m.text}</Link><div className="small muted">{m.why}</div></div>)}
-          <div className="row" style={{ marginTop: ".8rem" }}><Link className="btn secondary small" href="/companies"><Building2 size={15} />Companies</Link>
-            <Link className="btn secondary small" href="/resume">Resume</Link><Link className="btn secondary small" href="/skills">Skills roadmap</Link></div>
-        </section>
+      <div className="split sec">
+        <div>
+          <SectionHead title="Top matches" aside={<Link href="/opportunities">All roles</Link>} />
+          {data && <JobList jobs={data.top} page={6} />}
+        </div>
+        <div className="stack-lg">
+          <section className="panel">
+            <h3 style={{ marginBottom: ".7rem" }}>Do this today</h3>
+            {!data?.today?.length ? <p className="small muted">Nothing urgent. Browse companies or apply to your best move.</p> :
+              <ol className="todo">{data.today.map((a: any, i: number) => (
+                <li key={i}><div><Link href={a.link} style={{ fontWeight: 600 }}>{a.text}</Link><div className="small muted">{a.why}</div></div></li>))}</ol>}
+          </section>
+          <section className="panel">
+            <div className="spread" style={{ marginBottom: ".7rem" }}><h3>Your applications</h3><Link className="small" href="/applications">Open board</Link></div>
+            <div className="pipe">{data && Object.entries(data.pipeline).map(([k, v]: any) => <Link key={k} href="/applications"><b className="num">{v}</b><span>{k}</span></Link>)}</div>
+            {data?.next_moves?.length > 0 && <div style={{ marginTop: ".9rem" }}>{data.next_moves.slice(0, 3).map((m: any, i: number) => (
+              <div key={i} className="fact"><Link href={m.link} style={{ fontWeight: 600 }}>{m.text}</Link><div className="small muted">{m.why}</div></div>))}</div>}
+          </section>
+        </div>
       </div>
     </>
   );

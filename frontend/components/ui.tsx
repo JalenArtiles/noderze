@@ -1,11 +1,56 @@
 "use client";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { AlertTriangle, Info, Loader2, MoreHorizontal } from "lucide-react";
 import { api, day, label, money } from "@/lib/api";
-import { MapPin } from "lucide-react";
-import { CompanyLogo, ScoreRing } from "@/components/visual";
+import { CompanyLogo } from "@/components/visual";
+import { useActivity } from "@/components/activity";
 
 export function Err({ msg }: { msg?: string | null }) { return msg ? <div className="error" role="alert">{msg}</div> : null; }
+
+export function PageHeader({ title, lede, crumb, actions, children }: { title: React.ReactNode; lede?: React.ReactNode; crumb?: React.ReactNode; actions?: React.ReactNode; children?: React.ReactNode }) {
+  return (
+    <header className="ph">
+      <div style={{ minWidth: 0, flex: "1 1 420px" }}>
+        {crumb && <span className="crumb">{crumb}</span>}
+        <h1>{title}</h1>
+        {lede && <p className="lede">{lede}</p>}
+        {children}
+      </div>
+      {actions && <div className="ph-actions">{actions}</div>}
+    </header>
+  );
+}
+
+export function SectionHead({ title, count, aside }: { title: React.ReactNode; count?: number | null; aside?: React.ReactNode }) {
+  return <div className="sec-head"><h2>{title}{count != null && <span className="n num">{count}</span>}</h2>{aside && <div className="aside">{aside}</div>}</div>;
+}
+
+export function Empty({ title, children, action }: { title: string; children?: React.ReactNode; action?: React.ReactNode }) {
+  return <div className="empty"><h3>{title}</h3>{children && <p>{children}</p>}{action}</div>;
+}
+
+export function Callout({ tone, children, action }: { tone?: "warn" | "bad"; children: React.ReactNode; action?: React.ReactNode }) {
+  return <div className={`callout ${tone || ""}`}>{tone ? <AlertTriangle /> : <Info />}<div className="grow">{children}</div>{action}</div>;
+}
+
+export function Loading({ what = "Loading" }: { what?: string }) { return <p className="skeleton">{what}...</p>; }
+
+/** A small "more actions" menu so a screen keeps one obvious primary action. */
+export function Menu({ label: lab = "More actions", children }: { label?: string; children: React.ReactNode }) {
+  const ref = useRef<HTMLDetailsElement>(null);
+  useEffect(() => {
+    const close = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) ref.current.open = false; };
+    document.addEventListener("click", close);
+    return () => document.removeEventListener("click", close);
+  }, []);
+  return (
+    <details className="menu" ref={ref}>
+      <summary className="btn" aria-label={lab}><MoreHorizontal /></summary>
+      <div className="pop" onClick={() => { if (ref.current) ref.current.open = false; }}>{children}</div>
+    </details>
+  );
+}
 
 export function PathBadge({ value }: { value?: string | null }) {
   if (!value) return null;
@@ -45,14 +90,19 @@ export function ScoreBars({ breakdown }: { breakdown: Record<string, any> }) {
     <div className="bars">
       {Object.entries(breakdown).map(([k, c]: any) => (
         <div key={k} style={{ display: "contents" }}>
-          <button onClick={() => setOpen(open === k ? null : k)} style={{ all: "unset", cursor: "pointer" }} aria-expanded={open === k}>{c.label}</button>
+          <button onClick={() => setOpen(open === k ? null : k)} aria-expanded={open === k}>{c.label}</button>
           <div className="bar"><i style={{ width: `${c.max ? (100 * c.score) / c.max : 0}%` }} /></div>
-          <span className="num">{c.score}/{Math.round(c.max)}</span>
+          <span className="num small">{c.score}/{Math.round(c.max)}</span>
           {open === k && <div className="reasons">{c.reasons.map((r: string, i: number) => <div key={i}>{r}</div>)}</div>}
         </div>
       ))}
     </div>
   );
+}
+
+export function ScoreChip({ value }: { value?: number | null }) {
+  const v = Math.round(value || 0);
+  return <span className={`score-chip ${v >= 75 ? "hi" : v >= 60 ? "mid" : "lo"}`} title={`Fit score ${v} out of 100`}>{v}</span>;
 }
 
 const GRAD_TONE: Record<string, string> = { eligible_now: "good", likely_may_2027: "good", eligible_closer: "", internship_convert: "warn",
@@ -63,76 +113,72 @@ export const CAT_LABEL: Record<string, string> = { entry_sales: "Entry sales, cy
 export const GRAD_SHORT: Record<string, string> = { eligible_now: "Eligible now", likely_may_2027: "Made for 2027 grads", eligible_closer: "Apply closer to your start",
   internship_convert: "Internship", too_early: "Starts before you graduate", too_late: "For later graduates", requires_experience: "Needs experience", unclear: "Timing unclear" };
 
-export function OpportunityCard({ job, onChange }: { job: any; onChange?: () => void }) {
-  const [busy, setBusy] = useState(false);
-  const [err, setErr] = useState<string | null>(null);
-  const comp = job.comp_min ? `${money(job.comp_min)}${job.comp_max && job.comp_max !== job.comp_min ? `-${money(job.comp_max)}` : ""}${job.comp_period === "hour" ? "/hr" : ""}` : null;
-  async function track() {
-    setBusy(true);
-    try { await api("/api/applications", { body: { job_id: job.id } }); onChange?.(); } catch (e: any) { setErr(e.message); }
-    setBusy(false);
-  }
-  return (
-    <article className={`card ${job.category || ""}`}>
-      <div className="row" style={{ alignItems: "flex-start", flexWrap: "nowrap", gap: ".9rem" }}>
-        <CompanyLogo name={job.company} website={job.company_website} />
-        <div style={{ minWidth: 0, flex: 1 }}>
-          <div className="row small"><span className="cat">{CAT_LABEL[job.category] || ""}</span><span className="muted">{job.company}</span>
-            {job.sales_level && <span className="badge">{job.sales_level}</span>}
-            {job.se_roles_seen > 0 && <span className="badge good" title="Open SE or solutions roles on the company's own job board">SE team: {job.se_roles_seen} open roles</span>}
-            {job.flags?.includes("outside_area") && <span className="badge warn">Outside your area</span>}
-            {job.flags?.includes("edge_location") && <span className="badge warn">Edge location</span>}
-            {job.needs_verification && <span className="badge">Verify posting</span>}{job.application_stage && <span className="badge good">{label(job.application_stage)}</span>}</div>
-          <h3 style={{ margin: ".15rem 0 .25rem", fontSize: "1.08rem" }}><Link href={`/jobs/${job.id}`} style={{ color: "var(--ink)" }}>{job.title}</Link></h3>
-          <div className="row small">
-            <span className="badge"><MapPin size={13} />{job.location_text || "Location unknown"}</span>
-            {job.remote_type !== "unknown" && <span className="badge">{label(job.remote_type)}</span>}
-            {comp && <span className="badge num">{comp}</span>}
-            {job.grad_status && <span className={`badge ${GRAD_TONE[job.grad_status] || ""}`} title={job.grad_reason}>{GRAD_SHORT[job.grad_status] || label(job.grad_status)}</span>}
-            {job.deadline && <span className="badge warn">Due {day(job.deadline)}</span>}
-            <PathBadge value={job.path_class} />
-          </div>
-          <PathRail job={job} />
-        </div>
-        <ScoreRing value={job.score_total} />
-      </div>
-      <Err msg={err} />
-      <div className="row" style={{ marginTop: ".55rem" }}>
-        <Link className="btn primary small" href={`/apply/${job.id}`}>Apply</Link>
-        <Link className="btn secondary small" href={`/apply/${job.id}#recruiter`}>Find recruiter</Link>
-        <Link className="btn secondary small" href={`/jobs/${job.id}`}>Why it fits</Link>
-        <Link className="btn secondary small" href={`/jobs/${job.id}?tab=report`}>Research</Link>
-        {!job.application_stage && <button className="btn secondary small" disabled={busy} onClick={track}>Add to tracker</button>}
-      </div>
-    </article>
-  );
-}
+export const compText = (job: any) => job.comp_min ? `${money(job.comp_min)}${job.comp_max && job.comp_max !== job.comp_min ? `-${money(job.comp_max)}` : ""}${job.comp_period === "hour" ? "/hr" : ""}` : null;
 
-export function RunButton({ kind, body, children, onDone, className = "btn" }: { kind: string; body?: any; children: any; onDone?: (run: any) => void; className?: string }) {
-  const [run, setRun] = useState<any>(null);
-  const [err, setErr] = useState<string | null>(null);
-  async function go() {
-    setErr(null);
-    try {
-      const { run_id } = await api(`/api/workflows/${kind}`, { body: body || {} });
-      let r: any;
-      do { await new Promise((ok) => setTimeout(ok, 1500)); r = await api(`/api/runs/${run_id}`); setRun(r); } while (r.status === "running");
-      onDone?.(r);
-    } catch (e: any) { setErr(e.message); }
-  }
-  const running = run?.status === "running";
+/** One role as a compact row: what it is, where, the few facts that decide whether to click, and the score. */
+export function JobRow({ job, showCompany = true, onChange }: { job: any; showCompany?: boolean; onChange?: () => void }) {
+  const [busy, setBusy] = useState(false);
+  const comp = compText(job);
+  const where = [showCompany ? job.company : null, job.location_text || "Location unknown", comp].filter(Boolean).join(", ");
+  const grad = job.grad_status && job.grad_status !== "unclear" ? job.grad_status : null;
+  async function track() { setBusy(true); try { await api("/api/applications", { body: { job_id: job.id } }); onChange?.(); } catch {} setBusy(false); }
   return (
-    <div className="stack" style={{ display: "inline-block", verticalAlign: "top", maxWidth: "100%" }}>
-      <button className={className} onClick={go} disabled={running}>{running ? "Working..." : children}</button>
-      <Err msg={err || run?.error} />
-      {run && <div className="log" aria-live="polite">{run.log.map((l: any) => l.msg).join("\n") || "Starting..."}{run.status !== "running" ? `\n[${run.status}]` : ""}</div>}
+    <div className="li hover">
+      {showCompany && <CompanyLogo name={job.company} website={job.company_website} size="sm" />}
+      <div className="grow">
+        <Link href={`/jobs/${job.id}`} className="title" style={{ display: "block" }}>{job.title}</Link>
+        <div className="sub">{where}</div>
+        <div className="meta" style={{ marginTop: ".4rem" }}>
+          <PathBadge value={job.path_class} />
+          {job.application_stage ? <span className="tag good">{label(job.application_stage)}</span>
+            : grad && <span className={`tag ${GRAD_TONE[grad] || ""}`} title={job.grad_reason}>{GRAD_SHORT[grad] || label(grad)}</span>}
+          {job.flags?.includes("outside_area") ? <span className="tag warn">Outside your area</span>
+            : job.sales_level ? <span className="tag">{job.sales_level.split(" (")[0]}</span>
+            : job.category === "program" ? <span className="tag brand">Program</span> : null}
+          {job.deadline && <span className="tag warn">Due {day(job.deadline)}</span>}
+        </div>
+      </div>
+      <div className="end">
+        <ScoreChip value={job.score_total} />
+        {!job.application_stage && onChange && <button className="btn sm quiet" onClick={track} disabled={busy}>Save</button>}
+        <Link className="btn sm primary" href={`/apply/${job.id}`}>Apply</Link>
+      </div>
     </div>
   );
 }
 
-export function Facts({ facts, labels, only }: { facts: Record<string, any[]>; labels?: Record<string, string>; only?: string[] }) {
+/** Paged list of roles: shows `page` at a time with a "show more" footer. */
+export function JobList({ jobs, page = 20, showCompany = true, onChange, empty }: { jobs: any[]; page?: number; showCompany?: boolean; onChange?: () => void; empty?: React.ReactNode }) {
+  const [n, setN] = useState(page);
+  useEffect(() => setN(page), [jobs, page]);
+  if (!jobs.length) return <div className="list">{empty || <Empty title="No roles here yet" />}</div>;
+  return (
+    <div className="list">
+      {jobs.slice(0, n).map((j) => <JobRow key={j.id} job={j} showCompany={showCompany} onChange={onChange} />)}
+      {jobs.length > n && <div className="more"><button className="btn sm" onClick={() => setN(n + page)}>Show {Math.min(page, jobs.length - n)} more of {jobs.length - n} left</button></div>}
+    </div>
+  );
+}
+
+/** Starts a workflow and shows its progress in the activity panel. */
+export function RunButton({ kind, body, children, onDone, className = "btn", label: lab = "", quiet = false }: { kind: string; body?: any; children: any; onDone?: (run: any) => void; className?: string; label?: string; quiet?: boolean }) {
+  const act = useActivity();
+  const [err, setErr] = useState<string | null>(null);
+  const key = `${kind}:${JSON.stringify(body || {})}`;
+  const running = act.isRunning(key);
+  return (
+    <>
+      <button className={className} disabled={running} onClick={() => { setErr(null); act.start({ kind, body, label: lab || label(kind), key, quiet, onDone }).catch((e) => setErr(e.message)); }}>
+        {running ? <><Loader2 className="spin" style={{ animation: "spin 1s linear infinite" }} />Running</> : children}
+      </button>
+      {err && <span className="small" style={{ color: "var(--red)" }}>{err}</span>}
+    </>
+  );
+}
+
+export function Facts({ facts, labels, only, empty }: { facts: Record<string, any[]>; labels?: Record<string, string>; only?: string[]; empty?: React.ReactNode }) {
   const keys = (only || Object.keys(facts || {})).filter((k) => facts?.[k]?.length);
-  if (!keys.length) return <p className="muted small">No sourced facts yet. Run Deep research, or add a fact you verified.</p>;
+  if (!keys.length) return <>{empty ?? <p className="muted small">No sourced facts yet.</p>}</>;
   return (
     <dl className="facts">
       {keys.map((k) => (
@@ -147,19 +193,26 @@ export function Fact({ f }: { f: any }) {
   return (
     <div>
       <div>{f.value}</div>
-      <div className="row small muted">
-        <span className={`badge ${f.source_type}`}>{label(f.source_type)}</span><span className="badge">{f.confidence} confidence</span>
-        {f.corroborated_by > 0 && <span>+{f.corroborated_by} agreeing</span>}
+      <div className="src">
+        <span className={`tag ${f.source_type}`}>{label(f.source_type)}</span><span>{f.confidence} confidence</span>
+        {f.corroborated_by > 0 && <span>{f.corroborated_by} other sources agree</span>}
         {f.observed_on && <span>as of {day(f.observed_on)}</span>}
-        {f.source?.url && <a href={f.source.url} target="_blank" rel="noreferrer">{f.source.title || f.source.publisher || "source"}</a>}
+        {f.source?.url && <a href={f.source.url} target="_blank" rel="noreferrer">{f.source.title || f.source.publisher || "Source"}</a>}
         {f.note && <span title={f.note}>Note: {f.note}</span>}
       </div>
     </div>
   );
 }
 
-export function Tabs({ tabs, value, onChange }: { tabs: [string, string][]; value: string; onChange: (v: string) => void }) {
-  return <div className="tabs" role="tablist">{tabs.map(([k, l]) => <button key={k} role="tab" aria-selected={value === k} className={value === k ? "on" : ""} onClick={() => onChange(k)}>{l}</button>)}</div>;
+export function Tabs({ tabs, value, onChange }: { tabs: ([string, string] | [string, string, number | null])[]; value: string; onChange: (v: string) => void }) {
+  return (
+    <div className="tabs" role="tablist">
+      {tabs.map(([k, l, n]) => (
+        <button key={k} role="tab" aria-selected={value === k} className={value === k ? "on" : ""} onClick={() => { onChange(k); const u = new URL(window.location.href); u.searchParams.set("tab", k); window.history.replaceState(null, "", u.toString()); }}>
+          {l}{n != null && <span className="n num">{n}</span>}
+        </button>))}
+    </div>
+  );
 }
 
 /** Reads ?tab= once on mount (avoids useSearchParams Suspense requirements in static builds). */

@@ -159,7 +159,7 @@ It fills what it safely can and pauses for CAPTCHAs and logins. It waits for you
 ## What was verified, and what wasn't
 
 - **Verified:**
-  - 41 backend tests pass. They cover classifiers, scoring, ATS parsers, dedup, the claim checker, the style guard, the seed-data privacy split, and the full resume-to-application flow on a generated sample resume (set `NODERZE_TEST_RESUME` to run it on your own).
+  - 46 backend tests pass. They cover classifiers, scoring, ATS parsers, dedup, the claim checker, the style guard, the seed-data privacy split, run progress steps, and the full resume-to-application flow on a generated sample resume (set `NODERZE_TEST_RESUME` to run it on your own).
   - The Next.js production build passes type checking.
   - A live server smoke test passed, including token auth and background workflows.
   - The tailored .docx was rendered and checked visually.
