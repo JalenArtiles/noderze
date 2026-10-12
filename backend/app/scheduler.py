@@ -39,8 +39,11 @@ def reload() -> None:
                 continue
             wf = (rule.params or {}).get("workflow", "scan_alerts")
             kwargs = {"rule_id": rule.id} if wf == "scan_alerts" else {}
+            # A laptop that was asleep, or a restart at the wrong second, used to skip the scan entirely
+            # (the default grace period is one second). Now a missed scan runs once, late, when Noderze is back.
             _scheduler.add_job(start, trigger, args=[wf, rule.name, WORKFLOWS[wf]], kwargs=kwargs,
-                               id=f"rule-{rule.id}", replace_existing=True)
+                               id=f"rule-{rule.id}", replace_existing=True, misfire_grace_time=12 * 3600,
+                               coalesce=True)
     finally:
         db.close()
 
