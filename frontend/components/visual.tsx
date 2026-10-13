@@ -20,11 +20,11 @@ export function CompanyLogo({ name, website, size = "md" }: { name: string; webs
 export function ScoreRing({ value, size = "md" }: { value: number; size?: "md" | "lg" }) {
   const v = Math.max(0, Math.min(100, Math.round(value || 0)));
   const px = size === "lg" ? 80 : 58, stroke = size === "lg" ? 7 : 6, r = (px - stroke) / 2, c = 2 * Math.PI * r;
-  const color = v >= 75 ? "#16803c" : v >= 60 ? "#d58512" : "#94a3b8";
+  const tone = v >= 75 ? "hi" : v >= 60 ? "mid" : "lo";
   return (
     <div className="ring" style={{ width: px, height: px }} title={`Fit score ${v} out of 100`}>
-      <svg width={px} height={px} aria-hidden><circle cx={px / 2} cy={px / 2} r={r} stroke="#eceff4" strokeWidth={stroke} fill="none" />
-        <circle cx={px / 2} cy={px / 2} r={r} stroke={color} strokeWidth={stroke} fill="none" strokeLinecap="round" strokeDasharray={`${(c * v) / 100} ${c}`} /></svg>
+      <svg width={px} height={px} aria-hidden><circle className="track" cx={px / 2} cy={px / 2} r={r} strokeWidth={stroke} fill="none" />
+        <circle className={`val ${tone}`} cx={px / 2} cy={px / 2} r={r} strokeWidth={stroke} fill="none" strokeLinecap="round" strokeDasharray={`${(c * v) / 100} ${c}`} /></svg>
       <b className="num" style={{ fontSize: size === "lg" ? "1.55rem" : "1.15rem" }}>{v}</b>
     </div>
   );

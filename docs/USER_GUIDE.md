@@ -15,6 +15,7 @@ Noderze is a personal career operating system for one goal: getting from ASU stu
 - **Find recruiter.** One-click LinkedIn searches you open yourself: recruiters, SDR managers, sales engineers and ASU alumni. Ready-to-copy messages come with them, and LinkedIn connections you imported appear first.
 - **Live updates.** Watched companies are rescanned every three hours (7 AM to 10 PM), and the feeds every six hours. Open pages refresh themselves when new roles arrive; the bar at the top shows the last scan and has a Refresh now button.
 - **ASE roles and SE programs** (like Verkada's) have their own section and appear even outside your area, with a flag. SE roles you'd grow into are listed separately as goal roles.
+- **Themes.** Settings > Appearance has four looks: Night Shift (dark, the default), Sun Devil Pop (maroon and gold), Desert Dusk (sunset gradients) and Classic (light). The change applies right away and the Noderze window remembers it.
 
 **LinkedIn.** Noderze never logs into LinkedIn, follows, applies or sends messages for you. LinkedIn's terms ban automation and it restricts accounts that use it. Instead you get the exact searches to open, messages to paste, and an import of LinkedIn's own export of your connections (Contacts page).
 

@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { CheckCircle2, CircleDashed } from "lucide-react";
 import { Callout, Err, Loading, PageHeader, SectionHead } from "@/components/ui";
 import { api, day, useApi } from "@/lib/api";
+import ThemePicker from "@/components/theme-picker";
 
 const LABELS: Record<string, string> = { career_path: "Career path", technical_fit: "Technical fit", geography: "Geography", development: "Development program",
   eligibility: "Eligibility and timing", sales_leverage: "Sales experience", compensation: "Compensation", evidence: "Evidence strength" };
@@ -32,6 +33,10 @@ export default function Settings() {
       <PageHeader title="Settings" lede="Your profile, how roles are scored, and what Noderze connects to." />
       <Err msg={error || err} />
       {msg && <div style={{ marginBottom: "1rem" }}><Callout>{msg}</Callout></div>}
+      <div id="appearance" style={{ marginBottom: "2.2rem" }}>
+        <SectionHead title="Appearance" aside={<span className="muted">Changes apply right away</span>} />
+        <ThemePicker />
+      </div>
       {!p ? <Loading /> : <>
         <SectionHead title="About you" />
         <section className="panel stack">

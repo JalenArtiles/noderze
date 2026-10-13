@@ -28,11 +28,14 @@ I wrote the product spec (requirements, scoring rules and guardrails) and built 
   - Edits are applied to the original file, so formatting survives.
 - **Recruiter outreach, done by hand.** It drafts messages and gives one-click LinkedIn searches to open myself. LinkedIn is never automated.
 - **Live updates.** Watched companies are rescanned on a schedule, and open pages refresh when new roles arrive.
+- **Four themes.** Night Shift (the default), Sun Devil Pop, Desert Dusk and Classic, picked in Settings. Colors are design tokens, so every component follows the theme, and the fonts ship with the app so it works offline.
 - **Runs like a desktop app on Windows.** There are no terminal windows. When the code changes, the interface rebuilds in the background and swaps in, rolling back if the build fails.
 
 | Home | One-click apply |
 |---|---|
 | ![Home page with the best next move and roles grouped by interest](docs/screenshots/today.png) | ![Resume tailored to a company's keywords, with each change explained and flagged claims held back](docs/screenshots/apply.png) |
+
+![The same Home page in the four themes: Night Shift, Sun Devil Pop, Desert Dusk and Classic](docs/screenshots/themes.png)
 
 *Screenshots use a sample profile and a fictional resume, with real public job postings.*
 
@@ -106,7 +109,7 @@ npm install && npm run dev                            # open http://localhost:30
 To make it yours, copy `backend/seed/profile.example.json` to `backend/seed/profile.json` and upload your resume on the Resume page. The [user guide](docs/USER_GUIDE.md) covers the Windows app, scheduled scans and troubleshooting.
 
 ```bash
-cd backend && pytest -q    # 46 tests
+cd backend && pytest -q    # 47 tests
 ```
 
 ## Project layout
