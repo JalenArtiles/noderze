@@ -68,6 +68,13 @@ def level_check(title: str, text: str) -> tuple[str, str]:
     if HIGH_SCHOOL.search(t):
         return "fail", "For high school students."
     body = (text or "")[:8000]
+    m = re.search(r"(?i:must be (?:currently )?enrolled (?:at|in) (?:one of the following:? )?)((?:the )?[A-Z][^.;\n]{3,120})",
+                  body)
+    if m and re.search(r"universit|college", m.group(1), re.I) and not re.search(
+            r"arizona state|\basu\b|any (?:accredited|four-year|4-year|college|university)|an accredited|a (?:four|4)-year",
+            m.group(1), re.I):
+        schools = re.sub(r",?\s+(?:to be eligible|to apply|in order to|who are|and (?:have|be)\b).*$", "", m.group(1).strip())
+        return "fail", f"Only for students at {schools.rstrip(',')}."
     if re.search(r"(?:currently )?(?:pursuing|enrolled in) (?:an? )?(?:master'?s|ph\.?\s?d|doctoral|graduate)"
                  r"(?: degree| program)?", body, re.I) and not re.search(r"bachelor|undergrad", body, re.I):
         return "fail", "Asks for students in a master's or PhD program."
@@ -77,7 +84,8 @@ def level_check(title: str, text: str) -> tuple[str, str]:
 # ----------------------------------------------------------------------------- field (track)
 
 _NOT_CYBER = re.compile(r"securities|social security|food security|security (?:officer|guard|patrol)s?|loss prevention|"
-                        r"physical security|national security polic|security systems? (?:install|tech)", re.I)
+                        r"physical security|national security polic|security systems? (?:install|tech)|"
+                        r"security (?:&|and) fire|fire (?:&|and) security|security forces", re.I)
 _CYBER = re.compile(r"cyber|information security|info\s?sec|\bsecurity\b|\bsoc\b|incident response|threat|vulnerab|"
                     r"penetration|pen ?test|\bgrc\b|identity (?:and|&) access|\biam\b|forensic|red team|blue team|"
                     r"appsec|devsecops", re.I)
@@ -88,7 +96,7 @@ _NETWORK = re.compile(r"\b(?:network(?:s|ing)?|net)\s+(?:engineer\w*|admin\w*|te
                       r"services intern)\b|\bnetwork(?:ing)?\s*(?:&|and)\s*(?:systems|security|infrastructure)|"
                       r"(?:computer|it|enterprise|wireless|data)\s+network|\bnoc\b|telecom\w*|"
                       r"infrastructure\s+(?:engineer\w*|intern|analyst|operations|services)|"
-                      r"data cent(?:er|re) (?:tech\w*|operations|intern)|\bnetworking\b", re.I)
+                      r"data cent(?:er|re)s?\b|\bnetworking\b", re.I)
 _DATA_STRONG = re.compile(r"\bdata\s+(?:analyst|analytics|analysis|visuali[sz]ation|reporting)\b|\banalytics\b|"
                           r"business intelligence|\bbi\b(?:\s+(?:analyst|developer|intern|engineer))|reporting analyst|"
                           r"tableau|power ?bi|\bstatistic", re.I)
@@ -175,9 +183,12 @@ def track_of(title: str, description: str = "") -> Track:
 
 # ----------------------------------------------------------------------------- pay
 
-_UNPAID = re.compile(r"\bunpaid\b|\bnon-?paid\b|\bvolunteer (?:position|internship|role|opportunity)\b|"
-                     r"without (?:pay|compensation)|no (?:monetary )?(?:compensation|pay)\b|"
-                     r"(?:for|receive) (?:academic |college )?credit only|is not (?:a )?paid|not compensated", re.I)
+# "Unpaid" has to be about the internship itself: benefits text like "paid and unpaid time away from work" is not.
+_UNPAID = re.compile(r"\b(?:an |is |this is an? )?unpaid (?:intern(?:ship)?s?|position|role|opportunity|program|experience)\b|"
+                     r"\b(?:internship|position|role|opportunity|program) is unpaid\b|\bnon-?paid (?:intern|position|role)|"
+                     r"\bvolunteer (?:position|internship|role|opportunity)\b|(?:intern(?:ship)?s?|position|role) "
+                     r"(?:is|are) not (?:paid|compensated)|without (?:monetary )?compensation|no (?:monetary )?compensation\b|"
+                     r"(?:for|receive) (?:academic |college )?credit only|is not a paid", re.I)
 _PAID = re.compile(r"\bpaid (?:intern(?:ship)?s?|position|role|opportunity|program|experience|student)\b|"
                    r"\b(?:this|the) (?:internship|position|role|opportunity) is paid\b|\bis a paid\b|"
                    r"\bhourly (?:rate|wage|pay|range|compensation)\b|\bper hour\b|\bpay (?:rate|range|scale)\b|"
@@ -496,7 +507,8 @@ def where_of(location_text: str | None, description: str = "", title: str = "", 
         city = c
     li = parse_location(loc, description, title)
     mode = (workplace or "").lower()
-    if li.remote_type == "hybrid" or mode == "hybrid":
+    loc_hybrid = bool(re.search(r"\bhybrid\b", loc, re.I))
+    if mode == "hybrid" or loc_hybrid or (li.remote_type == "hybrid" and not remote and mode != "remote"):
         mode = "hybrid"
     elif remote or mode == "remote" or li.remote_type == "remote":
         mode = "remote"
@@ -520,6 +532,8 @@ def where_of(location_text: str | None, description: str = "", title: str = "", 
                      else "outside", f"{other_az}, AZ is outside the Phoenix area")
     if az_any:
         return Where("az_unknown", "Arizona, city not listed")
+    if remote:
+        return Where("unknown", "Remote or hybrid, not clear. Confirm where you'd work")
     if re.fullmatch(r"\s*(?:united states(?: of america)?|usa?|u\.s\.|\d+ locations|multiple locations|various(?: locations)?|"
                     r"nationwide|n/?a)\s*", loc, re.I):
         return Where("unknown", "Location not specific")
@@ -623,7 +637,7 @@ def evaluate(x: InternInput, pref: dict | None = None) -> dict:
         checks.append(_check("where", "Remote or Phoenix area", "fail", where.label))
     # Level and status of the posting
     if level == "fail":
-        checks.append(_check("level", "For undergraduates", "fail", level_detail))
+        checks.append(_check("level", "Open to you", "fail", level_detail))
     if not x.is_active:
         checks.append(_check("open", "Still open", "fail", "The posting is closed or was removed."))
 

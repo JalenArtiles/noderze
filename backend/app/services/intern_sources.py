@@ -395,8 +395,7 @@ def import_feed(db: Session, f: PoliteFetcher, log, stats: dict) -> int:
         name = x["company_name"].strip()
         locs = "; ".join(x.get("locations") or []).replace("Remote in USA", "Remote, US")
         p, original = resolve(f, x["url"], x["title"].strip(), locs)
-        if not p.location_text:
-            p.location_text = locs
+        p.location_text = locs or p.location_text  # the list's locations are cleaner than many career pages
         p.extra = dict(p.extra or {}, feed_terms=x.get("terms") or [])
         parsed = parse_ats_url(x["url"])
         entry = {"ats_type": parsed[0], "token": parsed[1]} if parsed and parsed[0] != "workday" else {}

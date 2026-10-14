@@ -76,7 +76,8 @@ def _first_intern_scan(db) -> None:
 # rescore_v3_2: enterprise/strategic AE roles, foreign postings and state-limited remote roles left the entry list.
 STEPS = [("alerts_baseline_v1", _baseline_alerts), ("available_start_v1", _start_month), ("rescore_v3_1", _rescore),
          ("rescore_v3_2", _rescore), ("generic_notes_v1", _clear_generic_notes),
-         ("resume_checks_v1", _refresh_resume_checks), ("intern_rule_v1", _intern_rule)]
+         ("resume_checks_v1", _refresh_resume_checks), ("intern_rule_v1", _intern_rule),
+         ("rescore_interns_v1", _rescore)]  # internship checks after the first live search
 
 
 def apply_profile_updates(db) -> int:

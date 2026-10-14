@@ -134,6 +134,22 @@ def test_general_it_is_out_but_can_be_counted_anyway():
     assert ev("College Intern - TechStop IT Help Desk", desc, "Tempe, AZ", overrides={"include": True})["status"] != "out"
 
 
+def test_real_posting_edge_cases():
+    # Benefits text is not an unpaid internship
+    boeing = "Boeing Summer 2027 Internship Program (Paid). Programs provide for both paid and unpaid time away from work."
+    assert I.pay_of(boeing).status != "unpaid"
+    assert I.pay_of("This is an unpaid internship.").status == "unpaid"
+    # "Remote" in the location wins over "hybrid" in the company's boilerplate
+    assert I.where_of("Remote, UNAVAILABLE", "We have remote, hybrid and in-person roles.").status == "remote"
+    # Internships open only to students at other schools
+    st, why = I.level_check("Collections Data Analyst Intern", "Must be enrolled at University of South Florida, "
+                            "University of Tampa, or University of South Carolina to be eligible.")
+    assert st == "fail" and why.endswith("University of South Carolina.")
+    assert I.level_check("Intern", "Must be enrolled in an accredited college or university.")[0] == "pass"
+    assert I.track_of("Data Center Design Intern").track == "network"
+    assert I.track_of("Summer Internship (Paid) - Security & Fire Operation").track == "other"
+
+
 def test_closed_posting_is_out():
     assert ev("Cyber Security Intern", "Paid, $18/hr, 20 hours per week, spring 2027.", "Phoenix, AZ",
               is_active=False)["status"] == "out"

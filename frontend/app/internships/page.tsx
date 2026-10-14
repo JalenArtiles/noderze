@@ -8,6 +8,8 @@ import { api, useApi } from "@/lib/api";
 const TRACK_ICON: Record<string, any> = { cyber: Shield, data: BarChart3, network: Network };
 const WHERE: [string, string, any][] = [["", "Anywhere that works", null], ["remote", "Remote", Globe], ["phoenix", "Phoenix area", MapPin]];
 
+const uniq = (list: any[]) => new Set(list.map((j) => `${j.company}|${j.title}`)).size;
+
 function ago(iso?: string | null) {
   if (!iso) return null;
   const m = Math.round((Date.now() - new Date(iso + (iso.endsWith("Z") ? "" : "Z")).getTime()) / 60000);
@@ -41,6 +43,15 @@ export default function Internships() {
   const out = filtered.filter((j) => j.intern?.status === "out");
   const trackCount = (t: string) => items.filter((j) => j.intern?.status !== "out" && (!t || j.intern?.track === t)).length;
   const p = data?.prefs || { hours_min: 10, hours_max: 30 };
+  // Big employers post the same internship once per team; show each one once, with a count.
+  const grouped = useMemo(() => {
+    const seen = new Map<string, any>();
+    for (const j of tab === "out" ? out : ok) {
+      const k = `${j.company}|${j.title}|${j.intern?.status}`;
+      if (seen.has(k)) seen.get(k).count += 1; else seen.set(k, { job: j, count: 1 });
+    }
+    return Array.from(seen.values());
+  }, [tab, out, ok]);
   const shown = tab === "out" ? out : ok;
   const neverScanned = data && !data.last_scan;
   return (
@@ -83,10 +94,10 @@ export default function Internships() {
             <label className="search"><Search /><input placeholder="Company or title" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Search internships" /></label>
             <label className="check"><input type="checkbox" checked={fresh} onChange={(e) => setFresh(e.target.checked)} />Only new</label>
           </div>
-          <Tabs value={tab} onChange={setTab} tabs={[["ok", "Qualify", ok.length], ["out", "Filtered out", out.length]]} />
+          <Tabs value={tab} onChange={setTab} tabs={[["ok", "Qualify", uniq(ok)], ["out", "Filtered out", uniq(out)]]} />
           {tab === "out" && out.length > 0 && <p className="small muted" style={{ margin: "-.3rem 0 .8rem" }}>These missed one of your rules. If a recruiter tells you one is paid, or your coordinator says an IT internship counts, you can bring it back.</p>}
           <div className="list">
-            {shown.length ? shown.map((j) => <InternRow key={j.id} job={j} onChange={reload} />) :
+            {shown.length ? grouped.map(({ job, count }) => <InternRow key={job.id} job={job} count={count} onChange={reload} />) :
               <Empty title={tab === "out" ? "Nothing filtered out" : "None that qualify yet"}>
                 {tab === "out" ? "Every internship found so far meets your rules." : "Try another field or place, check the sites below, or run the search again tomorrow. New spring postings appear through December."}</Empty>}
           </div>

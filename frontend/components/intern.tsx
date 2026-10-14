@@ -47,7 +47,7 @@ export function useInternActions(job: any, onChange?: (it: any) => void) {
   return { busy, set };
 }
 
-export function InternRow({ job, onChange }: { job: any; onChange?: () => void }) {
+export function InternRow({ job, count = 1, onChange }: { job: any; count?: number; onChange?: () => void }) {
   const it = job.intern || {};
   const { busy, set } = useInternActions(job, () => onChange?.());
   const [saving, setSaving] = useState(false);
@@ -62,6 +62,7 @@ export function InternRow({ job, onChange }: { job: any; onChange?: () => void }
         <div className="row" style={{ gap: ".45rem" }}>
           <Link href={`/jobs/${job.id}`} className="title">{job.title}</Link>
           {job.new && <span className="tag new">New</span>}
+          {count > 1 && <span className="tag" title="The same internship is posted more than once">{count} postings</span>}
         </div>
         <div className="sub">{job.company}{job.deadline ? `, apply by ${day(job.deadline)}` : ""}</div>
         <div className="meta" style={{ marginTop: ".45rem" }}>
