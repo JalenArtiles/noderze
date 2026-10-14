@@ -75,6 +75,10 @@ def score(db: Session, job: Job, pview=None, weights=None, ledger=None, prof_dat
 
 
 def enrich_and_score(db: Session, job: Job) -> Job:
+    if job.family == "internship":  # spring internships have their own checks and score
+        from .intern_jobs import evaluate_job
+        evaluate_job(db, job)
+        return job
     enrich(job, available_start(get_profile(db).data))
     score(db, job)
     return job
@@ -87,7 +91,12 @@ def rescore_all(db: Session) -> int:
     ledger = res_m.ledger if res_m else []
     n = 0
     start = available_start(prof.data)
+    from .intern_jobs import evaluate_job
     for job in db.scalars(select(Job)):
+        if job.family == "internship":
+            evaluate_job(db, job, prof_data=prof.data or {}, ledger=ledger)
+            n += 1
+            continue
         enrich(job, start)
         score(db, job, pview=pview, weights=prof.weights, ledger=ledger, prof_data=prof.data or {})
         n += 1

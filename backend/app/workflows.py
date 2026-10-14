@@ -19,13 +19,15 @@ from .util import now
 
 
 SCAN_KINDS = ("discover_jobs", "scan_alerts", "wide_scan", "import_feeds", "find_programs")
+SEPARATE_SCANS = ("find_internships",)  # single-flight on their own, so a long job scan never blocks them
 STALE_AFTER_S = 3 * 3600
 _start_lock = threading.Lock()
 
 
-def _running_scan(db: Session) -> SearchRun | None:
+def _running_scan(db: Session, kind: str = "discover_jobs") -> SearchRun | None:
     """Only one scan at a time: a second click or a scheduled scan joins the one already running."""
-    run = db.scalar(select(SearchRun).where(SearchRun.status == "running", SearchRun.kind.in_(SCAN_KINDS))
+    kinds = (kind,) if kind in SEPARATE_SCANS else SCAN_KINDS
+    run = db.scalar(select(SearchRun).where(SearchRun.status == "running", SearchRun.kind.in_(kinds))
                     .order_by(SearchRun.started_at.desc()).limit(1))
     if run and (now() - run.started_at).total_seconds() > STALE_AFTER_S:
         run.status, run.error, run.finished_at = "failed", "Stopped responding; marked as interrupted.", now()
@@ -38,8 +40,8 @@ def start(kind: str, subject: str | None, fn, **kwargs) -> int:
     with _start_lock:
         db = SessionLocal()
         try:
-            if kind in SCAN_KINDS:
-                existing = _running_scan(db)
+            if kind in SCAN_KINDS or kind in SEPARATE_SCANS:
+                existing = _running_scan(db, kind)
                 if existing:
                     return existing.id
             run = SearchRun(kind=kind, subject=subject, status="running", log=[])
@@ -152,7 +154,8 @@ def _execute(rid: int, fn, kwargs: dict) -> None:
 
 TITLES = {"full_company_analysis": "Full company analysis", "deep_research": "Deep research", "discover_jobs": "Job scan",
           "find_recruiters": "People search", "prepare_application": "Application package", "scan_alerts": "Scheduled scan",
-          "find_programs": "Program search", "wide_scan": "Wide scan", "import_feeds": "Job feeds"}
+          "find_programs": "Program search", "wide_scan": "Wide scan", "import_feeds": "Job feeds",
+          "find_internships": "Spring internship search"}
 
 
 def run_view(r: SearchRun) -> dict:
@@ -283,13 +286,13 @@ def wf_deep_research(db: Session, log, company_id: int, job_id: int | None = Non
     return stats
 
 
-def wf_find_recruiters(db: Session, log, company_id: int) -> dict:
-    log.plan(["Find recruiters, SEs and alumni"])
+def wf_find_recruiters(db: Session, log, company_id: int, mode: str | None = None) -> dict:
+    log.plan(["Find recruiters, hiring managers and alumni" if mode == "intern" else "Find recruiters, SEs and alumni"])
     log.step(0)
     if provider_name() == "none":
         log.skip("Skipped: needs a search provider")
         return {"skipped": "no search provider", "notices": [NO_SEARCH]}
-    out = recruiters.find_people(db, db.get(Company, company_id), log)
+    out = recruiters.find_people(db, db.get(Company, company_id), log, mode=mode or "se")
     log.done(f"{out['new']} new people, all unverified until you check them")
     out["highlights"] = [{"label": "New people", "value": out["new"], "href": f"/companies/{company_id}?tab=people"}]
     return out
@@ -357,7 +360,8 @@ def wf_full_company_analysis(db: Session, log, company_id: int) -> dict:
 
     log.step(4)
     rescore_all(db)
-    top = db.scalar(select(Job).where(Job.company_id == c.id, Job.is_active.is_(True), Job.hidden.is_(False))
+    top = db.scalar(select(Job).where(Job.company_id == c.id, Job.is_active.is_(True), Job.hidden.is_(False),
+                                      Job.family.is_distinct_from("internship"))
                     .order_by(Job.score_total.desc()).limit(1))
     log.done(f"Best match: {top.title} ({round(top.score_total or 0)}/100)" if top else "No open roles to score")
     out = {"research": r, "jobs": d, "people": p, "top_job_id": top.id if top else None}
@@ -417,7 +421,7 @@ def wf_scan_alerts(db: Session, log, rule_id: int | None = None) -> dict:
         baseline = {r["company_id"] for r in results if r.get("first_scan")}
         if params.get("search"):
             discovery.search_leads(db, log, discovery.default_queries(db, programs_only=bool(params.get("require_program"))))
-        q = select(Job).where(Job.discovered_at >= before, Job.hidden.is_(False))
+        q = select(Job).where(Job.discovered_at >= before, Job.hidden.is_(False), Job.family.is_distinct_from("internship"))
         for job in db.scalars(q):
             if job.company_id in baseline:
                 continue  # a company's first scan is its baseline, not news
@@ -442,6 +446,11 @@ def wf_scan_alerts(db: Session, log, rule_id: int | None = None) -> dict:
     return {"alerts": created, "highlights": [{"label": "New alerts", "value": created, "href": "/opportunities?new=1"}]}
 
 
+def wf_find_internships(db: Session, log) -> dict:
+    from .services import intern_sources
+    return intern_sources.run(db, log)
+
+
 def wf_wide_scan(db: Session, log, include_workday: bool = False) -> dict:
     return sources.wide_scan(db, log, include_workday=include_workday)
 
@@ -455,4 +464,5 @@ WORKFLOWS = {
     "discover_jobs": wf_discover, "find_programs": wf_find_programs, "deep_research": wf_deep_research,
     "find_recruiters": wf_find_recruiters, "prepare_application": wf_prepare,
     "full_company_analysis": wf_full_company_analysis, "scan_alerts": wf_scan_alerts,
+    "find_internships": wf_find_internships,
 }

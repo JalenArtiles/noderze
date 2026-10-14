@@ -1,12 +1,12 @@
 "use client";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { ArrowUpRight, Briefcase, GraduationCap, Globe, MapPin, Shield, Sun, TrendingUp } from "lucide-react";
+import { ArrowUpRight, Backpack, Briefcase, GraduationCap, Globe, MapPin, Shield, Sun, TrendingUp } from "lucide-react";
 import { Callout, Err, JobList, PathBadge, SectionHead } from "@/components/ui";
 import { CompanyLogo, RouteArt, ScoreRing } from "@/components/visual";
 import { useApi } from "@/lib/api";
 
-const TILE_ICON: Record<string, any> = { programs: GraduationCap, az: Sun, socal: MapPin, remote: Globe, cyber: Shield, goal: TrendingUp };
+const TILE_ICON: Record<string, any> = { interns: Backpack, programs: GraduationCap, az: Sun, socal: MapPin, remote: Globe, cyber: Shield, goal: TrendingUp };
 
 export default function Home() {
   const { data, error } = useApi("/api/home");

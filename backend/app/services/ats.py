@@ -135,7 +135,7 @@ def parse_ashby(payload: dict) -> list[RawPosting]:
             description=j.get("descriptionPlain") or html_to_text(j.get("descriptionHtml")),
             posted_at=_ts(j.get("publishedAt")), comp_min=cmin, comp_max=cmax, comp_period=period,
             workplace={"onsite": "onsite", "remote": "remote", "hybrid": "hybrid"}.get(wp), apply_url=j.get("applyUrl"),
-            source="ashby"))
+            source="ashby", extra={"employment_type": j.get("employmentType")}))
     return out
 
 
@@ -159,6 +159,17 @@ def parse_smartrecruiters_detail(payload: dict) -> str:
                        ("jobDescription", "qualifications", "additionalInformation") if secs.get(k))
 
 
+def workday_endpoints(host: str, site: str) -> tuple[str, str]:
+    """(API base, public base) for a Workday board. Two host styles exist:
+    tenant.wd5.myworkdayjobs.com/<site> and wd5.myworkdaysite.com/recruiting/<tenant>/<site> (stored as site
+    "<tenant>/<site>")."""
+    if host.endswith("myworkdaysite.com") and "/" in site:
+        tenant, s = site.split("/", 1)
+        return f"https://{host}/wday/cxs/{tenant}/{s}", f"https://{host}/recruiting/{tenant}/{s}"
+    tenant = host.split(".")[0]
+    return f"https://{host}/wday/cxs/{tenant}/{site}", f"https://{host}/{site}"
+
+
 def parse_workday_list(payload: dict) -> list[dict]:
     return [{"title": p.get("title", ""), "path": p.get("externalPath", ""), "locations": p.get("locationsText", ""),
              "posted": p.get("postedOn", "")} for p in payload.get("jobPostings", [])]
@@ -168,7 +179,7 @@ def parse_workday_detail(payload: dict, host: str, site: str, path: str) -> RawP
     info = payload.get("jobPostingInfo") or {}
     locs = [info.get("location") or ""] + list(info.get("additionalLocations") or [])
     return RawPosting(
-        title=info.get("title", "").strip(), url=info.get("externalUrl") or f"https://{host}/{site}{path}",
+        title=info.get("title", "").strip(), url=info.get("externalUrl") or workday_endpoints(host, site)[1] + path,
         ats_job_id=str(info.get("jobReqId") or info.get("id") or path), location_text="; ".join(x for x in locs if x),
         description=html_to_text(info.get("jobDescription")), posted_at=_ts(info.get("startDate")),
         source="workday", extra={"posted_on": info.get("postedOn"), "time_type": info.get("timeType"),
@@ -232,11 +243,11 @@ def fetch_postings(f: PoliteFetcher, ats_type: str, token: str | None, host: str
                 break
         return out
     if ats_type == "workday":
-        tenant = (host or "").split(".")[0]
+        api, public = workday_endpoints(host or "", site or "")
         seen: dict[str, dict] = {}
         for q in WORKDAY_QUERIES:
             try:
-                data = f.post_json(f"https://{host}/wday/cxs/{tenant}/{site}/jobs",
+                data = f.post_json(f"{api}/jobs",
                                    {"appliedFacets": {}, "limit": 20, "offset": 0, "searchText": q})
             except FetchBlocked as e:
                 log(f"Workday search blocked: {e}")
@@ -245,7 +256,7 @@ def fetch_postings(f: PoliteFetcher, ats_type: str, token: str | None, host: str
                 seen.setdefault(item["path"], item)
         out = []
         for path, item in seen.items():
-            out.append(RawPosting(title=item["title"], url=f"https://{host}/{site}{path}", ats_job_id=path,
+            out.append(RawPosting(title=item["title"], url=f"{public}{path}", ats_job_id=path,
                                   location_text=item["locations"], source="workday",
                                   extra={"workday_path": path, "posted_on": item["posted"]}))
         return out
@@ -263,8 +274,39 @@ def fetch_postings(f: PoliteFetcher, ats_type: str, token: str | None, host: str
 
 
 def workday_detail(f: PoliteFetcher, host: str, site: str, path: str) -> RawPosting:
-    tenant = host.split(".")[0]
-    return parse_workday_detail(f.get_json(f"https://{host}/wday/cxs/{tenant}/{site}{path}"), host, site, path)
+    api, _ = workday_endpoints(host, site)
+    return parse_workday_detail(f.get_json(f"{api}{path}"), host, site, path)
+
+
+def workday_search(f: PoliteFetcher, host: str, site: str, query: str, pages: int = 1) -> list[dict]:
+    """One Workday board search, newest results first, `pages` pages of 20."""
+    api, _ = workday_endpoints(host, site)
+    out: list[dict] = []
+    for page in range(pages):
+        data = f.post_json(f"{api}/jobs", {"appliedFacets": {}, "limit": 20, "offset": 20 * page, "searchText": query})
+        batch = parse_workday_list(data)
+        out += batch
+        if len(batch) < 20 or 20 * (page + 1) >= int(data.get("total") or 0):
+            break
+    return out
+
+
+def parse_workday_url(url: str) -> tuple[str, str, str] | None:
+    """(host, site, job path) from a Workday posting link, for either host style."""
+    u = urlparse(url)
+    parts = [p for p in u.path.split("/") if p]
+    host = u.netloc.lower()
+    if "myworkdaysite.com" in host and len(parts) >= 3 and parts[0] == "recruiting":
+        site, rest = f"{parts[1]}/{parts[2]}", parts[3:]
+    elif "myworkdayjobs.com" in host and parts:
+        if re.fullmatch(r"[a-z]{2}-[a-zA-Z]{2}", parts[0]) and len(parts) > 1:
+            parts = parts[1:]
+        site, rest = parts[0], parts[1:]
+    else:
+        return None
+    if not rest or rest[0] != "job":
+        return None
+    return host, site, "/" + "/".join(rest)
 
 
 def smartrecruiters_detail(f: PoliteFetcher, company_id: str, posting_id: str) -> str:
@@ -310,8 +352,10 @@ def parse_ats_url(url: str) -> tuple[str, str, str | None] | None:
     if host == "jobs.ashbyhq.com" and parts:
         return "ashby", parts[0], parts[1] if len(parts) > 1 else None
     if "myworkdayjobs.com" in host and parts:
-        site = parts[1] if re.fullmatch(r"[a-z]{2}-[A-Z]{2}", parts[0]) and len(parts) > 1 else parts[0]
+        site = parts[1] if re.fullmatch(r"[a-z]{2}-[a-zA-Z]{2}", parts[0]) and len(parts) > 1 else parts[0]
         return "workday", host, site
+    if "myworkdaysite.com" in host and len(parts) >= 3 and parts[0] == "recruiting":
+        return "workday", host, f"{parts[1]}/{parts[2]}"
     if host == "jobs.smartrecruiters.com" and parts:
         return "smartrecruiters", parts[0], parts[1] if len(parts) > 1 else None
     return None
@@ -328,3 +372,121 @@ def fetch_single(f: PoliteFetcher, ats_type: str, token: str, job_id: str) -> Ra
             if p.ats_job_id == job_id or job_id in p.url:
                 return p
     return None
+
+
+# ----------------------------------------------------------------------------- any page with schema.org markup
+
+def parse_jsonld_posting(page_html: str, url: str, source: str = "page") -> RawPosting | None:
+    """Most career sites embed a schema.org JobPosting for search engines. Reading it works on sites with no API."""
+    import json
+    for m in re.finditer(r'<script[^>]+type="application/ld\+json"[^>]*>(.*?)</script>', page_html or "", re.S | re.I):
+        try:
+            data = json.loads(m.group(1).strip())
+        except ValueError:
+            continue
+        items = data if isinstance(data, list) else data.get("@graph", [data]) if isinstance(data, dict) else []
+        for j in items:
+            if not isinstance(j, dict) or "JobPosting" not in str(j.get("@type")):
+                continue
+            locs = j.get("jobLocation") or []
+            locs = locs if isinstance(locs, list) else [locs]
+            parts = []
+            for loc in locs:
+                a = (loc or {}).get("address") or {}
+                if isinstance(a, dict):
+                    city = (a.get("addressLocality") or "").strip().title()
+                    region = (a.get("addressRegion") or "").strip()
+                    parts.append(", ".join(x for x in (city, region) if x))
+            if str(j.get("jobLocationType") or "").upper() == "TELECOMMUTE":
+                parts.append("Remote")
+            sal = j.get("baseSalary") or {}
+            val = sal.get("value") if isinstance(sal, dict) else None
+            cmin = cmax = period = None
+            if isinstance(val, dict):
+                cmin, cmax = val.get("minValue") or val.get("value"), val.get("maxValue") or val.get("value")
+                unit = str(val.get("unitText") or "").upper()
+                period = "hour" if unit == "HOUR" else "year" if unit == "YEAR" else None
+                try:
+                    cmin, cmax = (float(cmin) if cmin else None), (float(cmax) if cmax else None)
+                except (TypeError, ValueError):
+                    cmin = cmax = None
+                if period is None:
+                    cmin = cmax = None
+            ident = j.get("identifier")
+            ident = ident.get("value") if isinstance(ident, dict) else ident
+            et = j.get("employmentType")
+            return RawPosting(
+                title=html_to_text(str(j.get("title") or "")).strip(), url=url, ats_job_id=str(ident or ""),
+                location_text="; ".join(p for p in parts if p), description=html_to_text(j.get("description")),
+                posted_at=_ts(j.get("datePosted")), comp_min=cmin, comp_max=cmax, comp_period=period, source=source,
+                extra={"deadline": str(j.get("validThrough") or "")[:10] or None,
+                       "employment_type": ", ".join(et) if isinstance(et, list) else et,
+                       "hiring_org": ((j.get("hiringOrganization") or {}).get("name")
+                                      if isinstance(j.get("hiringOrganization"), dict) else None)})
+    return None
+
+
+def parse_successfactors_search(page_html: str, base: str) -> list[RawPosting]:
+    """SAP SuccessFactors career sites (jobs2web): search results link each job as /job/<City-Title-ST-zip>/<id>/."""
+    out, seen = [], set()
+    for m in re.finditer(r'<a\b([^>]*\bclass="[^"]*jobTitle-link[^"]*"[^>]*)>(.*?)</a>', page_html or "", re.S | re.I):
+        href = re.search(r'href="([^"]+)"', m.group(1))
+        if not href:
+            continue
+        link = html.unescape(href.group(1))
+        link = link if link.startswith("http") else base.rstrip("/") + link
+        jid = re.search(r"/(\d{5,})/?$", link)
+        if not jid or jid.group(1) in seen:
+            continue
+        seen.add(jid.group(1))
+        slug = re.search(r"/job/([^/]+)/\d+", link)
+        loc = ""
+        if slug:
+            s = slug.group(1)
+            st = re.search(r"-([A-Z]{2})-\d{5}", s)
+            loc = f"{s.split('-')[0].replace('%20', ' ').title()}, {st.group(1)}" if st else ""
+        out.append(RawPosting(title=html_to_text(m.group(2)).strip(), url=link, ats_job_id=jid.group(1),
+                              location_text=loc, source="successfactors"))
+    return out
+
+
+def parse_successfactors_job(page_html: str, posting: RawPosting) -> RawPosting:
+    m = re.search(r'<span class="jobdescription">(.*?)</span>\s*</div>', page_html or "", re.S)
+    if m:
+        posting.description = html_to_text(m.group(1))
+    city = re.search(r'itemprop="addressLocality"[^>]*content="([^"]+)"', page_html or "")
+    region = re.search(r'itemprop="addressRegion"[^>]*content="([^"]+)"', page_html or "")
+    if city:
+        posting.location_text = ", ".join(x for x in (city.group(1), region.group(1) if region else "") if x)
+    posted = re.search(r'itemprop="datePosted"[^>]*content="([^"]+)"', page_html or "")
+    if posted:
+        try:
+            posting.posted_at = datetime.strptime(posted.group(1), "%a %b %d %H:%M:%S UTC %Y")
+        except ValueError:
+            pass
+    return posting
+
+
+def parse_azstatejobs_search(page_html: str) -> list[dict]:
+    """State of Arizona job search results: one table row per job, with the department, type and location."""
+    rows = []
+    for m in re.finditer(r'<tr\b((?:[^>"]|"[^"]*")*)>(.*?)</tr>', page_html or "", re.S):
+        link = re.search(r'data-job-url="([^"]+)"', m.group(1))
+        if not link:
+            continue
+        url, row = html.unescape(link.group(1)), m.group(2)
+
+        def cell(cls):
+            c = re.search(r'<td[^>]*class="[^"]*' + cls + r'[^"]*"[^>]*>(.*?)</td>', row, re.S)
+            return re.sub(r"\s+", " ", html_to_text(c.group(1))).replace("- ", "").strip() if c else ""
+        def items(cls):
+            c = re.search(r'<td[^>]*class="[^"]*' + cls + r'[^"]*"[^>]*>(.*?)</td>', row, re.S)
+            vals = [re.sub(r"\s+", " ", x).strip(" -") for x in html_to_text(c.group(1)).split("\n")] if c else []
+            return list(dict.fromkeys(v for v in vals if v))
+        title = re.search(r"<a[^>]*>(.*?)</a>", row, re.S)
+        places = items("location")
+        loc = "; ".join("Remote, Arizona" if "REMOTE" in x.upper() else f"{x.title()}, AZ" for x in places)
+        rows.append({"url": url, "title": html_to_text(title.group(1)).strip() if title else cell("title"),
+                     "department": cell("department"), "type": cell("employment-type"), "location": loc,
+                     "closing": cell("closing")})
+    return rows

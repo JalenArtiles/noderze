@@ -21,7 +21,7 @@ export default function Board() {
               <div key={c.id} className="kcard">
                 <div className="tiny muted">{c.company}</div>
                 <Link href={`/applications/${c.id}`} style={{ color: "var(--ink)", fontWeight: 650, display: "block", lineHeight: 1.3, margin: ".1rem 0 .4rem" }}>{c.title}</Link>
-                <div className="row small"><PathBadge value={c.path_class} />{c.score != null && <ScoreChip value={c.score} />}
+                <div className="row small">{c.is_intern ? <span className="tag track network">Spring internship</span> : <PathBadge value={c.path_class} />}{c.score != null && <ScoreChip value={c.score} />}
                   {c.readiness != null && <span className="muted">{c.readiness}% ready</span>}</div>
                 {(c.deadline || c.follow_up_date) && <div className="tiny" style={{ marginTop: ".35rem" }}>{c.deadline ? `Due ${day(c.deadline)}` : ""}{c.deadline && c.follow_up_date ? ", " : ""}{c.follow_up_date ? `follow up ${day(c.follow_up_date)}` : ""}</div>}
                 {c.next_action && <div className="tiny muted" style={{ marginTop: ".2rem" }}>{c.next_action}</div>}

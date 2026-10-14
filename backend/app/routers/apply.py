@@ -160,7 +160,8 @@ def app_card(db: Session, a: Application) -> dict:
             "score": j.score_total, "path_class": j.path_class, "deadline": a.deadline.isoformat() if a.deadline else None,
             "follow_up_date": a.follow_up_date.isoformat() if a.follow_up_date else None, "next_action": a.next_action,
             "readiness": (a.readiness or {}).get("overall"), "date_applied": a.date_applied.isoformat() if a.date_applied else None,
-            "location": j.location_text, "salary": f"${j.comp_min:,.0f}-{j.comp_max:,.0f}/{j.comp_period}" if j.comp_min else None}
+            "location": j.location_text, "salary": f"${j.comp_min:,.0f}-{j.comp_max:,.0f}/{j.comp_period}" if j.comp_min else None,
+            "is_intern": j.family == "internship"}
 
 
 @router.post("/applications")

@@ -203,3 +203,10 @@
   [data-theme="dusk"] h1 { font-size: 1.8rem; }
   [data-theme="dusk"] h1:has(.ph-id) { font-size: 1.35rem; }
 }
+
+/* Spring internships tile and season bar in each theme */
+[data-theme="pop"] .tile.green { background: #0b8a45; }
+[data-theme="dusk"] .tile.green { background: linear-gradient(135deg, #1f9d63, #8bd36a); }
+[data-theme="night"] .season .seg.work { background: rgba(74, 222, 128, .16); }
+[data-theme="night"] .season .seg.apply { background: linear-gradient(90deg, #ffd24f, #ff9f43); }
+[data-theme="pop"] .season .bar { border: 2.5px solid var(--ink); }

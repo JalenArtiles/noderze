@@ -23,10 +23,13 @@ from sqlalchemy.orm import Session
 from ..config import BACKEND_DIR, settings
 from ..models import Alert, Company, Job
 from ..util import now, slugify
-from .ats import RawPosting, fetch_postings, html_to_text, parse_ats_url, smartrecruiters_detail, workday_detail
+from .ats import (RawPosting, fetch_postings, html_to_text, parse_ats_url, smartrecruiters_detail, workday_detail,
+                  workday_endpoints)
 from .classify import classify_role, parse_location
 from .discovery import infer_category, record_se_team, upsert_posting
 from .fetch import FetchBlocked, PoliteFetcher
+from .intern_sources import candidate as intern_candidate
+from .intern_sources import capture_board
 
 SIMPLIFY_FEED = "https://raw.githubusercontent.com/SimplifyJobs/New-Grad-Positions/dev/.github/scripts/listings.json"
 DIRECTORY_FILE = BACKEND_DIR / "seed" / "board_directory.json"
@@ -110,6 +113,17 @@ def wide_scan(db: Session, log, include_workday: bool = False, limit: int | None
                 stats["errors"] += 1
                 continue
             keep = [p for p in postings if relevant(p.title, p.description) and location_ok(p.location_text, p.title)]
+            interns = [p for p in postings if e["ats_type"] != "workday" and intern_candidate(p.title, p.location_text)]
+            if interns:  # spring internships ride along on the same board read
+                ic = existing or _company_for(db, e) or Company(
+                    name=e["name"], slug=slugify(e["name"]), ats_type=e["ats_type"], ats_token=e.get("token"),
+                    ats_host=e.get("host"), ats_site=e.get("site"), ats_verified=True,
+                    watch_note="Found by the wide board scan (internships).")
+                if ic.id is None:
+                    db.add(ic)
+                    db.flush()
+                capture_board(db, ic, interns, log, f, "Wide board scan", stats.setdefault("interns", {}))
+                existing = existing or ic
             if keep:
                 company = existing or Company(name=e["name"], slug=slugify(e["name"]), ats_type=e["ats_type"],
                                               ats_token=e.get("token"), ats_host=e.get("host"), ats_site=e.get("site"),
@@ -154,14 +168,14 @@ def wide_scan(db: Session, log, include_workday: bool = False, limit: int | None
 
 
 def _workday_titles(f: PoliteFetcher, host: str, site: str) -> list[RawPosting]:
-    tenant = host.split(".")[0]
+    api, public = workday_endpoints(host, site)
     seen: dict[str, RawPosting] = {}
     for q in WIDE_WORKDAY_QUERIES:
-        data = f.post_json(f"https://{host}/wday/cxs/{tenant}/{site}/jobs",
+        data = f.post_json(f"{api}/jobs",
                            {"appliedFacets": {}, "limit": 20, "offset": 0, "searchText": q})
         for p in data.get("jobPostings", []):
             path = p.get("externalPath", "")
-            seen.setdefault(path, RawPosting(title=p.get("title", ""), url=f"https://{host}/{site}{path}",
+            seen.setdefault(path, RawPosting(title=p.get("title", ""), url=f"{public}{path}",
                                              ats_job_id=path, location_text=p.get("locationsText", ""),
                                              source="workday", extra={"workday_path": path}))
     return list(seen.values())

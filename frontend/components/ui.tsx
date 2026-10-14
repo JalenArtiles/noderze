@@ -109,7 +109,8 @@ const GRAD_TONE: Record<string, string> = { eligible_now: "good", likely_may_202
   too_early: "bad", too_late: "bad", requires_experience: "warn", unclear: "" };
 export const CAT_LABEL: Record<string, string> = { entry_sales: "Entry sales, cybersecurity", program: "ASE role or SE program",
   other_sales: "Entry sales, other tech", goal_se: "SE role to grow into", technical_entry: "Technical entry role",
-  long_shot: "Long shot or outside your area", direct_se: "Direct SE role", pipeline: "Sales role toward SE" };
+  long_shot: "Long shot or outside your area", direct_se: "Direct SE role", pipeline: "Sales role toward SE",
+  spring_intern: "Spring internship", intern_out: "Internship, filtered out" };
 export const GRAD_SHORT: Record<string, string> = { eligible_now: "Eligible now", likely_may_2027: "Made for 2027 grads", eligible_closer: "Apply closer to your start",
   internship_convert: "Internship", too_early: "Starts before you graduate", too_late: "For later graduates", requires_experience: "Needs experience", unclear: "Timing unclear" };
 

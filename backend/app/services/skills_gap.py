@@ -34,7 +34,7 @@ def roadmap(db: Session, min_score: float = 55) -> dict:
     have = pv.tech_areas | pv.sales_areas
     counts: Counter[str] = Counter()
     jobs = list(db.scalars(select(Job).where(Job.is_active.is_(True), Job.hidden.is_(False),
-                                             Job.score_total >= min_score)))
+                                             Job.score_total >= min_score, Job.family.is_distinct_from("internship"))))
     for j in jobs:
         text = f"{j.title}\n{j.description_text or ''}"
         for a in list(areas_in(text, "tech")) + list(areas_in(text, "sales")):

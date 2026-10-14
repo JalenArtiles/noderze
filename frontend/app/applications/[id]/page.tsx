@@ -35,7 +35,7 @@ export default function ApplicationPage() {
           <section className="panel"><h3 style={{ marginBottom: ".7rem" }}>Remaining actions</h3>
             {r.checklist?.length ? r.checklist.map((c: any, i: number) => (
               <label key={i} className="fact row small" style={{ alignItems: "flex-start", flexWrap: "nowrap" }}>
-                {["study_guide", "standout", "product_walkthrough"].includes(c.key) ? <input type="checkbox" onChange={() => patch({ checklist_done: { [c.key]: true } })} /> : <span style={{ width: 13, flex: "none" }} />}<span>{c.text}</span></label>)) : <p className="small muted">All done.</p>}
+                {["study_guide", "standout", "product_walkthrough", "credit", "confirm_details"].includes(c.key) ? <input type="checkbox" onChange={() => patch({ checklist_done: { [c.key]: true } })} /> : <span style={{ width: 13, flex: "none" }} />}<span>{c.text}</span></label>)) : <p className="small muted">All done.</p>}
             <div className="row" style={{ marginTop: "1rem" }}><button className="btn dark sm" onClick={() => request("submit_application")}>Request approval to submit</button></div>
           </section>
           <section className="panel"><h3 style={{ marginBottom: ".7rem" }}>Readiness</h3><div className="bars">{Object.entries(r.components || {}).map(([k, v]: any) => (

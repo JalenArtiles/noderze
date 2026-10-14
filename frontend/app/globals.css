@@ -370,3 +370,42 @@ details.more-info[open] > summary { margin-bottom: .8rem; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+
+/* ---------------------------------------------------------------- spring internships */
+.tile.green { --tone: var(--green); --tint: var(--green-tint); }
+.tag.ifact { background: var(--sunk); border: 1px solid var(--line-soft); color: var(--tag-ink); }
+.tag.ifact.good { background: var(--green-tint); border-color: transparent; color: var(--green); }
+.tag.ifact.warn { background: var(--amber-tint); border-color: transparent; color: var(--amber); }
+.tag.ifact.bad { background: var(--red-tint); border-color: transparent; color: var(--red); }
+.tag.track { font-weight: 650; }
+.tag.track.cyber { background: var(--violet-tint); color: var(--violet); } .tag.track.data { background: var(--blue-tint); color: var(--blue); }
+.tag.track.network { background: var(--teal-tint); color: var(--teal); } .tag.track.it, .tag.track.other { background: var(--line-soft); color: var(--muted); }
+.irow { align-items: flex-start; } .irow .end { padding-top: .15rem; }
+.irow.out .title { color: var(--muted); }
+.why-out { font-size: .82rem; color: var(--muted); margin-top: .4rem; max-width: 70ch; }
+.why-out.warn { color: var(--warn-ink); }
+.iseason { display: grid; gap: .8rem; padding-bottom: .9rem; }
+.season .bar { position: relative; height: 34px; border-radius: 10px; background: var(--well); overflow: visible; }
+.season .seg { position: absolute; top: 0; bottom: 0; display: flex; align-items: center; padding: 0 .7rem; font-size: .8rem; white-space: nowrap; overflow: hidden; }
+.season .seg.apply { background: var(--gold); color: var(--navy); border-radius: 10px 0 0 10px; }
+.season .seg.work { background: var(--green-tint); color: var(--green); border-radius: 0 10px 10px 0; }
+.season .now { position: absolute; top: -6px; bottom: -6px; width: 0; border-left: 3px solid var(--primary); z-index: 2; }
+.season .now i { position: absolute; top: -1.35rem; left: -1.5rem; width: 3rem; text-align: center; font-style: normal; font-size: .72rem; font-weight: 700; color: var(--primary); }
+.season .months { display: flex; justify-content: space-between; font-size: .74rem; color: var(--faint); margin-top: .3rem; padding: 0 .2rem; }
+.season { padding-top: 1rem; }
+.rules { display: flex; flex-wrap: wrap; gap: .45rem; }
+.rules span { display: inline-flex; gap: .35rem; align-items: center; font-size: .84rem; font-weight: 550; padding: .3rem .7rem; border-radius: 99px; background: var(--sunk); border: 1px solid var(--line); }
+.rules svg { width: 15px; height: 15px; color: var(--green); }
+.ichecks .icheck { display: flex; gap: .7rem; padding: .65rem 0; border-top: 1px solid var(--line-soft); }
+.ichecks .icheck:first-of-type { border-top: 0; }
+.icheck .state { width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; flex: none; margin-top: .05rem; }
+.icheck .state svg { width: 14px; height: 14px; }
+.icheck.pass .state { background: var(--green-tint); color: var(--green); }
+.icheck.warn .state { background: var(--amber-tint); color: var(--amber); }
+.icheck.fail .state { background: var(--red-tint); color: var(--red); }
+.icheck .kind { width: 15px; height: 15px; color: var(--faint); }
+.icheck .quote { font-size: .8rem; color: var(--muted); margin-top: .25rem; padding-left: .6rem; border-left: 3px solid var(--line); font-style: italic; max-width: 70ch; }
+.site { display: flex; justify-content: space-between; align-items: center; gap: .6rem 1rem; padding: .65rem 0; border-top: 1px solid var(--line-soft); flex-wrap: wrap; }
+.site:first-of-type { border-top: 0; }
+.site .chip svg { width: 13px; height: 13px; opacity: .7; }
+@media (max-width: 640px) { .season .seg.work b { display: none; } .season .seg.work::after { content: "Internship"; } }

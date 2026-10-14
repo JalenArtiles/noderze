@@ -14,7 +14,7 @@ from ..services import resume as R
 from ..services import writing as W
 from ..services.classify import parse_location, sales_level
 from ..services.profile import get_profile, master_resume
-from ..services.recruiters import import_connections, linkedin_links
+from ..services.recruiters import import_connections, intern_links, linkedin_links
 from ..services.research import job_brief, person_dict
 from ..util import now
 
@@ -76,11 +76,18 @@ def apply(jid: int, fresh: bool = False, db: Session = Depends(get_db)):
     claims = sorted(prof.get("verified_claims") or [])
     v = db.get(ResumeVersion, app.resume_version_id) if app.resume_version_id else None
     reuse = v and not fresh and v.resume_id == res.id and (v.analysis or {}).get("claims") == claims and "ats" in (v.analysis or {})
+    intern = job.family == "internship"
+    track = job.intern.track if intern and job.intern else None
     if not reuse:
-        texts = [j.description_text for j in db.scalars(select(Job).where(Job.company_id == job.company_id, Job.family == "pipeline",
+        family = "internship" if intern else "pipeline"
+        texts = [j.description_text for j in db.scalars(select(Job).where(Job.company_id == job.company_id, Job.family == family,
                                                                            Job.id != job.id)) if j.description_text]
-        t = R.ats_tailor(res.parsed, res.ledger, prof, res.checks, job.title, job.description_text or "", job.company.name,
-                         texts, sales_level(job.title))
+        if intern:
+            t = R.ats_tailor_intern(res.parsed, res.ledger, prof, res.checks, job.title, job.description_text or "",
+                                    job.company.name, texts, track)
+        else:
+            t = R.ats_tailor(res.parsed, res.ledger, prof, res.checks, job.title, job.description_text or "", job.company.name,
+                             texts, sales_level(job.title))
         v = ResumeVersion(resume_id=res.id, job_id=job.id, label=f"{job.company.name} - {job.title}"[:290],
                           analysis={"ats": {k: t[k] for k in ("terms", "before", "after")}, "claims": claims},
                           edits=t["edits"])
@@ -97,7 +104,12 @@ def apply(jid: int, fresh: bool = False, db: Session = Depends(get_db)):
     db.commit()
     ctx = prep._ctx(db, job)
     drafts = {}
-    for kind in ("recruiter_connect", "sdr_manager", "alumni", "recruiter_followup"):
+    labels = ([["recruiter_connect", "Recruiter connection note"], ["hiring_manager", "Note to the team's manager"],
+               ["alumni", "ASU alumni note"], ["employee_info", "Ask a current intern or analyst"],
+               ["recruiter_followup", "Follow-up after they accept"]] if intern else
+              [["recruiter_connect", "Recruiter connection note"], ["sdr_manager", "SDR manager note"],
+               ["alumni", "ASU alumni note"], ["recruiter_followup", "Follow-up after they accept"]])
+    for kind, _label in labels:
         msg, _ = W.outreach(kind, {"name": "{first}", "title": None}, ctx)
         drafts[kind] = W.style_check(msg, kind)[0]
     people = [person_dict(p) | {"connection": p.snippet == "linkedin_connection"} for p in db.scalars(
@@ -106,8 +118,10 @@ def apply(jid: int, fresh: bool = False, db: Session = Depends(get_db)):
             "stage": app.stage, "version_id": v.id, "ats": ats,
             "edits": [{k: e.get(k) for k in ("id", "kind", "category", "status", "flags", "rationale", "find", "replace",
                                              "before", "after", "text", "preview", "auto")} for e in v.edits],
-            "drafts": drafts, "people": people, "links": linkedin_links(job.company.name),
-            "apply_url": job.apply_url or job.url, "se_team": (job.company.data or {}).get("se_team")}
+            "drafts": drafts, "draft_labels": labels, "people": people,
+            "links": intern_links(job.company.name, track) if intern else linkedin_links(job.company.name),
+            "apply_url": job.apply_url or job.url, "se_team": None if intern else (job.company.data or {}).get("se_team"),
+            "is_intern": intern}
 
 
 @router.post("/profile/claims")
@@ -135,12 +149,15 @@ def updates(since: str | None = None, db: Session = Depends(get_db)):
     last = db.scalar(select(SearchRun).where(SearchRun.status != "running").order_by(SearchRun.finished_at.desc()).limit(1))
     running = db.scalar(select(func.count(SearchRun.id)).where(SearchRun.status == "running")) or 0
     alerts = list(db.scalars(select(Alert).where(Alert.seen.is_(False)).order_by(Alert.created_at.desc()).limit(5)))
+    intern_new = db.scalar(select(func.count(Alert.id)).join(Job, Job.id == Alert.job_id).where(
+        Alert.seen.is_(False), Job.family == "internship")) or 0
     from .. import selfupdate
     upd = selfupdate.status()
     return {"now": now().isoformat(), "new_jobs": new_jobs or 0, "running": running,
             "app_update": {"state": upd.get("state"), "step": upd.get("step"), "build_id": upd.get("build_id"),
                            "error": (upd.get("error") or "")[-600:] or None},
-            "unseen": db.scalar(select(func.count(Alert.id)).where(Alert.seen.is_(False))) or 0,
+            "unseen": max(0, (db.scalar(select(func.count(Alert.id)).where(Alert.seen.is_(False))) or 0) - intern_new),
+            "unseen_interns": intern_new,
             "alerts": [{"id": a.id, "message": a.message, "job_id": a.job_id} for a in alerts],
             "last_run": {"kind": last.kind, "finished_at": last.finished_at.isoformat() if last.finished_at else None,
                          "status": last.status} if last else None}

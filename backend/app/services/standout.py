@@ -36,7 +36,45 @@ GENERIC = [
 ]
 
 
+INTERN_IDEAS = {
+    "cyber": [("Finish TryHackMe's free Pre Security or SOC Level 1 rooms and list what you practiced (log analysis, "
+               "phishing triage) on your resume.", "Gives you hands-on answers for the 'what would you do with this alert' "
+               "questions security interviews ask.", "1-2 weeks"),
+              ("Set up a small home lab: a Linux VM sending logs to a free SIEM (Splunk Free or Wazuh) and write up one "
+               "alert you investigated.", "A concrete lab story stands out among student applicants.", "1 weekend")],
+    "data": [("Build a one-page Tableau Public or Power BI dashboard from an Arizona open dataset (data.az.gov or "
+              "Phoenix open data) and link it on your resume.", "Data internships screen for a portfolio piece more than "
+              "coursework.", "1 weekend"),
+             ("Practice SQL joins and GROUP BY on a free dataset (SQLBolt or Mode's SQL tutorial) until you can write "
+              "a top-five query from memory.", "Most data intern interviews include a live SQL question.", "3-4 hours")],
+    "network": [("Build a small Cisco Packet Tracer lab (two VLANs, a router, DHCP) and save screenshots with a "
+                 "short write-up.", "Packet Tracer is free through Cisco Networking Academy, and a finished lab is easy proof for networking roles.",
+                 "1 weekend"),
+                ("Drill subnetting until a /26 takes you under a minute (subnettingpractice.com).",
+                 "Subnetting and troubleshooting questions are standard in networking intern interviews.", "2-3 hours")],
+}
+INTERN_GENERIC = [
+    ("Message the recruiter with the short draft on the Apply page, and ask whether {hours} works for the role.",
+     "Confirms the hours and puts your name in front of them before they screen.", "15 minutes"),
+    ("Ask your internship coordinator now whether a {company} internship would count for credit.",
+     "Credit approval can take time; starting early keeps a January start possible.", "15 minutes"),
+]
+
+
+def intern_recommendations(company: Company, job: Job) -> list[dict]:
+    track = job.intern.track if job.intern else None
+    hours = "10 to 30 hours a week"
+    out = [{"action": a.format(company=company.name, hours=hours), "why": w, "effort": e, "source": "template"}
+           for a, w, e in INTERN_IDEAS.get(track, []) + INTERN_GENERIC]
+    for c in (job.analysis or {}).get("compensate", [])[:2]:
+        out.append({"action": c["action"], "why": f"Closes the {c['for']} gap in this posting.", "effort": "varies",
+                    "source": "gap"})
+    return out
+
+
 def recommendations(company: Company, job: Job | None = None) -> list[dict]:
+    if job is not None and job.family == "internship":
+        return intern_recommendations(company, job)
     out = [dict(x, source="research") for x in (company.data or {}).get("standout", [])]
     for action, why, effort in CATEGORY_IDEAS.get(company.category or "", []) + GENERIC:
         out.append({"action": action.format(company=company.name), "why": why, "effort": effort, "source": "template"})

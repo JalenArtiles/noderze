@@ -64,8 +64,19 @@ def today_actions(db: Session, limit: int = 8) -> list[dict]:
     unseen = db.scalar(select(func.count(Alert.id)).where(Alert.seen.is_(False))) or 0
     if unseen:
         add(70, f"Review {unseen} new job alert(s)", "From your scheduled scans.", "/opportunities?new=1")
+    interns = [j for j in db.scalars(select(Job).where(Job.family == "internship", Job.is_active.is_(True),
+                                                        Job.hidden.is_(False), Job.category == "spring_intern")
+                                     .order_by(Job.score_total.desc()).limit(10))
+               if not db.scalar(select(Application.id).where(Application.job_id == j.id))]
+    if interns:
+        j = interns[0]
+        due = f" Due {j.deadline:%b %d}." if j.deadline else ""
+        add(76 if t.month in (10, 11, 12) else 62, f"Apply for a spring internship: {j.company.name}, {j.title}",
+            f"Spring internships usually hire October through December.{due} {len(interns)} qualifying ones not "
+            f"applied to yet.", f"/apply/{j.id}")
     for job in db.scalars(select(Job).where(Job.is_active.is_(True), Job.hidden.is_(False), Job.score_total >= 65,
-                                            Job.category != "long_shot").order_by(Job.score_total.desc()).limit(6)):
+                                            Job.category != "long_shot", Job.family.is_distinct_from("internship"))
+                          .order_by(Job.score_total.desc()).limit(6)):
         if not db.scalar(select(Application.id).where(Application.job_id == job.id)):
             add(60 + (job.score_total or 0) / 10, f"Prepare application: {job.company.name}, {job.title}",
                 f"{job.score_total:.0f}/100 fit, {job.path_class} path.", f"/jobs/{job.id}")

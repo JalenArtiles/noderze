@@ -1,10 +1,10 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Building2, Compass, FileText, GraduationCap, House, Settings, ShieldCheck, SquareKanban, TrendingUp, Users } from "lucide-react";
+import { Backpack, Building2, Compass, FileText, GraduationCap, House, Settings, ShieldCheck, SquareKanban, TrendingUp, Users } from "lucide-react";
 
 const GROUPS: [string, [string, string, any][]][] = [
-  ["Discover", [["/", "Home", House], ["/companies", "Companies", Building2], ["/opportunities", "All roles", Compass], ["/programs", "ASE and SE programs", GraduationCap]]],
+  ["Discover", [["/", "Home", House], ["/companies", "Companies", Building2], ["/opportunities", "All roles", Compass], ["/programs", "ASE and SE programs", GraduationCap], ["/internships", "Spring internships", Backpack]]],
   ["Apply", [["/applications", "Applications", SquareKanban], ["/resume", "Resume", FileText], ["/contacts", "Contacts", Users], ["/approvals", "Approvals", ShieldCheck]]],
   ["Grow", [["/skills", "Skills roadmap", TrendingUp], ["/settings", "Settings", Settings]]],
 ];

@@ -1,0 +1,389 @@
+{
+ "_about": "Phoenix-area employers the spring internship search scans. Built from the public SimplifyJobs intern and new-grad lists (companies that have posted roles in the Phoenix area, with their real job-board links), plus Arizona public employers whose career sites allow automated reading. Add a board here to scan it.",
+ "boards": [
+  {
+   "name": "SRP",
+   "ats_type": "successfactors",
+   "base": "https://careers.srpnet.com",
+   "category": "utilities",
+   "note": "Salt River Project, Tempe. Hires part-time college interns year-round."
+  },
+  {
+   "name": "APS",
+   "ats_type": "successfactors",
+   "base": "https://careers.aps.com",
+   "category": "utilities",
+   "note": "Arizona Public Service, Phoenix."
+  },
+  {
+   "name": "State of Arizona",
+   "ats_type": "azstatejobs",
+   "base": "https://www.azstatejobs.gov",
+   "note": "State agencies, including the Department of Homeland Security's Cyber Command."
+  },
+  {
+   "name": "Intel",
+   "ats_type": "workday",
+   "host": "intel.wd1.myworkdayjobs.com",
+   "site": "external"
+  },
+  {
+   "name": "Microchip Technology",
+   "ats_type": "workday",
+   "host": "wd5.myworkdaysite.com",
+   "site": "microchiphr/External"
+  },
+  {
+   "name": "Avnet",
+   "ats_type": "workday",
+   "host": "avnet.wd1.myworkdayjobs.com",
+   "site": "external"
+  },
+  {
+   "name": "Boeing",
+   "ats_type": "workday",
+   "host": "boeing.wd1.myworkdayjobs.com",
+   "site": "EXTERNAL_CAREERS"
+  },
+  {
+   "name": "Northrop Grumman",
+   "ats_type": "workday",
+   "host": "ngc.wd1.myworkdayjobs.com",
+   "site": "Northrop_Grumman_External_Site"
+  },
+  {
+   "name": "Arizona State University",
+   "ats_type": "workday",
+   "host": "asuep.wd5.myworkdayjobs.com",
+   "site": "ASUEP"
+  },
+  {
+   "name": "Western Alliance",
+   "ats_type": "workday",
+   "host": "wd5.myworkdaysite.com",
+   "site": "westernalliancebank/WAB"
+  },
+  {
+   "name": "CVS Health",
+   "ats_type": "workday",
+   "host": "cvshealth.wd1.myworkdayjobs.com",
+   "site": "CVS_Health_Careers"
+  },
+  {
+   "name": "U-Haul",
+   "ats_type": "workday",
+   "host": "uhaul.wd1.myworkdayjobs.com",
+   "site": "UhaulJobs"
+  },
+  {
+   "name": "NXP Semiconductors",
+   "ats_type": "workday",
+   "host": "nxp.wd3.myworkdayjobs.com",
+   "site": "careers"
+  },
+  {
+   "name": "DriveTime",
+   "ats_type": "workday",
+   "host": "drivetime.wd1.myworkdayjobs.com",
+   "site": "DriveTime"
+  },
+  {
+   "name": "Marvell",
+   "ats_type": "workday",
+   "host": "marvell.wd1.myworkdayjobs.com",
+   "site": "MarvellCareers"
+  },
+  {
+   "name": "Blue Cross Blue Shield of Arizona",
+   "ats_type": "workday",
+   "host": "bcbsaz.wd1.myworkdayjobs.com",
+   "site": "bcbsazcareers"
+  },
+  {
+   "name": "Acron Aviation",
+   "ats_type": "lever",
+   "token": "acronaviation"
+  },
+  {
+   "name": "RTX",
+   "ats_type": "workday",
+   "host": "globalhr.wd5.myworkdayjobs.com",
+   "site": "rec_rtx_ext_gateway"
+  },
+  {
+   "name": "Axon",
+   "ats_type": "greenhouse",
+   "token": "axon"
+  },
+  {
+   "name": "Viavi Solutions",
+   "ats_type": "workday",
+   "host": "viavisolutions.wd1.myworkdayjobs.com",
+   "site": "careers"
+  },
+  {
+   "name": "FOX",
+   "ats_type": "workday",
+   "host": "fox.wd1.myworkdayjobs.com",
+   "site": "Domestic"
+  },
+  {
+   "name": "Analog Devices",
+   "ats_type": "workday",
+   "host": "analogdevices.wd1.myworkdayjobs.com",
+   "site": "External"
+  },
+  {
+   "name": "PNC Financial Services",
+   "ats_type": "workday",
+   "host": "pnc.wd5.myworkdayjobs.com",
+   "site": "External"
+  },
+  {
+   "name": "Grand Canyon University",
+   "ats_type": "workday",
+   "host": "gcu.wd1.myworkdayjobs.com",
+   "site": "GCU"
+  },
+  {
+   "name": "Becton Dickinson",
+   "ats_type": "workday",
+   "host": "bdx.wd1.myworkdayjobs.com",
+   "site": "EXTERNAL_CAREER_SITE_USA"
+  },
+  {
+   "name": "Vanguard",
+   "ats_type": "workday",
+   "host": "vanguard.wd5.myworkdayjobs.com",
+   "site": "vanguard_external"
+  },
+  {
+   "name": "Medtronic",
+   "ats_type": "workday",
+   "host": "medtronic.wd1.myworkdayjobs.com",
+   "site": "MedtronicCareers"
+  },
+  {
+   "name": "Marsh",
+   "ats_type": "workday",
+   "host": "mmc.wd1.myworkdayjobs.com",
+   "site": "mmc"
+  },
+  {
+   "name": "USAA",
+   "ats_type": "workday",
+   "host": "usaa.wd1.myworkdayjobs.com",
+   "site": "USAAJOBSWD"
+  },
+  {
+   "name": "Cambridge Investment Research",
+   "ats_type": "workday",
+   "host": "cir.wd108.myworkdayjobs.com",
+   "site": "CIR_External_Career_Site"
+  },
+  {
+   "name": "Renesas Electronics",
+   "ats_type": "smartrecruiters",
+   "token": "RenesasElectronics"
+  },
+  {
+   "name": "Early Warning",
+   "ats_type": "workday",
+   "host": "earlywarning.wd5.myworkdayjobs.com",
+   "site": "earlywarningcareers"
+  },
+  {
+   "name": "Bank of America",
+   "ats_type": "workday",
+   "host": "ghr.wd1.myworkdayjobs.com",
+   "site": "us-emplsv"
+  },
+  {
+   "name": "AVEVA",
+   "ats_type": "workday",
+   "host": "aveva.wd3.myworkdayjobs.com",
+   "site": "AVEVA_careers"
+  },
+  {
+   "name": "Maricopa County",
+   "ats_type": "workday",
+   "host": "maricopa.wd1.myworkdayjobs.com",
+   "site": "MC_External"
+  },
+  {
+   "name": "Gen Digital",
+   "ats_type": "workday",
+   "host": "gen.wd1.myworkdayjobs.com",
+   "site": "careers"
+  },
+  {
+   "name": "Osaic",
+   "ats_type": "workday",
+   "host": "advisorgroup.wd1.myworkdayjobs.com",
+   "site": "advisor_career_site"
+  },
+  {
+   "name": "Pathward",
+   "ats_type": "greenhouse",
+   "token": "pathward"
+  },
+  {
+   "name": "MUFG",
+   "ats_type": "workday",
+   "host": "mufgub.wd3.myworkdayjobs.com",
+   "site": "mufg-careers"
+  },
+  {
+   "name": "Clearway Energy",
+   "ats_type": "greenhouse",
+   "token": "clearwayjobs"
+  },
+  {
+   "name": "ARRAY Technologies",
+   "ats_type": "workday",
+   "host": "arraytechinc.wd5.myworkdayjobs.com",
+   "site": "Array_Careers"
+  },
+  {
+   "name": "Schweitzer Engineering Laboratories",
+   "ats_type": "workday",
+   "host": "selinc.wd1.myworkdayjobs.com",
+   "site": "SEL"
+  },
+  {
+   "name": "GE Healthcare",
+   "ats_type": "workday",
+   "host": "gehc.wd5.myworkdayjobs.com",
+   "site": "GEHC_ExternalSite"
+  },
+  {
+   "name": "AHEAD",
+   "ats_type": "lever",
+   "token": "thinkahead"
+  },
+  {
+   "name": "Caterpillar",
+   "ats_type": "workday",
+   "host": "cat.wd5.myworkdayjobs.com",
+   "site": "CaterpillarCareers"
+  },
+  {
+   "name": "AAA Mountainwest Group",
+   "ats_type": "workday",
+   "host": "ncnu.wd1.myworkdayjobs.com",
+   "site": "aaa_ncnu_careers"
+  },
+  {
+   "name": "GoDaddy",
+   "ats_type": "greenhouse",
+   "token": "eventsandinterns"
+  },
+  {
+   "name": "Vitalant",
+   "ats_type": "workday",
+   "host": "vitalant.wd12.myworkdayjobs.com",
+   "site": "Careers"
+  },
+  {
+   "name": "KBR",
+   "ats_type": "workday",
+   "host": "kbr.wd5.myworkdayjobs.com",
+   "site": "KBR_Careers"
+  },
+  {
+   "name": "Nationwide",
+   "ats_type": "workday",
+   "host": "nationwide.wd1.myworkdayjobs.com",
+   "site": "Nationwide_Career"
+  },
+  {
+   "name": "Wells Fargo",
+   "ats_type": "workday",
+   "host": "wd1.myworkdaysite.com",
+   "site": "wf/WellsFargoJobs"
+  },
+  {
+   "name": "Maricopa Association of Governments",
+   "ats_type": "workday",
+   "host": "azmag.wd108.myworkdayjobs.com",
+   "site": "magcareers"
+  },
+  {
+   "name": "TD Synnex",
+   "ats_type": "workday",
+   "host": "synnex.wd5.myworkdayjobs.com",
+   "site": "tdsynnexcareers"
+  },
+  {
+   "name": "Judicial Branch of Arizona in Maricopa County",
+   "ats_type": "workday",
+   "host": "maricopa.wd1.myworkdayjobs.com",
+   "site": "jb_external"
+  },
+  {
+   "name": "Cigna Group",
+   "ats_type": "workday",
+   "host": "cigna.wd5.myworkdayjobs.com",
+   "site": "cignacareers"
+  },
+  {
+   "name": "Republic Services",
+   "ats_type": "workday",
+   "host": "republic.wd5.myworkdayjobs.com",
+   "site": "Republic"
+  },
+  {
+   "name": "U.S. Bank",
+   "ats_type": "workday",
+   "host": "usbank.wd1.myworkdayjobs.com",
+   "site": "US_Bank_Careers"
+  },
+  {
+   "name": "AAA Club Alliance",
+   "ats_type": "workday",
+   "host": "aaaie.wd1.myworkdayjobs.com",
+   "site": "csaacareers"
+  },
+  {
+   "name": "Dexcom",
+   "ats_type": "workday",
+   "host": "dexcom.wd1.myworkdayjobs.com",
+   "site": "Dexcom"
+  },
+  {
+   "name": "Goodwill Industries International",
+   "ats_type": "workday",
+   "host": "goodwillaz.wd1.myworkdayjobs.com",
+   "site": "GoodwillAZ"
+  },
+  {
+   "name": "LabCorp",
+   "ats_type": "workday",
+   "host": "labcorp.wd1.myworkdayjobs.com",
+   "site": "external"
+  },
+  {
+   "name": "Oscar Health",
+   "ats_type": "greenhouse",
+   "token": "oscar"
+  },
+  {
+   "name": "Chewy",
+   "ats_type": "workday",
+   "host": "wd5.myworkdaysite.com",
+   "site": "chewy/External"
+  },
+  {
+   "name": "Boeing",
+   "ats_type": "workday",
+   "host": "boeing.wd1.myworkdayjobs.com",
+   "site": "INTERN"
+  },
+  {
+   "name": "Arizona State University",
+   "ats_type": "workday",
+   "host": "asu.wd1.myworkdayjobs.com",
+   "site": "ASUStaffCareers"
+  }
+ ]
+}

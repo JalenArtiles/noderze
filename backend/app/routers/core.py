@@ -60,15 +60,27 @@ def update_profile(body: ProfileIn, db: Session = Depends(get_db)):
     if body.weights is not None:
         p.weights = {k: float(v) for k, v in body.weights.items() if k in DEFAULT_WEIGHTS}
     db.commit()
+    refresh_resume_checks(db)
     n = rescore_all(db)
     return {"ok": True, "rescored": n}
+
+
+def refresh_resume_checks(db: Session) -> None:
+    """Resume checks compare your resume with your profile (for example, skills listed in only one of them), so
+    they're redone whenever the profile changes instead of waiting for the next upload."""
+    from ..services import resume as R
+    from ..services.profile import master_resume
+    res = master_resume(db)
+    if res:
+        res.checks = R.consistency_checks(res.parsed, get_profile(db).data or {})
+        db.commit()
 
 
 # ----------------------------------------------------------------------------- dashboard
 
 @router.get("/dashboard")
 def dashboard(db: Session = Depends(get_db)):
-    active = select(Job).where(Job.is_active.is_(True), Job.hidden.is_(False))
+    active = select(Job).where(Job.is_active.is_(True), Job.hidden.is_(False), Job.family.is_distinct_from("internship"))
     jobs = list(db.scalars(active))
     t = today()
     stages = dict(db.execute(select(Application.stage, func.count(Application.id)).group_by(Application.stage)).all())
@@ -308,6 +320,8 @@ def list_jobs(category: str | None = None, company_id: int | None = None, min_sc
     query = select(Job).where(Job.score_total >= min_score).order_by(Job.score_total.desc())
     if category:
         query = query.where(Job.category.in_(category.split(",")))
+    else:  # spring internships have their own page
+        query = query.where(Job.family.is_distinct_from("internship"))
     if company_id:
         query = query.where(Job.company_id == company_id)
     if not include_inactive:
@@ -333,8 +347,11 @@ def list_jobs(category: str | None = None, company_id: int | None = None, min_sc
 def home(db: Session = Depends(get_db)):
     """Everything the home page needs in one call: best move, interest tiles, top matches, pipeline."""
     prof = get_profile(db).data or {}
-    jobs = list(db.scalars(select(Job).where(Job.is_active.is_(True), Job.hidden.is_(False)).order_by(Job.score_total.desc())))
+    jobs = list(db.scalars(select(Job).where(Job.is_active.is_(True), Job.hidden.is_(False),
+                                             Job.family.is_distinct_from("internship")).order_by(Job.score_total.desc())))
     ok = [j for j in jobs if j.grad_status not in ("too_early", "too_late")]
+    from ..services.intern_jobs import counts as intern_counts
+    ic = intern_counts(db)
     states = lambda j: {l.get("state") for l in (j.locations or [])}
     entry = [j for j in ok if j.category == "entry_sales"]
     best = entry[0] if entry else next((j for j in ok if j.category not in ("long_shot", "goal_se")), None)
@@ -343,6 +360,8 @@ def home(db: Session = Depends(get_db)):
                                                               Company.watch_status != "not_relevant"))]
     with_se = sum(1 for c in cyber_cos if ((c.data or {}).get("se_team") or {}).get("open_se_roles") or c.programs)
     tiles = [
+        {"key": "interns", "label": "Spring internships", "hint": "Paid, part-time, January to May", "count": ic["total_ok"],
+         "href": "/internships", "tone": "green"},
         {"key": "az", "label": "Entry sales in Arizona", "hint": "SDR, BDR, ADR and AE roles near you", "count": sum(1 for j in entry if "AZ" in states(j)), "href": "/opportunities?category=entry_sales&state=AZ", "tone": "maroon"},
         {"key": "remote", "label": "Remote entry sales", "hint": "Work from Arizona", "count": sum(1 for j in entry if j.remote_type == "remote"), "href": "/opportunities?category=entry_sales&remote=1", "tone": "gold"},
         {"key": "socal", "label": "Southern California", "hint": "San Diego, LA, Orange County", "count": sum(1 for j in entry if "socal" in regions(j)), "href": "/opportunities?category=entry_sales&state=SOCAL", "tone": "blue"},
@@ -361,6 +380,7 @@ def home(db: Session = Depends(get_db)):
         "totals": {"jobs": len(ok), "companies": db.scalar(select(func.count(Company.id)).where(Company.watch_status.is_not(None))),
                    "programs": db.scalar(select(func.count(Program.id))), "new": db.scalar(select(func.count(Alert.id)).where(Alert.seen.is_(False)))},
         "status": {"llm": llm.available, "search_provider": provider_name()},
+        "internships": ic | {"last_scan": prof.get("intern_last_scan")},
     }
 
 
@@ -453,6 +473,7 @@ class WorkflowIn(BaseModel):
     job_id: int | None = None
     company_ids: list[int] | None = None
     rule_id: int | None = None
+    mode: str | None = None
 
 
 @router.post("/workflows/{kind}")

@@ -24,6 +24,8 @@ COMPENSATE = {
                    "with a README aimed at a customer.",
     "apis": "Build a tiny integration (REST call, auth header, JSON parsing, error handling) and demo it in two minutes.",
     "databases": "Practice SQL joins and aggregations on a public dataset; one query you can explain is enough.",
+    "data_analytics": "Build one small dashboard (Tableau Public or Power BI) from a public dataset and be ready to "
+                      "explain what it shows and how you cleaned the data.",
     "ai": "Use your AI evaluation work: prepare a two-minute explanation of how you judged model quality.",
     "operating_systems": "Review Windows and macOS management basics (users, updates, endpoint agents).",
     "iot_hardware": "Learn the basics of the company's devices (power, PoE, connectivity) from their public docs.",

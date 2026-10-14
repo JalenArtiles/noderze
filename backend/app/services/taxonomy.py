@@ -25,6 +25,8 @@ TECH_AREAS: dict[str, list[str]] = {
                     "programming", "bash", "scheme", "object-oriented programming"],
     "apis": ["api", "apis", "rest api", "restful", "integration", "integrations", "webhook", "webhooks", "sdk"],
     "databases": ["sql", "database", "databases", "database systems", "nosql", "postgres", "mysql"],
+    "data_analytics": ["data analysis", "data analytics", "excel", "tableau", "power bi", "data visualization",
+                       "dashboards", "statistics", "pandas", "data cleaning", "etl"],
     "ai": ["artificial intelligence", "machine learning", "llm", "llms", "large language models", "generative ai",
            "genai", "prompt engineering", "ai evaluation", "ai-powered", "ai agents"],
     "operating_systems": ["operating systems", "windows", "macos"],
@@ -54,7 +56,7 @@ SALES_AREAS: dict[str, list[str]] = {
 AREA_LABELS = {
     "networking": "Networking fundamentals", "network_security": "Network security", "security": "Cybersecurity",
     "cloud": "Cloud", "linux": "Linux", "programming": "Programming", "apis": "APIs and integrations",
-    "databases": "Databases and SQL", "ai": "AI fundamentals", "operating_systems": "Operating systems",
+    "databases": "Databases and SQL", "data_analytics": "Data analysis and visualization", "ai": "AI fundamentals", "operating_systems": "Operating systems",
     "iot_hardware": "IoT and hardware", "packet_analysis": "Packet analysis", "prospecting": "Prospecting",
     "crm": "CRM", "discovery": "Discovery and qualification", "demo": "Product demos and POCs",
     "presentation": "Presentations", "customer_facing": "Customer-facing work",

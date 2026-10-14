@@ -58,7 +58,9 @@ def _ctx(db: Session, job: Job) -> dict:
             "job_title": job.title, "job_text": job.description_text or "", "program": job.program.name if job.program else None,
             "program_line": f"the {job.program.name}" if job.program else None, "analysis": job.analysis,
             "family": job.family, "why_company_fact": (company.data or {}).get("why_line"),
-            "product": (company.data or {}).get("product"), "story_hook": prof.get("story_hook")}
+            "product": (company.data or {}).get("product"), "story_hook": prof.get("story_hook"),
+            "mode": "intern" if job.family == "internship" else None,
+            "track": job.intern.track if job.family == "internship" and job.intern else None}
 
 
 def _doc(db: Session, app: Application, job: Job, kind: str, title: str, content: str, by: str, style_kind="answer",
@@ -83,6 +85,10 @@ def prepare(db: Session, job: Job, log) -> Application:
     ctx = _ctx(db, job)
     prof = ctx["profile"]
     corpus = " ".join(f["text"] for f in ctx["ledger"]) + " " + " ".join(str(v) for v in (prof.get("skills") or {}).values())
+    intern = ctx.get("mode") == "intern"
+    if intern:  # your stated internship hours are your own fact, not an unsupported number
+        ip = prof.get("internship") or {}
+        corpus += f" {ip.get('hours_min', 10)} {ip.get('hours_max', 30)}"
     held = {(c.get("name") if isinstance(c, dict) else str(c)).lower() for c in prof.get("certifications", [])}
     pkg: dict = {"docs": {}, "outreach": [], "checklist": []}
 
@@ -99,7 +105,7 @@ def prepare(db: Session, job: Job, log) -> Application:
     cl.flags = [f for f in cl.flags if "characters" not in f]
     app.cover_letter_id = cl.id
     pkg["docs"]["cover_letter"] = cl.id
-    for key, q in W.QUESTIONS.items():
+    for key, q in (W.INTERN_QUESTIONS if intern else W.QUESTIONS).items():
         if key == "why_solutions_engineering":
             continue
         text, by = W.answer(key, ctx)
@@ -142,11 +148,14 @@ def prepare(db: Session, job: Job, log) -> Application:
     pkg["follow_up_schedule"] = [
         {"when": (base + timedelta(days=d)).isoformat(), "what": w} for d, w in
         zip(FOLLOW_UP_DAYS, ["Follow up with the recruiter (short note, one new fact about you)",
+                             "Second follow-up, or message the team's manager" if intern else
                              "Second follow-up or ask an SE contact for advice"])]
     if job.deadline:
         pkg["follow_up_schedule"].insert(0, {"when": (job.deadline - timedelta(days=3)).isoformat(),
                                              "what": "Submit at least 3 days before the deadline"})
     pkg["standout"] = recommendations(job.company, job)[:5]
+    if intern:
+        pkg["intern"] = {"track": ctx.get("track"), "checks": (job.intern.checks if job.intern else [])}
     app.package = pkg
     app.next_action = app.next_action or "Review resume edits and fill the [bracketed] prompts"
     db.flush()
@@ -156,8 +165,57 @@ def prepare(db: Session, job: Job, log) -> Application:
     return app
 
 
+def intern_readiness(db: Session, app: Application, job: Job) -> dict:
+    """Readiness for a spring internship: resume, the field match, interview practice, a recruiter contact, and the
+    two things only you can confirm (pay and hours with the recruiter, credit with your coordinator)."""
+    bd = job.score_breakdown or {}
+    v = db.get(ResumeVersion, app.resume_version_id) if app.resume_version_id else None
+    if v and (v.analysis or {}).get("demonstrated") is not None:
+        a = v.analysis
+        total = len(a["demonstrated"]) + len(a["emphasize"]) + len(a["missing"])
+        resume_match = round(100 * (len(a["demonstrated"]) + 0.6 * len(a["emphasize"])) / total) if total else 60
+    elif v and (v.analysis or {}).get("ats"):
+        resume_match = int(v.analysis["ats"].get("after") or v.analysis["ats"].get("before") or 50)
+    else:
+        resume_match = 0
+    outreach = list(db.scalars(select(Outreach).join(Person).where(Person.company_id == job.company_id)))
+    recruiter = 100 if any(o.status in ("sent", "replied") for o in outreach) else 50 if outreach else 0
+    done = (app.package or {}).get("checklist_done", {})
+    practiced = len((app.package or {}).get("practiced", []))
+    checks = {c["key"]: c for c in (job.intern.checks if job.intern else [])}
+    open_checks = [c for c in checks.values() if c["state"] != "pass"]
+    confirmed = 100 if not open_checks or done.get("confirm_details") else 40
+    comps = {"Resume match": resume_match, "Field match": round(100 * (bd.get("field", {}).get("score", 0)) / 30),
+             "Interview readiness": min(100, practiced * 20), "Recruiter contact": recruiter,
+             "Pay, hours and dates confirmed": confirmed, "Credit approved": 100 if done.get("credit") else 0,
+             "Company knowledge": 100 if done.get("study_guide") else 30}
+    weights = {"Resume match": 0.22, "Field match": 0.13, "Interview readiness": 0.15, "Recruiter contact": 0.12,
+               "Pay, hours and dates confirmed": 0.13, "Credit approved": 0.15, "Company knowledge": 0.1}
+    overall = round(sum(comps[k] * w for k, w in weights.items()))
+    checklist = []
+    if not v:
+        checklist.append({"key": "upload_resume", "text": "Upload your resume on the Resume page, then click Apply on this internship."})
+    if not done.get("credit"):
+        checklist.append({"key": "credit", "text": "Ask your internship coordinator whether this internship counts for credit, "
+                                                   "before you accept an offer."})
+    for c in open_checks:
+        checklist.append({"key": "confirm_details", "text": f"Confirm with the recruiter: {c['label'].lower()} "
+                                                            f"({c['detail'].rstrip('.')})."})
+    if recruiter < 100:
+        checklist.append({"key": "contact", "text": "Message the recruiter or the team's manager (drafts are on the Apply page)."})
+    if not done.get("study_guide"):
+        checklist.append({"key": "study_guide", "text": "Read the study guide and note what the team works on."})
+    if practiced < 5:
+        checklist.append({"key": "practice", "text": f"Practice {5 - practiced} more interview questions (mock mode)."})
+    if not job.is_active or job.needs_verification:
+        checklist.append({"key": "verify", "text": "Confirm the posting is still open on the company site."})
+    return {"overall": overall, "components": comps, "checklist": checklist}
+
+
 def readiness(db: Session, app: Application) -> dict:
     job: Job = db.get(Job, app.job_id)
+    if job.family == "internship":
+        return intern_readiness(db, app, job)
     bd = job.score_breakdown or {}
 
     def ratio(k):

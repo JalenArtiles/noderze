@@ -325,7 +325,15 @@ def job_brief(j: Job) -> dict:
         "sales_level": _sales_level(j.title),
         "se_roles_seen": int((((j.company.data or {}) if j.company else {}).get("se_team") or {}).get("open_se_roles") or 0),
         "program_name": j.program.name if j.program else None,
+        "intern": _intern(j),
     }
+
+
+def _intern(j: Job) -> dict | None:
+    if j.family != "internship":
+        return None
+    from .intern_jobs import intern_summary
+    return intern_summary(j)
 
 
 def path_dict(p: CareerPath) -> dict:

@@ -61,7 +61,9 @@ def _link_program(db: Session, company: Company, job: Job) -> None:
         job.program_id = se_programs[0].id
 
 
-def upsert_posting(db: Session, company: Company, p: RawPosting, *, original: bool, log=None) -> tuple[Job, bool]:
+def upsert_posting(db: Session, company: Company, p: RawPosting, *, original: bool, log=None, kind: str = "job",
+                   source_label: str | None = None) -> tuple[Job, bool]:
+    """Insert or update one posting. kind="intern" stores it as a spring internship (its own checks and score)."""
     fp = fingerprint(company.name, p.title, p.ats_job_id if original else None, p.url)
     job = db.scalar(select(Job).where(Job.fingerprint == fp))
     is_new = job is None
@@ -94,7 +96,13 @@ def upsert_posting(db: Session, company: Company, p: RawPosting, *, original: bo
         job.last_verified_at = now()
         job.is_active = True
     db.flush()
-    _link_program(db, company, job)
+    if kind == "intern":
+        from .intern_jobs import FAMILY, absorb, ensure_detail
+        job.family = FAMILY
+        absorb(ensure_detail(db, job), dict(p.extra or {}, workplace=p.workplace), source_label,
+               readable=bool(original or (p.extra or {}).get("full_text") or len(job.description_text or "") >= 250))
+    else:
+        _link_program(db, company, job)
     enrich_and_score(db, job)
     return job, is_new
 
@@ -205,8 +213,13 @@ def discover_company(db: Session, f: PoliteFetcher, company: Company, log) -> di
         else:
             stats["updated"] += 1
         db.commit()  # keep write transactions short so the interface never waits on a scan
+    if company.ats_type != "workday":
+        from .intern_sources import capture_board
+        seen |= capture_board(db, company, postings, log, f, source_label="Company job board")
     for job in db.scalars(select(Job).where(Job.company_id == company.id, Job.source == company.ats_type,
                                             Job.is_active.is_(True))):
+        if job.family == "internship" and company.ats_type == "workday":
+            continue  # Workday is searched, not listed in full; internships there are re-checked one by one
         if job.id not in seen:
             job.is_active = False
             job.flags = list(set((job.flags or []) + ["closed_or_removed"]))

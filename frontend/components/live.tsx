@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { Bell, RefreshCw } from "lucide-react";
+import { Backpack, Bell, RefreshCw } from "lucide-react";
 import { api } from "@/lib/api";
 import { useActivity } from "@/components/activity";
 
@@ -53,6 +53,7 @@ export default function LiveBar() {
       <span className={`dot ${busy ? "busy" : ""}`} aria-hidden />
       <span className="small">{busy ? "Scanning job boards" : `Last scan ${ago}`}</span>
       {u?.unseen > 0 && <Link href="/opportunities?new=1" className="new"><Bell size={13} />{u.unseen} new</Link>}
+      {u?.unseen_interns > 0 && <Link href="/internships?new=1" className="new"><Backpack size={13} />{u.unseen_interns} new {u.unseen_interns === 1 ? "internship" : "internships"}</Link>}
       <button className="btn sm" onClick={refresh} disabled={busy}><RefreshCw />Scan now</button>
     </div>
   );

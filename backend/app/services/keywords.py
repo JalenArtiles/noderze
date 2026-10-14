@@ -80,6 +80,52 @@ SUPPORT = {
     "Customer relationships": [r"client relationship"],
     "Presentation skills": [r"present", r"instructed"],
 }
+# Technical terms that data, cybersecurity and networking internships screen for. Names don't overlap TERMS.
+INTERN_TERMS: dict[str, tuple[str, float, list[str]]] = {
+    "SQL": ("tech", 2, [r"\bsql\b"]),
+    "Excel": ("tools", 1.5, [r"\bexcel\b", r"spreadsheets?"]),
+    "Python": ("tech", 1.5, [r"\bpython\b"]),
+    "Tableau": ("tools", 1.5, [r"tableau"]),
+    "Power BI": ("tools", 1.5, [r"power ?bi\b"]),
+    "Data analysis": ("tech", 2, [r"data analy(?:sis|tics|ze|zing)", r"analy[sz](?:e|ing) data"]),
+    "Data visualization": ("tech", 1.5, [r"data visuali[sz]ation", r"dashboards?", r"visuali[sz]ations?"]),
+    "Statistics": ("tech", 1, [r"statistic"]),
+    "Reporting": ("tech", 1, [r"\breport(?:s|ing)\b"]),
+    "Networking fundamentals": ("tech", 2, [r"tcp/?ip", r"\bosi\b", r"network(?:ing)? fundamentals", r"computer networks?",
+                                            r"\bnetworking\b"]),
+    "Routing and switching": ("tech", 1.5, [r"\brouting\b", r"\bswitching\b", r"\brouters?\b", r"\bswitches\b"]),
+    "DNS and DHCP": ("tech", 1, [r"\bdns\b", r"\bdhcp\b"]),
+    "VLANs and subnetting": ("tech", 1, [r"\bvlans?\b", r"subnet"]),
+    "Firewalls": ("tech", 1.5, [r"firewalls?"]),
+    "Cisco": ("tools", 1, [r"\bcisco\b"]),
+    "Wireshark": ("tools", 1, [r"wireshark", r"packet (?:capture|analysis)"]),
+    "Linux": ("tech", 1.5, [r"\blinux\b", r"\bunix\b"]),
+    "Windows": ("tech", 1, [r"\bwindows\b", r"active directory"]),
+    "SIEM": ("tools", 1.5, [r"\bsiem\b", r"splunk", r"\bqradar\b", r"microsoft sentinel"]),
+    "Vulnerability management": ("tech", 1.5, [r"vulnerabilit"]),
+    "Incident response": ("tech", 1.5, [r"incident response", r"incident handling"]),
+    "Risk assessment": ("tech", 1, [r"risk assessments?", r"risk management"]),
+    "Security frameworks": ("tech", 1, [r"\bnist\b", r"\biso ?27001\b", r"\bcis controls\b"]),
+    "Scripting": ("tech", 1, [r"scripting", r"powershell", r"\bbash\b"]),
+    "Troubleshooting": ("tech", 1.5, [r"troubleshoot"]),
+    "Secure coding": ("tech", 1, [r"secure coding", r"secure software"]),
+    "Documentation": ("soft", 1, [r"document(?:ation|ing)\b"]),
+    "Problem solving": ("soft", 1, [r"problem[- ]solv"]),
+    "Customer service": ("soft", 0.5, [r"customer service", r"end[- ]users?"]),
+}
+INTERN_SHARED = ["Cybersecurity", "Network security", "Cloud", "Compliance", "Threat detection", "Identity and access",
+                 "Communication skills", "Teamwork", "Time management", "Microsoft Office", "Bachelor's degree"]
+SUPPORT.update({
+    "Networking fundamentals": [r"computer networks?", r"\bnetworking\b", r"tcp/?ip"],
+    "Wireshark": [r"wireshark"], "SQL": [r"\bsql\b"], "Python": [r"\bpython\b"],
+    "Scripting": [r"\bbash\b", r"\bpython\b", r"scripting", r"powershell"], "Troubleshooting": [r"troubleshoot"],
+    "Documentation": [r"document(?:ation|ed|ing)\b"], "Secure coding": [r"secure coding"],
+    "Data analysis": [r"data analy"], "Statistics": [r"statistic"],
+})
+INTERN_CORE = {"cyber": ["Cybersecurity", "Network security", "Secure coding", "Wireshark", "Networking fundamentals"],
+               "network": ["Networking fundamentals", "Network security", "Wireshark", "Routing and switching"],
+               "data": ["SQL", "Python", "Statistics", "Data analysis", "Excel"]}
+
 # Typical asks for entry sales roles, used only when a posting's text is too short to read.
 TYPICAL_ENTRY_SALES = ["Prospecting", "Cold calling", "Lead qualification", "Booking meetings", "CRM", "Salesforce",
                        "Email outreach", "Quota attainment", "Communication skills", "Coachable", "Resilience", "B2B sales"]
@@ -89,30 +135,39 @@ def _rx(patterns: list[str]) -> re.Pattern:
     return re.compile("|".join(f"(?:{p})" for p in patterns), re.I)
 
 
-def extract(text: str) -> dict[str, int]:
+def _entry(term: str) -> tuple[str, float, list[str]]:
+    return TERMS.get(term) or INTERN_TERMS[term]
+
+
+def _table(mode: str) -> dict:
+    return {**INTERN_TERMS, **{t: TERMS[t] for t in INTERN_SHARED}} if mode == "intern" else TERMS
+
+
+def extract(text: str, mode: str = "sales") -> dict[str, int]:
     """canonical term -> number of mentions in the text"""
     out = {}
-    for term, (_, _, pats) in TERMS.items():
+    for term, (_, _, pats) in _table(mode).items():
         n = len(_rx(pats).findall(text or ""))
         if n:
             out[term] = n
     return out
 
 
-def screened_terms(posting_text: str, company_texts: list[str] | None = None) -> list[dict]:
-    """Rank the terms this posting (and the company's other sales postings) screen for."""
-    mine = extract(posting_text)
+def screened_terms(posting_text: str, company_texts: list[str] | None = None, mode: str = "sales",
+                   track: str | None = None) -> list[dict]:
+    """Rank the terms this posting (and the company's other similar postings) screen for."""
+    mine = extract(posting_text, mode)
     company = Counter()
     for t in company_texts or []:
-        company.update(set(extract(t)))
+        company.update(set(extract(t, mode)))
     terms = set(mine) | {t for t, c in company.items() if c >= 2}
     typical = False
     if len(posting_text or "") < 400 and len(terms) < 6:
-        terms |= set(TYPICAL_ENTRY_SALES)
+        terms |= set(INTERN_CORE.get(track or "", INTERN_CORE["cyber"]) if mode == "intern" else TYPICAL_ENTRY_SALES)
         typical = True
     ranked = []
     for t in terms:
-        group, weight, _ = TERMS[t]
+        group, weight, _ = _entry(t)
         ranked.append({"term": t, "group": group, "weight": weight, "mentions": mine.get(t, 0),
                        "company_postings": company.get(t, 0), "typical": typical and t not in mine})
     ranked.sort(key=lambda r: (-(r["mentions"] > 0), -r["weight"], -r["mentions"], -r["company_postings"], r["term"]))
@@ -122,13 +177,13 @@ def screened_terms(posting_text: str, company_texts: list[str] | None = None) ->
 def supported(term: str, evidence_text: str, claims: list[str]) -> bool:
     if any(term.lower() == c.lower() for c in claims or []):
         return True
-    pats = SUPPORT.get(term) or TERMS[term][2]
+    pats = SUPPORT.get(term) or _entry(term)[2]
     return bool(_rx(pats).search(evidence_text or ""))
 
 
 def present(term: str, text: str) -> bool:
     """What an ATS sees: the posting's own wording, literally."""
-    return bool(_rx(TERMS[term][2]).search(text or ""))
+    return bool(_rx(_entry(term)[2]).search(text or ""))
 
 
 CORE_ENTRY_SALES = ["Cold calling", "Prospecting", "Lead generation", "Discovery", "Booking meetings", "Email outreach",

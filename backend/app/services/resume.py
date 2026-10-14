@@ -247,6 +247,9 @@ def claim_check(before: str, after: str, ledger: list[dict], profile: dict) -> l
     """Flag anything in `after` that the resume or profile does not already support."""
     corpus = " ".join(f["text"] for f in ledger) + " " + before + " " + " ".join(
         str(v) for v in (profile.get("skills") or {}).values()) + " " + " ".join(profile.get("verified_claims") or [])
+    # Your own stated facts: course names, graduation date, and the internship term you're looking for.
+    corpus += " " + " ".join(c for c in profile.get("coursework", []) if isinstance(c, str))
+    corpus += f" {profile.get('expected_graduation', '')} {(profile.get('internship') or {}).get('term', 'Spring 2027')}"
     flags = []
     for kind in ("tech", "sales"):
         for area, terms in areas_in(after, kind).items():
@@ -449,6 +452,65 @@ def ats_tailor(parsed: dict, ledger: list[dict], profile: dict, checks: list[dic
                       "before": before, "after": text, "rationale": "Points your summary at this role and company.",
                       "flags": claim_check(before, text, ledger, profile), "status": "pending"})
     for e in edits:  # pre-approve everything that passes the claim check
+        if not e.get("flags") and e["category"] in ("fix", "reorder", "keywords", "summary", "rewrite"):
+            e["status"] = "approved"
+            e["auto"] = True
+    after_text = resume_text + " " + " ".join(e.get("text") or e.get("after") or "" for e in edits if e["status"] == "approved")
+    return {"terms": terms, "before": K.coverage(terms, resume_text), "after": K.coverage(terms, after_text), "edits": edits}
+
+
+def ats_tailor_intern(parsed: dict, ledger: list[dict], profile: dict, checks: list[dict], job_title: str, job_text: str,
+                      company: str, company_texts: list[str], track: str | None) -> dict:
+    """The spring-internship version of ats_tailor: technical keywords for data, security and networking roles,
+    a skills line with the ones your experience supports, and a summary aimed at a part-time spring internship."""
+    from . import keywords as K
+
+    claims = profile.get("verified_claims") or []
+    evidence_text = " ".join(f["text"] for f in ledger if f["section"] not in ("summary", "header")) + " " + " ".join(
+        str(v) for v in (profile.get("skills") or {}).values()) + " " + " ".join(
+        c for c in profile.get("coursework", []) if isinstance(c, str))
+    resume_text = " ".join(f["text"] for f in ledger)
+    terms = K.screened_terms(job_text, company_texts, mode="intern", track=track)
+    for t in terms:
+        t["on_resume"] = K.present(t["term"], resume_text)
+        t["supported"] = t["on_resume"] or K.supported(t["term"], evidence_text, claims)
+        t["status"] = "on_resume" if t["on_resume"] else "added" if t["supported"] else "missing"
+    edits = propose_edits(parsed, ledger, profile, checks, job_title, job_text, company)
+    n = len(edits)
+    skills = next((s for s in parsed["sections"] if s["key"] == "skills"), None)
+    add_terms = [t["term"] for t in terms if t["status"] == "added" and t["group"] in ("tech", "tools", "domain")]
+    core = [t for t in K.INTERN_CORE.get(track or "", []) if K.supported(t, evidence_text, claims)
+            and not K.present(t, resume_text)]
+    line_terms = list(dict.fromkeys(add_terms + core))[:12]
+    if skills and skills["items"] and line_terms:
+        last = skills["items"][-1]
+        text = "Technical: " + ", ".join(line_terms)
+        n += 1
+        edits.append({"id": f"e{n}", "kind": "insert_after", "category": "keywords", "index": last["index"], "text": text,
+                      "rationale": "Adds the technical terms this posting screens for that your coursework or experience "
+                                   "already supports.", "flags": claim_check("", text, ledger, profile), "status": "pending"})
+    summary = next((s for s in parsed["sections"] if s["key"] == "summary"), None)
+    if summary and summary["items"]:
+        courses = [c for c in profile.get("coursework", []) if isinstance(c, str)]
+        rx = {"cyber": r"secur|network", "network": r"network|operating", "data": r"database|statistic|data"}.get(track or "",
+                                                                                                            r"secur|network")
+        picked = [c for c in courses if re.search(rx, c, re.I)][:3] or courses[:2]
+        listed = picked[0] if len(picked) == 1 else f"{', '.join(picked[:-1])} and {picked[-1]}" if picked else ""
+        grad = str(profile.get("expected_graduation", "2027-05"))
+        month = {"05": "May", "12": "December", "08": "August"}.get(grad[5:7], grad[5:7])
+        word = {"cyber": "cybersecurity", "data": "data analytics", "network": "networking"}.get(track or "", "technical")
+        clients = any(re.search(r"\bclient|\bcustomer|stakeholder", f["text"], re.I) for f in ledger
+                      if f["section"] not in ("summary", "header"))
+        text = (f"Cybersecurity student at Arizona State University (B.S. Applied Computing, graduating {month} {grad[:4]})"
+                + (f" with coursework in {listed}" if listed else "")
+                + (", plus experience explaining technical products to clients" if clients else "")
+                + f". Seeking a part-time {word} internship at {company} for spring 2027.")
+        before = summary["items"][0]["text"]
+        n += 1
+        edits.append({"id": f"e{n}", "kind": "replace_paragraph", "category": "summary", "index": summary["items"][0]["index"],
+                      "before": before, "after": text, "rationale": "Points your summary at this internship.",
+                      "flags": claim_check(before, text, ledger, profile), "status": "pending"})
+    for e in edits:
         if not e.get("flags") and e["category"] in ("fix", "reorder", "keywords", "summary", "rewrite"):
             e["status"] = "approved"
             e["auto"] = True

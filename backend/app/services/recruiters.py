@@ -31,6 +31,12 @@ CATEGORY = [
     ("hiring_manager", 5, r"manager.{0,25}(?:sales|solutions) engineering|(?:sales|solutions) engineering manager|director.{0,20}(?:sales|solutions) engineering"),
     ("se", 6, r"sales engineer|solutions? engineer|solutions? consultant|pre-?sales|systems engineer|solutions architect"),
 ]
+INTERN_QUERIES = [
+    ("campus_recruiter", '("university recruiter" OR "campus recruiter" OR "early career recruiter" OR "intern program" OR "internship program")'),
+    ("talent_partner", '("talent acquisition" OR "recruiter")'),
+    ("hiring_manager", '("security manager" OR "SOC manager" OR "IT manager" OR "network manager" OR "analytics manager" OR "data manager")'),
+    ("asu_alum", '"Arizona State University" (cybersecurity OR "security analyst" OR "data analyst" OR "network engineer" OR intern)'),
+]
 LABELS = {"campus_recruiter": "Campus / early-career recruiter", "se_recruiter": "Recruiter for sales or SE roles",
           "talent_partner": "Talent acquisition partner", "hiring_manager": "SE hiring manager",
           "se": "Current SE / solutions engineer", "asu_alum": "ASU alum", "other": "Other"}
@@ -82,9 +88,10 @@ def alumni_search_url(company: str) -> str:
     return f"https://www.linkedin.com/school/arizona-state-university/people/?keywords={quote(company)}"
 
 
-def find_people(db: Session, company: Company, log, per_query: int = 8) -> dict:
+def find_people(db: Session, company: Company, log, per_query: int = 8, mode: str = "se") -> dict:
+    """mode="intern" looks for internship recruiters and the managers of security, IT and data teams instead of SEs."""
     stats = {"queries": 0, "found": 0, "new": 0}
-    for qcat, clause in ROLE_QUERIES:
+    for qcat, clause in (INTERN_QUERIES if mode == "intern" else ROLE_QUERIES):
         q = f'site:linkedin.com/in "{company.name}" {clause}'
         stats["queries"] += 1
         for r in search(q, n=per_query):
@@ -125,6 +132,25 @@ def linkedin_links(company: str) -> list[dict]:
         {"label": "ASU alumni", "why": "Warmest cold outreach you can send", "url": alumni_search_url(company)},
         {"label": "Company page (Follow)", "why": "Follow to see their posts and jobs", "url": f"https://www.linkedin.com/search/results/companies/?keywords={q(company)}"},
         {"label": "Their jobs on LinkedIn", "why": "Includes Easy Apply postings", "url": f"https://www.linkedin.com/jobs/search/?keywords={q(company + ' sales development')}&location=Arizona"},
+    ]
+
+
+def intern_links(company: str, track: str | None = None) -> list[dict]:
+    """LinkedIn searches for an internship: who runs the intern program, who manages the team, ASU alumni there."""
+    q = lambda t: quote(t)
+    team = {"cyber": "security", "data": "data analytics", "network": "network"}.get(track or "", "IT")
+    return [
+        {"label": "University recruiters", "why": "Usually own internship hiring",
+         "url": f"https://www.linkedin.com/search/results/people/?keywords={q(company + ' university recruiter')}"},
+        {"label": "Recruiters", "why": "Smaller companies use one recruiter for everything",
+         "url": f"https://www.linkedin.com/search/results/people/?keywords={q(company + ' recruiter')}"},
+        {"label": f"{team.title()} managers", "why": "The person your internship would report to",
+         "url": f"https://www.linkedin.com/search/results/people/?keywords={q(company + ' ' + team + ' manager')}"},
+        {"label": f"Current {team} interns", "why": "Ask what the internship is really like",
+         "url": f"https://www.linkedin.com/search/results/people/?keywords={q(company + ' ' + team + ' intern')}"},
+        {"label": "ASU alumni", "why": "Warmest cold outreach you can send", "url": alumni_search_url(company)},
+        {"label": "Company page (Follow)", "why": "Follow to see their posts and jobs",
+         "url": f"https://www.linkedin.com/search/results/companies/?keywords={q(company)}"},
     ]
 
 

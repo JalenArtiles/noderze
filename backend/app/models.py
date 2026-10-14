@@ -123,6 +123,33 @@ class Job(Base):
 
     company: Mapped[Company] = relationship(back_populates="jobs")
     program: Mapped[Program | None] = relationship()
+    intern: Mapped[InternDetail | None] = relationship(back_populates="job", uselist=False)
+
+
+class InternDetail(Base):
+    """The spring-internship checks for one internship posting (family "internship").
+
+    Computed fields are rebuilt on every evaluation; `overrides` holds what the user confirmed themselves
+    (for example "I confirmed it's paid"), which no scan ever overwrites.
+    """
+
+    __tablename__ = "intern_details"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    job_id: Mapped[int] = mapped_column(ForeignKey("jobs.id"), unique=True, index=True)
+    track: Mapped[str] = mapped_column(String(20), default="other")  # cyber | data | network | it | other
+    status: Mapped[str] = mapped_column(String(20), default="out")  # qualifies | check | out
+    checks: Mapped[list] = mapped_column(JSON, default=list)  # [{key, label, state: pass|warn|fail, detail}]
+    pay: Mapped[dict] = mapped_column(JSON, default=dict)
+    hours: Mapped[dict] = mapped_column(JSON, default=dict)
+    term: Mapped[dict] = mapped_column(JSON, default=dict)
+    where: Mapped[dict] = mapped_column(JSON, default=dict)
+    sources: Mapped[list] = mapped_column(JSON, default=list)  # where Noderze found it, e.g. "Company job board"
+    hints: Mapped[dict] = mapped_column(JSON, default=dict)  # Workday time type, Lever commitment, feed terms...
+    overrides: Mapped[dict] = mapped_column(JSON, default=dict)
+    readable: Mapped[bool] = mapped_column(Boolean, default=True)  # False when the posting text couldn't be read
+    evaluated_at: Mapped[datetime | None] = mapped_column(DateTime)
+
+    job: Mapped[Job] = relationship(back_populates="intern")
 
 
 class Source(Base):

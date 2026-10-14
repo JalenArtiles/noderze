@@ -3,7 +3,8 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { Check, Copy, Download, ExternalLink, UserSearch } from "lucide-react";
-import { Err, PageHeader, PathBadge } from "@/components/ui";
+import { Callout, Err, PageHeader, PathBadge } from "@/components/ui";
+import { FactChips } from "@/components/intern";
 import { CompanyLogo, ScoreRing } from "@/components/visual";
 import { api, fileUrl } from "@/lib/api";
 
@@ -40,6 +41,9 @@ export default function Apply() {
   const j = d.job;
   const first = person ? person.split(" ")[0] : "there";
   const msg = (d.drafts[kind] || "").replaceAll("{first}", first);
+  const drafts: [string, string][] = d.draft_labels || DRAFTS;
+  const it = d.is_intern ? j.intern : null;
+  const open = it ? (it.checks || []).filter((c: any) => c.state !== "pass") : [];
   const terms = d.ats.terms;
   const edits = allChanges ? d.edits : d.edits.slice(0, 5);
   return (
@@ -49,13 +53,16 @@ export default function Apply() {
         title={<span className="ph-id"><CompanyLogo name={j.company} website={j.company_website} size="lg" /><span>{j.title}</span></span>}
         actions={<><ScoreRing value={j.score_total} /><Link className="btn" href={`/jobs/${j.id}`}>Why it fits</Link></>}>
         <div className="meta">
-          <PathBadge value={j.path_class} /><span className="tag">{j.location_text}</span>
+          {it ? <><span className={`tag track ${it.track}`}>{it.track_label}</span><FactChips it={it} /></> : <><PathBadge value={j.path_class} /><span className="tag">{j.location_text}</span></>}
           {d.se_team?.open_se_roles > 0 && <span className="tag info">{d.se_team.open_se_roles} open SE roles</span>}
           {j.needs_verification && <span className="tag warn">Check the posting is still open</span>}
           {d.stage === "applied" && <span className="tag good"><Check />Applied</span>}
         </div>
       </PageHeader>
 
+      {open.length > 0 && <div style={{ margin: ".4rem 0 1rem" }}><Callout tone={it.status === "out" ? "bad" : "warn"}>
+        {it.status === "out" ? "This internship missed one of your rules: " : "Ask the recruiter before you apply: "}
+        {open.map((c: any) => c.detail.replace(/\.$/, "")).join("; ")}.</Callout></div>}
       <div className="steps-v">
         <section className="panel">
           <span className="badge-n">1</span>
@@ -96,7 +103,7 @@ export default function Apply() {
         <section className="panel">
           <span className="badge-n">2</span>
           <h2>Apply on {j.company}'s site</h2>
-          <p className="small muted" style={{ margin: ".3rem 0 .9rem" }}>Upload the tailored resume you just downloaded, then mark it applied so Noderze can remind you to follow up.</p>
+          <p className="small muted" style={{ margin: ".3rem 0 .9rem" }}>Upload the tailored resume you just downloaded, then mark it applied so Noderze can remind you to follow up.{it ? " Before you accept an offer, check with your internship coordinator that it counts for credit." : ""}</p>
           <div className="row">
             {d.apply_url && <a className="btn gold" href={d.apply_url} target="_blank" rel="noreferrer"><ExternalLink />Open the application</a>}
             <button className="btn" onClick={applied} disabled={d.stage === "applied"}><Check />{d.stage === "applied" ? "Marked as applied" : "I applied"}</button>
@@ -115,12 +122,12 @@ export default function Apply() {
                 {p.connection ? "Connection: " : ""}{p.name}{p.title ? `, ${p.title}` : ""}</button>))}</div>}
           <div className="form" style={{ maxWidth: 560, margin: ".4rem 0 .7rem" }}>
             <label className="field">Their first name<input value={person} onChange={(e) => setPerson(e.target.value)} placeholder="e.g. Taylor" /></label>
-            <label className="field">Message<select value={kind} onChange={(e) => setKind(e.target.value)}>{DRAFTS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select></label>
+            <label className="field">Message<select value={kind} onChange={(e) => setKind(e.target.value)}>{drafts.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select></label>
           </div>
           <div className="msg">{msg}</div>
           <div className="row" style={{ marginTop: ".6rem" }}>
             <button className="btn dark" onClick={() => { navigator.clipboard.writeText(msg); setCopied(true); setTimeout(() => setCopied(false), 2000); }}><Copy />{copied ? "Copied" : "Copy message"}</button>
-            <span className="small muted">{msg.length} characters{kind !== "recruiter_followup" ? ". Free LinkedIn accounts allow 200 in a connection note." : ""}</span></div>
+            <span className="small muted">{msg.length} characters{["recruiter_connect", "alumni", "sdr_manager"].includes(kind) ? ". Free LinkedIn accounts allow 200 in a connection note." : ""}</span></div>
         </section>
       </div>
     </>

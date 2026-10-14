@@ -59,5 +59,12 @@
    ],
    "min_score": 0
   }
+ },
+ {
+  "name": "Daily: spring internships (Phoenix area and remote)",
+  "cron": "40 6 * * *",
+  "params": {
+   "workflow": "find_internships"
+  }
  }
 ]

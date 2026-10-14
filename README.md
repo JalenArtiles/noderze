@@ -27,6 +27,7 @@ I wrote the product spec (requirements, scoring rules and guardrails) and built 
   - A missing keyword stays missing until I confirm I really have that skill.
   - Edits are applied to the original file, so formatting survives.
 - **Recruiter outreach, done by hand.** It drafts messages and gives one-click LinkedIn searches to open myself. LinkedIn is never automated.
+- **Spring internships for credit.** A separate section finds paid, part-time (10 to 30 hours a week) data analytics, cybersecurity and networking internships for January to May, remote or in the Phoenix area. Each posting is checked rule by rule (field, pay, hours, dates, location), with the sentence from the posting that decided it. Postings with no sign of pay, full-time hours, summer-only dates or a location outside the area are kept under "Filtered out" with the reason, and the user can confirm a detail with the recruiter to bring one back. Sources are the public SimplifyJobs internship list, Phoenix-area employers' own job boards (including Workday and SAP SuccessFactors career sites), the State of Arizona's job site, and The Muse. Internships get the same Apply page, tailored resume, recruiter messages and application package, written for an internship instead of a sales role.
 - **Live updates.** Watched companies are rescanned on a schedule, and open pages refresh when new roles arrive.
 - **Four themes.** Night Shift (the default), Sun Devil Pop, Desert Dusk and Classic, picked in Settings. Colors are design tokens, so every component follows the theme, and the fonts ship with the app so it works offline.
 - **Runs like a desktop app on Windows.** There are no terminal windows. When the code changes, the interface rebuilds in the background and swaps in, rolling back if the build fails.
@@ -109,7 +110,7 @@ npm install && npm run dev                            # open http://localhost:30
 To make it yours, copy `backend/seed/profile.example.json` to `backend/seed/profile.json` and upload your resume on the Resume page. The [user guide](docs/USER_GUIDE.md) covers the Windows app, scheduled scans and troubleshooting.
 
 ```bash
-cd backend && pytest -q    # 47 tests
+cd backend && pytest -q    # 89 tests
 ```
 
 ## Project layout
