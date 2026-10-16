@@ -13,7 +13,7 @@ from ..util import clean_dashes
 from .llm import llm
 from .taxonomy import AREA_LABELS, _area_regex, areas_in, certs_in
 
-BANNED = ["i am thrilled", "i'm thrilled", "passionate about", "my passion", "excited to apply", "i am excited to",
+BANNED = ["i am thrilled", "i'm thrilled", "passionate about", "my passion",
           "dynamic", "fast-paced", "synergy", "leverage", "utilize", "delve", "testament", "unique blend",
           "perfect fit", "ideal candidate", "go-getter", "hit the ground running", "results-driven", "detail-oriented",
           "team player", "in today's", "ever-evolving", "cutting-edge", "world-class", "game-changer", "spearhead",
@@ -141,43 +141,247 @@ def _grad_phrase(profile: dict) -> str:
         return "[graduation date]"
 
 
+# ----------------------------------------------------------------------------- cover letters
+# One pattern for every cover letter, taken from a letter Jalen chose as the model:
+#   header (name; city | email | phone), "Dear <Company> Hiring Team,"
+#   1. "I am excited to apply for <role> at <company>." Who he is and what he wants to learn.
+#   2. Relevant courses as a foundation he has begun building, eagerness to learn, soft skills said plainly.
+#   3. At most two past roles, each described by the transferable skills it built, not duties or numbers.
+#   4. Appreciation, thanks, and the line about technical background, work ethic and eagerness to learn.
+# Formal, no contractions, Oxford commas. Never availability, hours, credit or an assessment.
+
+COVER_VOICE = (
+    "Write a cover letter that follows this pattern exactly. Formal and polished but warm. No contractions "
+    "(write 'I am', not 'I'm'). Never use em dashes. Use Oxford commas. About 280 to 340 words in four body paragraphs.\n"
+    "Start with 'Dear <Company> Hiring Team,' and nothing above it.\n"
+    "Paragraph 1: 'I am excited to apply for the <role> at <company>.' Then one sentence on who the candidate is "
+    "(degree, school, concentration) and that they want to apply what they have learned in a hands-on environment while "
+    "continuing to develop their skills.\n"
+    "Paragraph 2: 'Through my coursework in <two or three relevant courses>, I have begun building a foundation in "
+    "<field>.' Then eagerness to take that knowledge beyond the classroom and learn from experienced professionals. Then "
+    "the candidate's soft skills, stated plainly in first person. Modest, learner framing. Do not list tools, dates, "
+    "numbers or metrics.\n"
+    "Paragraph 3: at most two past roles or projects, the ones most relevant to this job, one sentence each, described by "
+    "the transferable skills they built (communication, resourcefulness, collaboration, initiative, understanding a "
+    "client's needs), never duties, tools or numbers. Then one sentence on what those experiences strengthened.\n"
+    "Paragraph 4: 'I would appreciate the opportunity to contribute to <company> while learning from a team of "
+    "professionals in the field. Thank you for your time and consideration. I look forward to the possibility of "
+    "discussing how my technical background, work ethic, and eagerness to learn could contribute to your team.'\n"
+    "Then 'Sincerely,' and the candidate's name on the next line.\n"
+    "Never mention availability, hours, schedules, start dates, academic credit, or any assessment, test or interview "
+    "step. Do not invent experience. Output only the letter.")
+
+FORBIDDEN_IN_LETTERS = re.compile(r"assessment|hours a week|academic credit|count toward my degree|available to work|"
+                                  r"my availability|\bavailable (?:from|between|starting)", re.I)
+DEFAULT_SOFT_SKILLS = ["open-minded", "adaptable"]
+FIELD_WORDS = {"cyber": "cybersecurity and networking", "data": "data analysis", "network": "networking and systems",
+               "it": "information technology"}
+CHALLENGES = {"cyber": "real-world security challenges", "data": "real-world data problems",
+              "network": "real-world networking challenges", "it": "real-world IT challenges"}
+INDUSTRY = {"cyber": "the cybersecurity industry", "data": "how data drives decisions", "network": "how networks are "
+            "run at scale", "it": "how IT teams support a business"}
+
+
+COURSE_WORDS = {
+    "cyber": [r"secur", r"network", r"cyber", r"crypt", r"forensic", r"operating system"],
+    "data": [r"database", r"statistic", r"analytic", r"machine learning", r"\bsql\b", r"data (?:science|analy|mining|visual)"],
+    "network": [r"network", r"operating system", r"secur", r"cloud", r"system admin"],
+    "it": [r"operating system", r"network", r"database", r"secur"],
+    None: [r"network", r"secur", r"cloud", r"database", r"operating system"],
+}
+NOT_TECHNICAL = re.compile(r"design thinking|selling|marketing|advertising|ethics|discrete|introduction to|writing", re.I)
+
+
+def _letter_courses(p: dict, led: list[dict], jt: str, track: str | None, k: int = 3) -> list[str]:
+    """Two or three courses that build the foundation this job needs, most relevant first."""
+    pool = _relevant_courses(p, led, jt, k=99)
+    words = COURSE_WORDS.get(track, COURSE_WORDS[None])
+
+    def score(c: str) -> int:
+        return 0 if NOT_TECHNICAL.search(c) else sum(bool(re.search(w, c, re.I)) for w in words)
+
+    ranked = sorted(pool, key=lambda c: -score(c))
+    hits = [c for c in ranked if score(c) > 0]
+    return (hits if len(hits) >= 2 else hits + [c for c in ranked if c not in hits and not NOT_TECHNICAL.search(c)])[:k]
+
+
+def _join(items: list[str]) -> str:
+    items = [i for i in items if i]
+    if len(items) < 3:
+        return " and ".join(items)
+    return ", ".join(items[:-1]) + ", and " + items[-1]
+
+
+def _student_phrase(p: dict) -> str:
+    """'Applied Computing with a cybersecurity focus' -> 'an Applied Computing student at Arizona State University
+    concentrating in cybersecurity'."""
+    deg = p.get("degree_short") or "Applied Computing with a cybersecurity focus"
+    m = re.match(r"(.+?)\s+(?:with an?|,)\s*(.+?)\s+(?:focus|concentration)$", deg, re.I)
+    major, conc = (m.group(1), m.group(2)) if m else (deg, "")
+    school = next((e.get("school") for e in p.get("education", []) if isinstance(e, dict) and e.get("school")),
+                  "Arizona State University")
+    art = "an" if major[:1].lower() in "aeiou" else "a"
+    return f"{art} {major} student at {school}" + (f" concentrating in {conc}" if conc else "")
+
+
+def letter_header(ctx: dict) -> list[str]:
+    """Name, then 'City, ST | email | phone' from your resume header and profile."""
+    p, c = ctx.get("profile") or {}, ctx.get("contact") or {}
+    name = p.get("name") or c.get("name") or ""
+    line = " | ".join(x for x in (p.get("location") or c.get("location"), c.get("email"), c.get("phone")) if x)
+    return [name, line] if line else [name]
+
+
+def _role_parts(fact: dict) -> tuple[str, str]:
+    head = (fact.get("role") or "").split("\t")[0]
+    parts = re.split(r"\s+[—–|-]\s+|\s+\|\s+", head.strip(), maxsplit=1)
+    title = parts[0].strip()
+    return title, _org(fact.get("role"), fact.get("section", "experience"))
+
+
+SKILL_PHRASES = [
+    (r"cold call|prospect|account executive|\bsales\b|pipeline|quota|referral",
+     "the importance of communication, resourcefulness, and working collaboratively toward shared goals"),
+    (r"stakeholder|client|customer|discovery",
+     "how to work directly with clients to understand their needs and help deliver a technical solution"),
+    (r"evaluat|review|test|verif|accuracy|correctness",
+     "how to approach technical work carefully and check my results instead of assuming they are right"),
+    (r"teach|instruct|coach|tutor|mentor", "how to explain ideas clearly and adjust to the people I am working with"),
+    (r"organiz|coordinat|outreach|sponsor|secretary|treasurer|president",
+     "how to take initiative, stay organized, and follow through on commitments"),
+]
+FALLBACK_PHRASE = "how to take initiative and learn quickly in a new environment"
+
+
+def _phrase_scores(texts: str) -> dict[str, int]:
+    """How strongly a role's bullets point at each transferable skill: the number of distinct cue words found."""
+    return {phrase: sum(bool(re.search(cue, texts, re.I)) for cue in rx.split("|")) for rx, phrase in SKILL_PHRASES}
+
+
+def _assign_phrases(roles: list[dict]) -> None:
+    """Give each role the skill it shows most strongly. Two roles never get the same line; the strongest match wins."""
+    pairs = sorted(((s, -i, ph) for i, r in enumerate(roles) for ph, s in r["scores"].items() if s), reverse=True)
+    used = set()
+    for s, neg_i, ph in pairs:
+        r = roles[-neg_i]
+        if "taught" in r or ph in used:
+            continue
+        r["taught"] = ph
+        used.add(ph)
+    for r in roles:
+        r.setdefault("taught", FALLBACK_PHRASE)
+
+
+def _relevant_roles(led: list[dict], jt: str, k: int = 2) -> list[dict]:
+    """The past roles that matter most for this posting: a technical match if one fits the posting, then the best
+    people-facing ones. Jobs come before projects, like the letter this pattern is based on."""
+    jd_tech = [_area_regex("tech", a) for a in areas_in(jt, "tech")]
+    tech = [f for f in best_facts(led, jt, k=1, kind="tech") if any(r.search(f["text"]) for r in jd_tech)]
+    picks = tech + best_facts(led, jt, k=2, kind="sales")
+    seen, out = set(), []
+    for f in picks:
+        if not f.get("role") or f["role"] in seen:
+            continue
+        seen.add(f["role"])
+        title, org = _role_parts(f)
+        bullets = " ".join(x["text"] for x in led if x.get("role") == f["role"])
+        out.append({"title": title, "org": org, "section": f.get("section"), "scores": _phrase_scores(bullets + " " + title)})
+    out = sorted(out[:k], key=lambda r: r["section"] == "projects")
+    _assign_phrases(out)
+    return out
+
+
+def _scrub(text: str) -> str:
+    """Drop any sentence about availability, hours, credit or an assessment, whoever wrote it."""
+    keep = []
+    for para in text.split("\n"):
+        sents = re.split(r"(?<=[.!?])\s+", para)
+        keep.append(" ".join(s for s in sents if not FORBIDDEN_IN_LETTERS.search(s)))
+    return re.sub(r"\n{3,}", "\n\n", "\n".join(keep)).strip()
+
+
+def _pattern_letter(ctx: dict, track: str | None) -> str:
+    p, led, company = ctx["profile"], ctx["ledger"], ctx["company"]
+    jt = f"{ctx['job_title']}\n{ctx['job_text'] or ''}"
+    role = ctx.get("program") or _clean_title(ctx["job_title"])
+    if track and not re.search(r"spring|2027", role, re.I):
+        role = f"Spring 2027 {role}"
+    if not re.search(r"\b(role|position|program|internship|intern)$", role, re.I):
+        role += " role"
+    who = _student_phrase(p)
+    if track:
+        p1 = (f"I am excited to apply for the {role} at {company}. As {who}, I am looking for an opportunity to apply what "
+              f"I have learned in a hands-on environment while continuing to develop my technical skills and "
+              f"understanding of {INDUSTRY.get(track, 'the industry')}.")
+    else:
+        p1 = (f"I am excited to apply for the {role} at {company}. As {who}, graduating in {_grad_phrase(p)}, I am looking "
+              f"for an opportunity to bring my technical coursework and customer-facing experience together while "
+              f"continuing to develop my technical and communication skills.")
+    courses = _letter_courses(p, led, jt, track)
+    field = FIELD_WORDS.get(track or "cyber")
+    challenge = CHALLENGES.get(track or "", "the technical side of helping customers solve real problems")
+    soft = [s for s in (p.get("soft_skills") or DEFAULT_SOFT_SKILLS) if isinstance(s, str)][:2]
+    p2 = (f"Through my coursework in {_join(courses)}, I have begun building a foundation in {field}. " if courses else
+          f"Through my coursework, I have begun building a foundation in {field}. ")
+    p2 += (f"I am eager to take that knowledge beyond the classroom, learn from experienced professionals, and gain "
+           f"practical exposure to {challenge}. I consider myself {_join(soft)}, and I am always looking for "
+           f"opportunities to learn new skills and improve. I am a hard worker who welcomes feedback and is eager to be "
+           f"taught, and when given a responsibility, I make an effort to use my time efficiently, stay focused, and make "
+           f"the most of the opportunity.")
+    roles = _relevant_roles(led, jt)
+    p3 = ""
+    for i, r in enumerate(roles):
+        if r["section"] == "projects":
+            if re.search(r"fellowship|program|academy|club", r["org"], re.I):
+                s = f"through the {r['org']}, I learned {r['taught']}."
+            elif r["org"]:
+                s = f"through my work with {r['org']}, I learned {r['taught']}."
+            else:
+                s = f"through the {r['title']} project, I learned {r['taught']}."
+            p3 += ("Additionally, " + s) if i else s[0].upper() + s[1:]
+        else:
+            art = "an" if r["title"][:1].lower() in "aeiou" else "a"
+            at = f" at {r['org']}" if r["org"] else ""
+            p3 += (f"Additionally, my experience as {art} {r['title']}{at} taught me {r['taught']}." if i else
+                   f"My previous experience as {art} {r['title']}{at} taught me {r['taught']}.")
+        p3 += " "
+    if p3:
+        p3 += (("These experiences have" if len(roles) > 1 else "This experience has") +
+               " strengthened my ability to communicate with different people, take initiative, and approach unfamiliar "
+               "challenges with a willingness to learn.")
+    p4 = (f"I would appreciate the opportunity to contribute to {company} while learning from a team of professionals in "
+          f"the field. Thank you for your time and consideration. I look forward to the possibility of discussing how my "
+          f"technical background, work ethic, and eagerness to learn could contribute to your team.")
+    body = [f"Dear {company} Hiring Team,", p1, p2] + ([p3.strip()] if p3 else []) + [p4]
+    return "\n\n".join(body) + f"\n\nSincerely,\n{p.get('name', '')}"
+
+
+def _llm_letter(ctx: dict, what: str) -> str | None:
+    p = ctx["profile"]
+    soft = ", ".join(p.get("soft_skills") or DEFAULT_SOFT_SKILLS)
+    extra = (f"\nSoft skills the candidate states about themselves: {soft}; a hard worker who welcomes feedback and "
+             f"is eager to be taught.\nDegree: {_student_phrase(p)}.")
+    out = llm.text(COVER_VOICE, _ctx_prompt(ctx, what) + extra)
+    if not out:
+        return None
+    out = out.strip()
+    start = out.find("Dear ")
+    return out[start:] if start > 0 else out
+
+
+def _finish_letter(ctx: dict, body: str) -> str:
+    return "\n".join(letter_header(ctx)) + "\n\n" + _scrub(body)
+
+
 def cover_letter(ctx: dict) -> tuple[str, str]:
-    """ctx: profile, ledger, company, company_facts, job_title, job_text, program, analysis. Returns (text, by)."""
+    """ctx: profile, ledger, contact, company, company_facts, job_title, job_text, program, analysis. Returns (text, by)."""
     if ctx.get("mode") == "intern":
         return intern_cover_letter(ctx)
-    p, led = ctx["profile"], ctx["ledger"]
     if llm.available:
-        out = llm.text(VOICE + " Write a cover letter of 230 to 320 words.", _ctx_prompt(ctx, "cover letter"))
+        out = _llm_letter(ctx, "cover letter")
         if out:
-            return out, "llm"
-    name = p.get("name", "")
-    jt = f"{ctx['job_title']}\n{ctx['job_text'] or ''}"
-    sales = best_facts(led, jt, k=2)
-    tech_proj = best_facts(led, jt, sections=("projects",), k=1, kind="tech")
-    courses = _relevant_courses(p, led, jt)
-    program = ctx.get("program")
-    lines = [f"Dear {ctx['company']} recruiting team,", ""]
-    target = f"{ctx['company']}'s {program}" if program else f"the {_clean_title(ctx['job_title'])} role"
-    lines.append(f"I'm a senior at Arizona State University studying {p.get('degree_short', 'Applied Computing with a cybersecurity focus')}, "
-                 f"graduating in {_grad_phrase(p)}. I'm applying to {target}.")
-    lines.append("")
-    para = [_first_person(f) for f in sales]
-    if tech_proj and tech_proj[0] not in sales:
-        para.append(_first_person(tech_proj[0]))
-    lines.append(" ".join(para))
-    lines.append("")
-    if len(courses) > 1:
-        lines.append(f"My coursework includes {', '.join(courses[:-1])} and {courses[-1]}.")
-    lines.append("")
-    why = ctx.get("why_company_fact")
-    closing = (f"What draws me to {ctx['company']}: {why}" if why else
-               f"[One specific reason you want to work at {ctx['company']}: a product you tried, a customer story, "
-               f"or a conversation with someone there.]")
-    if ctx.get("family") in ("direct_se",) or program:
-        closing += (" I haven't held a sales engineering title yet. I'm looking for a team that trains people into the "
-                    "role, and I'd bring sales reps and technical coursework to that training from day one.")
-    lines += [closing, "", "Thank you for your time,", name]
-    return "\n".join(l for l in lines if l is not None).replace("\n\n\n", "\n\n"), "template"
+            return _finish_letter(ctx, out), "llm"
+    return _finish_letter(ctx, _pattern_letter(ctx, None)), "template"
 
 
 def answer(question_key: str, ctx: dict) -> tuple[str, str]:
@@ -344,33 +548,12 @@ def _hours_phrase(ctx: dict) -> str:
 
 
 def intern_cover_letter(ctx: dict) -> tuple[str, str]:
-    p, led = ctx["profile"], ctx["ledger"]
-    word = TRACK_WORDS.get(ctx.get("track"), "technical")
+    track = ctx.get("track") or "cyber"
     if llm.available:
-        out = llm.text(VOICE + " Write a cover letter of 200 to 280 words for a part-time spring internship.",
-                       _ctx_prompt(ctx, "cover letter for a part-time spring 2027 internship taken for academic credit"))
+        out = _llm_letter(ctx, f"cover letter for a spring 2027 {TRACK_WORDS.get(track, 'technical')} internship")
         if out:
-            return out, "llm"
-    jt = f"{ctx['job_title']}\n{ctx['job_text'] or ''}"
-    tech = best_facts(led, jt, k=1, kind="tech")
-    people = best_facts(led, jt, k=1, kind="sales")
-    courses = _relevant_courses(p, led, jt)
-    lines = [f"Dear {ctx['company']} recruiting team,", "",
-             f"I'm a senior at Arizona State University studying {p.get('degree_short', 'Applied Computing with a cybersecurity focus')}, "
-             f"graduating in {_grad_phrase(p)}. I'm applying for the {_clean_title(ctx['job_title'])} for spring 2027. "
-             f"I can work {_hours_phrase(ctx)} from January through May around my classes, and the internship would "
-             f"count toward my degree.", ""]
-    para = [_first_person(f) for f in tech + [f for f in people if f not in tech]]
-    if para:
-        lines += [" ".join(para), ""]
-    if len(courses) > 1:
-        lines += [f"My coursework includes {', '.join(courses[:-1])} and {courses[-1]}, so I'd start with the "
-                  f"fundamentals and want to learn how {word} work is done on a real team.", ""]
-    why = ctx.get("why_company_fact")
-    lines += [f"What draws me to {ctx['company']}: {why}" if why else
-              f"[One specific reason you want this internship at {ctx['company']}: the team, what they work on, or "
-              f"someone you talked to there.]", "", "Thank you for your time,", p.get("name", "")]
-    return "\n".join(lines).replace("\n\n\n", "\n\n"), "template"
+            return _finish_letter(ctx, out), "llm"
+    return _finish_letter(ctx, _pattern_letter(ctx, track)), "template"
 
 
 def intern_answer(key: str, ctx: dict) -> tuple[str, str]:

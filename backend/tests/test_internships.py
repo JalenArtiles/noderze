@@ -260,7 +260,28 @@ def test_internship_api_flow(client, tmp_path):
     kinds = {d["kind"] for d in page["docs"]}
     assert {"availability", "why_field", "cover_letter"} <= kinds and "why_se" not in kinds
     cl = next(d for d in page["docs"] if d["kind"] == "cover_letter")["content"]
-    assert "spring 2027" in cl and "sales engineering" not in cl.lower()
+    assert "spring 2027" in cl.lower() and "sales engineering" not in cl.lower()
+    assert "I am excited to apply" in cl and "Hiring Team," in cl and "Sincerely," in cl
+    assert "hours a week" not in cl and "assessment" not in cl.lower() and "credit" not in cl.lower()
+    cid = next(d for d in page["docs"] if d["kind"] == "cover_letter")["id"]
+    word = client.get(f"/api/docs/{cid}/docx")
+    assert word.status_code == 200 and word.content[:2] == b"PK" and "attachment" in word.headers["content-disposition"]
+    # The one-time redraft leaves letters in the same pattern and never touches an approved one
+    from app.migrations import _rewrite_cover_letters
+    from app.models import GeneratedDoc
+    db = SessionLocal()
+    doc = db.get(GeneratedDoc, cid)
+    doc.content = "Old draft. I can work 20 hours a week."
+    db.commit()
+    _rewrite_cover_letters(db)
+    db.commit()
+    assert "I am excited to apply" in db.get(GeneratedDoc, cid).content
+    doc = db.get(GeneratedDoc, cid)
+    doc.content, doc.status = "My approved letter.", "approved"
+    db.commit()
+    _rewrite_cover_letters(db)
+    assert db.get(GeneratedDoc, cid).content == "My approved letter."
+    db.close()
 
 
 def test_profile_change_refreshes_resume_checks(client):

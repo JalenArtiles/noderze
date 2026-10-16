@@ -3,7 +3,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useState } from "react";
 import { Callout, Empty, Err, Loading, PageHeader, RunButton, Tabs } from "@/components/ui";
-import { api, day, label, useApi } from "@/lib/api";
+import { api, day, fileUrl, label, useApi } from "@/lib/api";
 
 export default function ApplicationPage() {
   const { id } = useParams() as { id: string };
@@ -65,7 +65,8 @@ function Doc({ d, reload }: any) {
     <textarea value={text} onChange={(e) => setText(e.target.value)} style={{ minHeight: 180 }} />
     {d.flags?.map((f: string, i: number) => <div key={i} className="small" style={{ color: "var(--amber)" }}>{f}</div>)}
     <Err msg={err} /><div className="row"><button className="btn sm" onClick={() => save()}>Save and recheck</button><button className="btn dark sm" onClick={() => save("approved")}>Approve</button>
-      <button className="btn sm" onClick={() => navigator.clipboard.writeText(text)}>Copy</button></div></section>);
+      <button className="btn sm" onClick={() => navigator.clipboard.writeText(text)}>Copy</button>
+      {d.kind === "cover_letter" && <a className="btn sm" href={fileUrl(`/api/docs/${d.id}/docx`)} title="Save your changes first, then download">Download Word file</a>}</div></section>);
 }
 
 function Out({ o, reload }: any) {

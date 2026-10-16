@@ -21,6 +21,13 @@ Noderze is a personal career operating system for one goal: getting from ASU stu
   - **Apply** and **Recruiter** work like they do for sales roles, with a resume and messages written for an internship. Prepare the full package adds an availability answer and a reminder to confirm credit with your coordinator.
   - **Search sites you log into** opens Handshake, LinkedIn, Indeed and USAJOBS searches in your browser (they don't allow automated searching). Add anything good with **Add one you found**; paste the posting text so pay and hours can be checked.
   - The weekly hours and dates live in your profile under `internship` (Settings > Advanced) if they ever change.
+- **Cover letters.** Prepare the full package writes one in a single, formal pattern. A header comes first: your name, then city, email and phone from your resume. The letter then follows four paragraphs:
+  1. The role, and what you want to learn.
+  2. Two or three relevant courses, plus how you work: open-minded, adaptable, hard-working and eager to be taught.
+  3. Up to two past roles, described by what they taught you, not by duties or numbers.
+  4. A thank-you.
+
+  It never mentions availability, hours, credit or an assessment. Edit it on the application's **Letters and answers** tab, click **Save and recheck**, then **Download Word file**. Letters you've approved are never rewritten. The two soft skills can be changed under `soft_skills` in your profile (Settings > Advanced).
 - **Themes.** Settings > Appearance has four looks: Night Shift (dark, the default), Sun Devil Pop (maroon and gold), Desert Dusk (sunset gradients) and Classic (light). The change applies right away and the Noderze window remembers it.
 
 **LinkedIn.** Noderze never logs into LinkedIn, follows, applies or sends messages for you. LinkedIn's terms ban automation and it restricts accounts that use it. Instead you get the exact searches to open, messages to paste, and an import of LinkedIn's own export of your connections (Contacts page).

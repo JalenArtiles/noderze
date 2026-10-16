@@ -73,11 +73,28 @@ def _first_intern_scan(db) -> None:
     start("find_internships", "First spring internship search", WORKFLOWS["find_internships"])
 
 
+def _rewrite_cover_letters(db) -> None:
+    """Redraft cover letters you haven't approved in the new pattern. Approved letters are never touched."""
+    from sqlalchemy import select
+
+    from .models import GeneratedDoc, Job
+    from .services import prep
+    from .services import writing as W
+    for d in db.scalars(select(GeneratedDoc).where(GeneratedDoc.kind == "cover_letter", GeneratedDoc.status != "approved")):
+        job = db.get(Job, d.job_id) if d.job_id else None
+        if not job:
+            continue
+        text, by = W.cover_letter(prep._ctx(db, job))
+        d.content, flags = W.style_check(text, "cover_letter")
+        d.flags, d.generated_by = flags, by
+
+
 # rescore_v3_2: enterprise/strategic AE roles, foreign postings and state-limited remote roles left the entry list.
 STEPS = [("alerts_baseline_v1", _baseline_alerts), ("available_start_v1", _start_month), ("rescore_v3_1", _rescore),
          ("rescore_v3_2", _rescore), ("generic_notes_v1", _clear_generic_notes),
          ("resume_checks_v1", _refresh_resume_checks), ("intern_rule_v1", _intern_rule),
-         ("rescore_interns_v1", _rescore)]  # internship checks after the first live search
+         ("rescore_interns_v1", _rescore),  # internship checks after the first live search
+         ("cover_letters_v2", _rewrite_cover_letters)]
 
 
 def apply_profile_updates(db) -> int:

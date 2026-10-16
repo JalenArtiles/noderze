@@ -324,6 +324,46 @@ def doc_dict(d: GeneratedDoc) -> dict:
             "generated_by": d.generated_by, "updated_at": d.updated_at.isoformat()}
 
 
+@router.get("/docs/{did}/docx")
+def doc_docx(did: int, db: Session = Depends(get_db)):
+    """The document as a Word file: US Letter, 1 inch margins, Calibri 11. A cover letter's first block (name, then
+    city | email | phone) becomes the letterhead."""
+    import io
+
+    import docx
+    from docx.shared import Inches, Pt
+    from fastapi.responses import StreamingResponse
+
+    d = db.get(GeneratedDoc, did) or _404()
+    doc = docx.Document()
+    sec = doc.sections[0]
+    sec.page_width, sec.page_height = Inches(8.5), Inches(11)
+    for side in ("left_margin", "right_margin", "top_margin", "bottom_margin"):
+        setattr(sec, side, Inches(1))
+    normal = doc.styles["Normal"]
+    normal.font.name, normal.font.size = "Calibri", Pt(11)
+    normal.paragraph_format.space_after = Pt(10)
+    normal.paragraph_format.line_spacing = 1.15
+    blocks = [b.split("\n") for b in d.content.strip().split("\n\n") if b.strip()]
+    for i, lines in enumerate(blocks):
+        para = doc.add_paragraph()
+        letterhead = i == 0 and d.kind == "cover_letter" and not lines[0].startswith("Dear")
+        for j, line in enumerate(lines):
+            if j:
+                para.add_run().add_break()
+            run = para.add_run(line.strip())
+            if letterhead and j == 0:
+                run.bold, run.font.size = True, Pt(16)
+        if letterhead:
+            para.paragraph_format.space_after = Pt(18)
+    buf = io.BytesIO()
+    doc.save(buf)
+    buf.seek(0)
+    name = slugify(f"{(get_profile(db).data or {}).get('name', '')} {d.title}").replace("-", "_") or "document"
+    return StreamingResponse(buf, media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                             headers={"Content-Disposition": f'attachment; filename="{name}.docx"'})
+
+
 @router.patch("/docs/{did}")
 def patch_doc(did: int, body: dict, db: Session = Depends(get_db)):
     d = db.get(GeneratedDoc, did) or _404()

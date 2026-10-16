@@ -16,7 +16,7 @@ from .db import init_db
 from .routers import apply, core, focus, interns
 from .workflows import mark_interrupted_runs
 
-VERSION = "3.5"
+VERSION = "3.6"
 
 
 @asynccontextmanager

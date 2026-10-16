@@ -54,7 +54,8 @@ def _ctx(db: Session, job: Job) -> dict:
     cfacts = [f"{e.field}: {e.value}" for e in evidence_for(db, "company", company.id)]
     if job.program_id:
         cfacts += [f"{e.field}: {e.value}" for e in evidence_for(db, "program", job.program_id)]
-    return {"profile": prof, "ledger": res.ledger if res else [], "company": company.name, "company_facts": cfacts,
+    return {"profile": prof, "ledger": res.ledger if res else [], "contact": (res.parsed or {}).get("contact", {}) if res else {},
+            "company": company.name, "company_facts": cfacts,
             "job_title": job.title, "job_text": job.description_text or "", "program": job.program.name if job.program else None,
             "program_line": f"the {job.program.name}" if job.program else None, "analysis": job.analysis,
             "family": job.family, "why_company_fact": (company.data or {}).get("why_line"),
