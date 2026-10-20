@@ -4,7 +4,8 @@ Starts the backend and the interface with no console windows, then opens Noderze
 It uses no hidden PowerShell and no security-bypass flags, which is the pattern antivirus tools flag.
 
 Updates apply themselves: the backend runs with auto-reload, and the interface is rebuilt by the backend's
-self-updater whenever its source files change. If an older Noderze is running, opening Noderze restarts it.
+self-updater whenever its source files change. If the running backend is older than the code on disk (an older
+Noderze, or an auto-reload that got stuck), opening Noderze restarts it.
 
     pythonw noderze_launcher.py                 open Noderze (starts it first if needed)
     python  noderze_launcher.py --install       create Desktop and Start menu shortcuts, then open Noderze
@@ -60,6 +61,16 @@ def spawn(args: list[str], cwd: Path, logname: str) -> None:
                      creationflags=NO_WINDOW)
 
 
+def disk_version() -> str | None:
+    """The version of the backend code on disk (backend/app/main.py)."""
+    import re
+    try:
+        m = re.search(r'^VERSION = "([^"]+)"', (BACKEND / "app" / "main.py").read_text(encoding="utf-8"), re.M)
+    except OSError:
+        return None
+    return m.group(1) if m else None
+
+
 def backend_version() -> str | None:
     try:
         with urllib.request.urlopen("http://127.0.0.1:8000/health", timeout=3) as r:
@@ -106,8 +117,11 @@ def start() -> None:
     if not VENV_PY.exists():
         message(f"Could not find {VENV_PY}. Run the first-time setup again.", True)
         sys.exit(1)
-    if listening(8000) and backend_version() is None:
-        stop(quiet=True)  # an older Noderze is running; replace it with this version
+    if listening(8000):
+        running, on_disk = backend_version(), disk_version()
+        if running is None or (on_disk and running != on_disk):
+            # An older Noderze, or one whose auto-reload got stuck on old code: restart it on the current code.
+            stop(quiet=True)
     node = shutil.which("node")
     if not node:
         message("Node.js was not found. Install the LTS version from nodejs.org, then open Noderze again.", True)

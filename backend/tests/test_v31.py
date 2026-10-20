@@ -101,3 +101,16 @@ def test_crontab_day_numbers_mean_what_crontab_means():
     monday = datetime.datetime(2026, 10, 12, 13, 0, tzinfo=tz)
     nxt = CronTrigger.from_crontab(crontab_days("0 2 * * 0"), timezone="America/Phoenix").get_next_fire_time(None, monday)
     assert nxt.strftime("%a") == "Sun"
+
+
+def test_launcher_reads_the_version_on_disk():
+    """Opening Noderze compares the running backend's version with the code on disk and restarts a stale one."""
+    import importlib.util
+    from pathlib import Path
+
+    from app.main import VERSION
+    path = Path(__file__).resolve().parents[2] / "noderze" / "noderze_launcher.py"
+    spec = importlib.util.spec_from_file_location("noderze_launcher", path)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    assert mod.disk_version() == VERSION
