@@ -122,3 +122,99 @@ def counts(db: Session) -> dict:
         out[st] = out.get(st, 0) + 1
     out["total_ok"] = out["qualifies"] + out["check"]
     return out
+
+
+# ----------------------------------------------------------------------------- internships you found yourself
+
+LOGIN_SITES = ("joinhandshake.com", "linkedin.com", "indeed.com")
+
+
+class AddError(ValueError):
+    """Shown to you as is: what to fix before the internship can be added."""
+
+
+def add_found(db: Session, data: dict, fetcher=None) -> Job:
+    """Add an internship you found (Handshake, LinkedIn, a career fair): a link Noderze can read, or pasted text.
+    Links to sites that need you logged in are never fetched; their pasted text is used as is."""
+    from ..models import Company
+    from ..util import slugify
+    from .ats import RawPosting
+    from .discovery import upsert_posting
+    from .fetch import PoliteFetcher
+    from .intern_sources import resolve
+
+    url, title = (data.get("url") or "").strip(), (data.get("title") or "").strip()
+    location, desc = (data.get("location") or "").strip(), (data.get("description") or "").strip()
+    p, original = None, False
+    if url and not any(s in url.lower() for s in LOGIN_SITES):
+        f = fetcher or PoliteFetcher(min_interval=0.5)
+        try:
+            p, original = resolve(f, url, title, location)
+        finally:
+            if fetcher is None:
+                f.close()
+        if not original:
+            p = None
+    if p is None:
+        if not title or not desc:
+            raise AddError("Noderze couldn't read that link (Handshake and LinkedIn need you logged in). "
+                           "Paste the title and the posting text instead.")
+        p = RawPosting(title=title, url=url, ats_job_id="", location_text=location, description=desc,
+                       source="manual", extra={"full_text": True})
+    if title:
+        p.title = title
+    if location:
+        p.location_text = location
+    name = (data.get("company_name") or (p.extra or {}).get("hiring_org") or "").strip()
+    if not name:
+        raise AddError("Add the company name.")
+    company = db.scalar(select(Company).where(Company.slug == slugify(name)))
+    if company is None:
+        company = Company(name=name, slug=slugify(name), watch_note="Added with an internship you found.")
+        db.add(company)
+        db.flush()
+    job, _ = upsert_posting(db, company, p, original=original, kind="intern", source_label=data.get("found_on") or "You added it")
+    job.needs_verification = not original
+    return job
+
+
+def import_dropped(db: Session, folder=None) -> int:
+    """Internships dropped as JSON files in data/intern-imports/ (one object or a list of them, with the same fields
+    as Add one you found). Each file is added once, then moved to done/ with what happened to each internship."""
+    import json
+    import logging
+
+    from ..config import settings
+    log = logging.getLogger("noderze.intern_imports")
+    folder = folder or settings.data_dir / "intern-imports"
+    if not folder.exists():
+        return 0
+    added = 0
+    for path in sorted(folder.glob("*.json")):
+        results = []
+        try:
+            raw = json.loads(path.read_text(encoding="utf-8"))
+        except ValueError:
+            results.append({"error": "not valid JSON"})
+            raw = []
+        for item in raw if isinstance(raw, list) else [raw]:
+            try:
+                job = add_found(db, item)
+                db.commit()
+                d = evaluate_job(db, job)
+                db.commit()
+                results.append({"title": job.title, "company": job.company.name, "job_id": job.id, "status": d.status})
+                added += 1
+            except AddError as e:
+                db.rollback()
+                results.append({"title": item.get("title"), "error": str(e)})
+            except Exception as e:  # one bad entry never blocks the rest
+                db.rollback()
+                log.exception("intern import failed for %s", item.get("title"))
+                results.append({"title": item.get("title"), "error": type(e).__name__})
+        done = folder / "done"
+        done.mkdir(exist_ok=True)
+        (done / path.name).write_text(json.dumps({"items": raw, "results": results}, indent=1), encoding="utf-8")
+        path.unlink()
+        log.info("imported %s from %s", len(results), path.name)
+    return added

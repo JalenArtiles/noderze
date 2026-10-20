@@ -9,14 +9,11 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ..db import get_db
-from ..models import Alert, Application, Company, Job, SearchRun
+from ..models import Alert, Application, Job, SearchRun
 from ..services import intern_jobs as IJ
-from ..services.ats import RawPosting
-from ..services.fetch import PoliteFetcher
 from ..services.internships import DEFAULT_PREFS, TRACK_LABELS, prefs
 from ..services.profile import get_profile
 from ..services.research import job_brief
-from ..util import slugify
 
 router = APIRouter(prefix="/api")
 HEAVY = ("score_breakdown", "analysis", "comp_note")
@@ -91,37 +88,10 @@ class InternIn(BaseModel):
 @router.post("/internships")
 def add_internship(body: InternIn, db: Session = Depends(get_db)):
     """Add one you found (Handshake, LinkedIn, a career fair): a link Noderze can read, or pasted text."""
-    from ..services.discovery import upsert_posting
-    from ..services.intern_sources import resolve
-    p, original = None, False
-    if body.url:
-        f = PoliteFetcher(min_interval=0.5)
-        try:
-            p, original = resolve(f, body.url, body.title or "", body.location or "")
-        finally:
-            f.close()
-        if not original:
-            p = None
-    if p is None:
-        if not body.title or not body.description:
-            raise HTTPException(400, "Noderze couldn't read that link (Handshake and LinkedIn need you logged in). "
-                                     "Paste the title and the posting text instead.")
-        p = RawPosting(title=body.title, url=body.url or "", ats_job_id="", location_text=body.location or "",
-                       description=body.description, source="manual", extra={"full_text": True})
-    if body.title:
-        p.title = body.title
-    if body.location:
-        p.location_text = body.location
-    name = (body.company_name or (p.extra or {}).get("hiring_org") or "").strip()
-    if not name:
-        raise HTTPException(400, "Add the company name.")
-    company = db.scalar(select(Company).where(Company.slug == slugify(name)))
-    if company is None:
-        company = Company(name=name, slug=slugify(name), watch_note="Added with an internship you found.")
-        db.add(company)
-        db.flush()
-    job, _ = upsert_posting(db, company, p, original=original, kind="intern", source_label="You added it")
-    job.needs_verification = not original
+    try:
+        job = IJ.add_found(db, body.model_dump())
+    except IJ.AddError as e:
+        raise HTTPException(400, str(e))
     db.commit()
     apps = dict(db.execute(select(Application.job_id, Application.stage)).all())
     return _item(job, apps, set())

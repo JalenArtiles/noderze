@@ -110,7 +110,7 @@ npm install && npm run dev                            # open http://localhost:30
 To make it yours, copy `backend/seed/profile.example.json` to `backend/seed/profile.json` and upload your resume on the Resume page. The [user guide](docs/USER_GUIDE.md) covers the Windows app, scheduled scans and troubleshooting.
 
 ```bash
-cd backend && pytest -q    # 91 tests
+cd backend && pytest -q    # 92 tests
 ```
 
 ## Project layout

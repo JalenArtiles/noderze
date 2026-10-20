@@ -20,6 +20,7 @@ Noderze is a personal career operating system for one goal: getting from ASU stu
   - **Filtered out** lists the ones that missed a rule, with the reason. No sign of pay filters an internship out. If the recruiter tells you it's paid, click **It's paid**. If your internship coordinator says a general IT internship counts, click **Count it anyway**.
   - **Apply** and **Recruiter** work like they do for sales roles, with a resume and messages written for an internship. Prepare the full package adds an availability answer and a reminder to confirm credit with your coordinator.
   - **Search sites you log into** opens Handshake, LinkedIn, Indeed and USAJOBS searches in your browser (they don't allow automated searching). Add anything good with **Add one you found**; paste the posting text so pay and hours can be checked.
+  - Internships Claude adds for you (from Handshake saves, say) arrive as files in `backend/data/intern-imports/` and show up within a minute, checked like any other. What happened to each one is kept in `intern-imports/done/`. Links to Handshake, LinkedIn and Indeed are kept for the Apply button but never fetched.
   - The weekly hours and dates live in your profile under `internship` (Settings > Advanced) if they ever change.
 - **Cover letters.** Prepare the full package writes one in a single, formal pattern. A header comes first: your name, then city, email and phone from your resume. The letter then follows four paragraphs:
   1. The role, and what you want to learn.

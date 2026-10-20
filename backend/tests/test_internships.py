@@ -397,3 +397,39 @@ def test_search_runs_offline_against_saved_pages(client, monkeypatch):
     assert titles.get("College Intern - TechStop IT Help Desk") == "out"  # SRP: general IT
     steps = [s["status"] for s in r["view"]["steps"]]
     assert steps == ["done"] * 5, json.dumps(r["view"]["steps"])[:600]
+
+
+def test_dropped_internships_are_imported_once(client, tmp_path):
+    """A JSON file in data/intern-imports/ is added like Add one you found, then moved to done/ with the results.
+    Handshake links are never fetched: the pasted text is used."""
+    import json
+
+    from app.db import SessionLocal
+    from app.services import intern_jobs as IJ
+
+    class NoFetch:
+        def get_text(self, url):
+            raise AssertionError(f"fetched {url}")
+
+        def close(self):
+            pass
+
+    good = {"company_name": "Mesa Grid Co", "title": "Network Operations Intern", "location": "Remote",
+            "url": "https://app.joinhandshake.com/stu/jobs/123",
+            "description": ("Paid internship at $21 per hour, 12 to 20 hours per week from January to May 2027. "
+                            "Monitor switches and routers, document outages and help the network team. ") * 3}
+    folder = tmp_path / "intern-imports"
+    folder.mkdir()
+    (folder / "found.json").write_text(json.dumps([good, {"title": "No company", "description": "x"}]))
+    db = SessionLocal()
+    job = IJ.add_found(db, good | {"title": "Network Operations Intern II"}, fetcher=NoFetch())
+    assert job.url.startswith("https://app.joinhandshake.com") and job.needs_verification
+    db.rollback()
+    assert IJ.import_dropped(db, folder) == 1
+    assert not (folder / "found.json").exists()
+    done = json.loads((folder / "done" / "found.json").read_text())
+    assert done["results"][0]["status"] in ("qualifies", "check") and "error" in done["results"][1]
+    assert IJ.import_dropped(db, folder) == 0  # nothing left to add
+    db.close()
+    titles = [j["title"] for j in client.get("/api/internships").json()["items"]]
+    assert "Network Operations Intern" in titles

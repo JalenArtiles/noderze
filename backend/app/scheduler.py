@@ -59,6 +59,20 @@ def reload() -> None:
                                coalesce=True)
     finally:
         db.close()
+    _scheduler.add_job(_intern_imports, "interval", minutes=1, id="intern-imports", replace_existing=True,
+                       coalesce=True, max_instances=1)
+
+
+def _intern_imports() -> None:
+    """Internships dropped in data/intern-imports/ get added within a minute (see intern_jobs.import_dropped)."""
+    from .services.intern_jobs import import_dropped
+    db = SessionLocal()
+    try:
+        import_dropped(db)
+    except Exception:
+        log.exception("intern imports failed")
+    finally:
+        db.close()
 
 
 def shutdown() -> None:
