@@ -124,6 +124,8 @@ def test_replies_matched_to_applications(client, tmp_path):
         {"id": "m4", "from": "Pizza Place <deals@pizza.com>", "subject": "50% off tonight", "snippet": "Hungry?"},
         {"id": "m5", "from": "no-reply@us.greenhouse-mail.io", "subject": "Your application to Some Other Co",
          "snippet": "Unfortunately we have decided to move forward with other candidates."},
+        {"id": "m6", "from": "Valley Shield <news@valleyshield.com>", "subject": "Valley Shield's November newsletter",
+         "snippet": "Our latest product updates and webinars."},
     ]
     (folder / "check.json").write_text(json.dumps({"account": "jalen@example.com", "emails": emails}))
     assert RP.import_dropped(db, folder) == 2

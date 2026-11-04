@@ -49,6 +49,9 @@ KINDS = [
 ]
 KIND_LABEL = {"offer": "Offer", "rejection": "Not moving forward", "assessment": "Assessment", "interview": "Interview",
               "confirmation": "Application received", "other": "Reply"}
+# A company's newsletters, promotions and campus mail aren't replies: an email must be about hiring.
+RECRUITING = re.compile(r"\bapplica|\bappl(y|ied|ying)\b|interview|candida|position|\brole\b|recruit|hiring|\boffer\b|"
+                        r"assessment|internship|\bjob\b|requisition|onboarding|next steps|your resume|talent", re.I)
 # Job alerts and newsletters from Handshake and job boards are not replies.
 NOISE = re.compile(r"\bjob alert|jobs? (you might|for you|recommended)|new jobs?\b|recommended for you|"
                    r"top (jobs|picks)|weekly digest|is hiring|apply now|events? (near|for) you|webinar|newsletter", re.I)
@@ -201,6 +204,8 @@ def import_items(db: Session, items: list[dict], account: str | None = None) -> 
             continue  # Handshake job alerts, not a reply
         if NOISE.search(subject) and classify(subject, snippet) == "other":
             continue
+        if not RECRUITING.search(f"{subject} {snippet}"):
+            continue  # newsletters, promotions, campus mail
         w = match(it, watch)
         if not w:
             continue
