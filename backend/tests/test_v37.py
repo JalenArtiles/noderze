@@ -159,3 +159,18 @@ def test_watch_file_written(client, tmp_path, monkeypatch):
     db.close()
     data = json.loads(Path(path).read_text())
     assert data["companies"] and "greenhouse-mail.io" in data["ats_senders"]
+
+
+def test_scheduler_loads_every_rule(client, monkeypatch):
+    """Scheduled scans register at startup (the test settings turn the scheduler off, so turn it on here)."""
+    from app import scheduler
+    from app.config import settings
+    monkeypatch.setattr(settings, "enable_scheduler", True)
+    scheduler._scheduler = None
+    try:
+        scheduler.reload()
+        ids = {j.id for j in scheduler._scheduler.get_jobs()}
+        assert "intern-imports" in ids and any(i.startswith("rule-") for i in ids)
+    finally:
+        scheduler.shutdown()
+        scheduler._scheduler = None

@@ -66,13 +66,14 @@ def reload() -> None:
                        coalesce=True, max_instances=1)
 
 
-def _run_rule(rule_id: int, wf: str, name: str, **kwargs) -> None:
-    """Start a scheduled workflow and note when it ran, so Settings shows the real last run."""
+def _run_rule(alert_rule: int, wf: str, name: str, **kwargs) -> None:
+    """Start a scheduled workflow and note when it ran, so Settings shows the real last run.
+    (scan_alerts also gets rule_id in kwargs, so this parameter must not be called rule_id.)"""
     from .util import now
     from .workflows import WORKFLOWS, start
     db = SessionLocal()
     try:
-        rule = db.get(AlertRule, rule_id)
+        rule = db.get(AlertRule, alert_rule)
         if rule is not None:
             rule.last_run_at = now()
             db.commit()
