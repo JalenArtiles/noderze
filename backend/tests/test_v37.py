@@ -9,6 +9,9 @@ from fastapi.testclient import TestClient
 def client(tmp_path_factory):
     from app.db import Base, SessionLocal, engine
     Base.metadata.drop_all(engine)
+    with engine.begin() as c:  # drop_all can skip tables caught in a foreign-key cycle
+        for t in ("email_replies", "question_answers"):
+            c.exec_driver_sql(f"DROP TABLE IF EXISTS {t}")
     Base.metadata.create_all(engine)
     import scripts.seed_db as seed_db
     db = SessionLocal()
@@ -128,7 +131,7 @@ def test_replies_matched_to_applications(client, tmp_path):
          "snippet": "Our latest product updates and webinars."},
     ]
     (folder / "check.json").write_text(json.dumps({"account": "jalen@example.com", "emails": emails}))
-    assert RP.import_dropped(db, folder) == 2
+    assert RP.import_dropped(db, folder) == 3  # 2 replies, plus Some Other Co's rejection as an untracked application
     assert RP.import_dropped(db, folder) == 0 and (folder / "done" / "check.json").exists()
     db.close()
     r = client.get("/api/replies").json()
@@ -139,6 +142,7 @@ def test_replies_matched_to_applications(client, tmp_path):
     thanks = by["Thank you for applying to Valley Shield"]
     assert thanks["kind"] == "confirmation" and thanks["suggest"]["stage"] == "applied" and thanks["needs_you"]
     assert r["unseen"] == 2 and client.get("/api/updates").json()["unseen_replies"] == 2
+    assert [u["guess_company"] for u in r["untracked"]] == ["Some Other Co"] and r["untracked"][0]["kind"] == "rejection"
     moved = client.post(f"/api/replies/{thanks['id']}/apply").json()
     assert moved["stage"] == "applied" and moved["suggest"] is None
     assert client.get("/api/replies").json()["unseen"] == 1  # a confirmation for an applied role no longer pings you
@@ -192,3 +196,36 @@ def test_stale_code_is_noticed(tmp_path):
     os.utime(f, (time.time(), time.time()))
     assert not SU.stale_code(root=str(tmp_path), started=started)  # still settling
     assert SU.stale_code(now=time.time() + SU.CODE_SETTLE_S + 1, root=str(tmp_path), started=started)
+
+
+def test_applications_made_outside_noderze(client):
+    from app.db import SessionLocal
+    from app.services import replies as RP
+    db = SessionLocal()
+    added = RP.import_items(db, [
+        {"id": "o1", "from": "workiva@myworkday.com", "subject": "Your Application for Spring 2027 Intern - Data Analytics with Workiva",
+         "snippet": "Thank you for your application. We have received it and will review it soon.", "date": "2026-10-10T12:00:00Z"},
+        {"id": "o4", "from": "Acme Robotics <talent@acmerobotics.com>", "subject": "Interview invitation from Acme Robotics",
+         "snippet": "Thank you for applying to Acme Robotics. We would like to invite you to a phone screen."},
+        {"id": "o2", "from": "kei@otp.workday.com", "subject": "Verify your candidate account", "snippet": "Your code is 123456"},
+    ])
+    db.commit()
+    db.close()
+    assert [r.message_id for r in added] == ["o1", "o4"]
+    r = client.get("/api/replies").json()
+    u = r["untracked"][0]
+    assert u["guess_company"] == "Workiva" and u["guess_title"] == "Spring 2027 Intern - Data Analytics"
+    assert all(x["id"] != u["id"] for x in r["items"])  # not a reply, and no notification
+    acme = next(x for x in r["items"] if x["untracked"])  # an interview from an untracked company still notifies
+    assert acme["guess_company"] == "Acme Robotics" and acme["kind"] == "interview" and acme["needs_you"]
+    t = client.post(f"/api/replies/{u['id']}/track", json={}).json()
+    assert t["company"] == "Workiva" and t["stage"] == "applied" and not t["untracked"]
+    card = next(c for c in client.get("/api/applications").json()["cards"] if c["company"] == "Workiva")
+    assert card["stage"] == "applied" and card["date_applied"] == "2026-10-10" and card["follow_up_date"]
+    # Later mail from Workiva now counts as a reply
+    db = SessionLocal()
+    later = RP.import_items(db, [{"id": "o3", "from": "workiva@myworkday.com", "subject": "Interview invitation: Spring 2027 Intern",
+                                  "snippet": "We'd like to schedule an interview."}])
+    db.commit()
+    db.close()
+    assert later and later[0].company_id is not None and later[0].kind == "interview"

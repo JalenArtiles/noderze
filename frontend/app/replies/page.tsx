@@ -48,20 +48,21 @@ export default function Replies() {
         <div className="list replies">
           {shown.length ? shown.map((r) => (
             <div key={r.id} className={`li ${fresh.has(r.id) ? "unread" : ""}`}>
-              <CompanyLogo name={r.company || r.from_name || "?"} size="sm" />
+              <CompanyLogo name={r.company || r.guess_company || r.from_name || "?"} size="sm" />
               <div className="grow">
                 <div className="row" style={{ gap: ".45rem" }}>
                   <span className="title">{r.subject || "(no subject)"}</span>
                   <span className={`tag ${TONE[r.kind] || ""}`}>{r.kind_label}</span>
                 </div>
                 <div className="sub">
-                  {r.company}{r.job_title ? `, ${r.job_title}` : ""}{r.stage ? ` (${stageLabel(r.stage)})` : ""} · {r.from_name && r.from_name !== r.company ? r.from_name : r.from_email}{r.received_at ? ` · ${day(r.received_at)}` : ""}
+                  {r.company || r.guess_company}{r.untracked ? " (not tracked yet)" : ""}{r.job_title ? `, ${r.job_title}` : ""}{r.stage ? ` (${stageLabel(r.stage)})` : ""} · {r.from_name && r.from_name !== r.company ? r.from_name : r.from_email}{r.received_at ? ` · ${day(r.received_at)}` : ""}
                 </div>
                 {r.snippet && <div className="snippet">{r.snippet}</div>}
                 <div className="row" style={{ marginTop: ".55rem" }}>
                   {r.url && <a className="btn sm" href={r.url} target="_blank" rel="noreferrer"><ExternalLink />Open in Gmail</a>}
                   {r.suggest && <button className="btn sm primary" onClick={() => act(`/api/replies/${r.id}/apply`)}><MailCheck />{r.suggest.label}</button>}
                   {r.application_id && <Link className="btn sm quiet" href={`/applications/${r.application_id}`}>Open the application</Link>}
+                  {r.untracked && <button className="btn sm primary" onClick={() => act(`/api/replies/${r.id}/track`, { company: r.guess_company, title: r.guess_title })}>Track {r.guess_company || "it"}</button>}
                   <button className="btn sm quiet icon" title="Dismiss" aria-label="Dismiss" onClick={() => act(`/api/replies/${r.id}`, { dismissed: true }, "PATCH")}><X /></button>
                 </div>
               </div>
@@ -69,6 +70,13 @@ export default function Replies() {
             <Empty title={items.length ? "Nothing here" : "No replies yet"}>
               {items.length ? "Try another filter." : "When a company you applied to emails you, it shows up here and in the bar at the top."}</Empty>}
         </div>
+
+        {data.untracked?.length > 0 && <div className="sec">
+          <SectionHead title="Applications Noderze isn't tracking" count={data.untracked.length}
+            aside={<span className="muted">Confirmations for roles you applied to elsewhere</span>} />
+          <p className="small muted" style={{ margin: "-.3rem 0 .8rem" }}>Track one to add it to Applications as Applied, with a follow-up date, so replies from that company show up here.</p>
+          <div className="list">{data.untracked.map((u: any) => <Untracked key={u.id} u={u} onDone={reload} />)}</div>
+        </div>}
 
         <div className="sec">
           <SectionHead title="How replies get here" />
@@ -81,5 +89,34 @@ export default function Replies() {
         </div>
       </>}
     </>
+  );
+}
+
+function Untracked({ u, onDone }: { u: any; onDone: () => void }) {
+  const [company, setCompany] = useState(u.guess_company || "");
+  const [title, setTitle] = useState(u.guess_title || "");
+  const [err, setErr] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  async function track() {
+    setBusy(true); setErr(null);
+    try { await api(`/api/replies/${u.id}/track`, { body: { company, title } }); onDone(); } catch (e: any) { setErr(e.message); }
+    setBusy(false);
+  }
+  return (
+    <div className="li" style={{ alignItems: "flex-start" }}>
+      <CompanyLogo name={company || u.from_name || "?"} size="sm" />
+      <div className="grow">
+        <div className="title">{u.subject}</div>
+        <div className="sub">{u.from_name || u.from_email}{u.received_at ? ` · ${day(u.received_at)}` : ""}</div>
+        <div className="row" style={{ marginTop: ".55rem", flexWrap: "wrap" }}>
+          <input value={company} onChange={(e) => setCompany(e.target.value)} placeholder="Company" aria-label="Company" style={{ width: 200 }} />
+          <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Role (optional)" aria-label="Role" style={{ width: 260 }} />
+          <button className="btn sm primary" onClick={track} disabled={busy || !company.trim()}>{busy ? "Adding" : "Track it"}</button>
+          {u.url && <a className="btn sm quiet" href={u.url} target="_blank" rel="noreferrer"><ExternalLink />Open in Gmail</a>}
+          <button className="btn sm quiet icon" title="Not an application" aria-label="Dismiss" onClick={async () => { await api(`/api/replies/${u.id}`, { method: "PATCH", body: { dismissed: true } }); onDone(); }}><X /></button>
+        </div>
+        <Err msg={err} />
+      </div>
+    </div>
   );
 }

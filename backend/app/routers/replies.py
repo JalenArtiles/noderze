@@ -24,7 +24,10 @@ def list_replies(include_dismissed: bool = False, db: Session = Depends(get_db))
     rows = list(db.scalars(q))
     watch = RP.watch_list(db)
     accounts = sorted({r.account for r in rows if r.account})
-    return {"items": [RP.reply_dict(db, r) | {"needs_you": RP.needs_you(db, r)} for r in rows],
+    items = [RP.reply_dict(db, r) | {"needs_you": RP.needs_you(db, r)} for r in rows]
+    # Interviews, assessments and offers always show with the replies, tracked or not.
+    return {"items": [x for x in items if not x["untracked"] or x["needs_you"]],
+            "untracked": [x for x in items if x["untracked"] and not x["needs_you"]],
             "unseen": len(RP.unseen(db)), "last_check": RP.last_check(), "accounts": accounts,
             "watching": len(watch), "watching_applied": sum(1 for w in watch if w["applied"])}
 
@@ -69,5 +72,21 @@ def apply_suggestion(rid: int, db: Session = Depends(get_db)):
     a.stage = sug["stage"]
     a.readiness = prep.readiness(db, a)
     r.seen = True
+    db.commit()
+    return RP.reply_dict(db, r)
+
+
+@router.post("/replies/{rid}/track")
+def track_application(rid: int, body: dict | None = None, db: Session = Depends(get_db)):
+    """An application you made outside Noderze: add it to Applications (as Applied) so its replies are watched."""
+    r = db.get(EmailReply, rid)
+    if r is None:
+        raise HTTPException(404)
+    body = body or {}
+    try:
+        a = RP.track(db, r, body.get("company"), body.get("title"))
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    a.readiness = prep.readiness(db, a)
     db.commit()
     return RP.reply_dict(db, r)

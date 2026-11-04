@@ -36,17 +36,22 @@ ATS_SENDERS = ("greenhouse-mail.io", "greenhouse.io", "myworkday.com", "myworkda
 GENERIC = {"inc", "llc", "corp", "corporation", "company", "group", "the", "technologies", "technology", "solutions",
            "systems", "security", "networks", "labs", "software", "services", "global", "international", "us", "usa"}
 
-KINDS = [
-    ("offer", r"\boffer letter\b|pleased to (extend|offer)|offer of employment|(extend|extending) (you )?an offer"),
-    ("rejection", r"unfortunately|not (be )?moving forward|decided to (move|proceed) (forward )?with other|other candidates|"
-                  r"not selected|position has been filled|will not be proceeding|regret to inform|no longer under consideration"),
-    ("assessment", r"assessment|coding challenge|hackerrank|codesignal|online test|take[- ]home|skills test|hirevue|"
-                   r"video interview link|complete the following"),
-    ("interview", r"\binterview|schedule (a|some) time|phone screen|availability for|next steps|speak with you|"
-                  r"chat with you|set up a (call|time)|calendly|meet with"),
-    ("confirmation", r"thank you for (applying|your application|your interest)|application (has been )?received|"
-                     r"we (have )?received your application|received your application|successfully submitted"),
-]
+OFFER = r"\boffer letter\b|pleased to (extend|offer)|offer of employment|(extend|extending) (you )?an offer"
+REJECTION = (r"unfortunately|not (be )?moving forward|(move|moving|proceed|go) forward with other|other candidates|"
+             r"not selected|position has been filled|will not be proceeding|regret to inform|no longer under consideration|"
+             r"after careful (consideration|review)|while your (skills|background|experience|qualifications)|"
+             r"(decided|chosen|chose) (not )?to (move|pursue|proceed)|pursue other|not (a )?match for|decided not to")
+ASSESSMENT = (r"assessment|coding challenge|hackerrank|codesignal|online test|take[- ]home|skills test|hirevue|"
+              r"video interview link")
+INTERVIEW = (r"\binterview\b(?! process)|schedule (a|some) (time|call)|phone screen|your availability|availability for|"
+             r"calendly|invite you to|set up a (call|time)|meet with (you|our)")
+CONFIRMATION = (r"thanks? (you )?for (applying|your application|your interest)|application (has been )?received|"
+                r"(we )?(have )?received your application|successfully submitted|application submitted")
+SOFT_INTERVIEW = r"next steps|speak with you|chat with you"
+# Checked in this order: an offer or a rejection can open with "thank you for applying", and a confirmation often
+# promises "next steps" without being an interview invite.
+KINDS = [("offer", OFFER), ("rejection", REJECTION), ("assessment", ASSESSMENT), ("interview", INTERVIEW),
+         ("confirmation", CONFIRMATION), ("interview", SOFT_INTERVIEW)]
 KIND_LABEL = {"offer": "Offer", "rejection": "Not moving forward", "assessment": "Assessment", "interview": "Interview",
               "confirmation": "Application received", "other": "Reply"}
 # A company's newsletters, promotions and campus mail aren't replies: an email must be about hiring.
@@ -170,6 +175,8 @@ def match(item: dict, watch: list[dict]) -> dict | None:
     sender_domain = domain_of(addr)
     subject, snippet = item.get("subject") or "", item.get("snippet") or ""
     via_ats = any(sender_domain.endswith(s) or addr.endswith(s) for s in ATS_SENDERS)
+    # Workday and similar send from the company's own tenant: workiva@myworkday.com is Workiva.
+    tenant = re.sub(r"[^a-z0-9]", "", addr.split("@")[0]) if via_ats and "@" in addr else ""
     head = f"{name} {subject}".lower()
     body = f"{subject} {snippet}".lower()
     best, score = None, 0
@@ -184,6 +191,8 @@ def match(item: dict, watch: list[dict]) -> dict | None:
             elif via_ats and rx.search(body):
                 s = max(s, 1)
             elif sender_domain and t.replace(" ", "") in sender_domain.replace("-", ""):
+                s = max(s, 2)
+            elif tenant and len(tenant) > 2 and tenant == re.sub(r"[^a-z0-9]", "", t):
                 s = max(s, 2)
         if s > score:
             best, score = w, s
@@ -207,17 +216,63 @@ def import_items(db: Session, items: list[dict], account: str | None = None) -> 
         if not RECRUITING.search(f"{subject} {snippet}"):
             continue  # newsletters, promotions, campus mail
         w = match(it, watch)
+        kind = classify(subject, snippet)
         if not w:
+            # An application you made outside Noderze ("Thank you for applying to Workiva", or an interview invite from
+            # its Workday). Kept so you can track it; interviews, assessments and offers still notify you.
+            if kind != "other" and parse_confirmation(subject, name, addr):
+                r = EmailReply(message_id=mid, thread_id=it.get("thread_id"), account=it.get("account") or account,
+                               from_name=name or None, from_email=addr or None, subject=subject[:2000],
+                               snippet=snippet[:2000], url=it.get("url"), received_at=_parse_date(it.get("date")),
+                               kind=kind)
+                db.add(r)
+                db.flush()
+                added.append(r)
             continue
         app = _application_for(db, w["company_id"], subject, snippet)
         r = EmailReply(message_id=mid, thread_id=it.get("thread_id"), account=it.get("account") or account,
                        from_name=name or None, from_email=addr or None, subject=subject[:2000], snippet=snippet[:2000],
                        url=it.get("url"), received_at=_parse_date(it.get("date")), company_id=w["company_id"],
-                       application_id=app.id if app else None, kind=classify(subject, snippet))
+                       application_id=app.id if app else None, kind=kind)
         db.add(r)
         db.flush()
         added.append(r)
     return added
+
+
+CONFIRM_PATTERNS = [
+    r"application received for (?P<title>.+?) at (?P<co>.+)$",
+    r"your application for (?P<title>.+?) (?:with|at) (?P<co>.+)$",
+    r"(?:applying|application|applied) (?:to|with|at) (?P<co>[^,!]+?)(?:,\s*(?P<title>.+?))?[.!]*$",
+    r"thank you for applying for (?P<title>.+?) (?:at|with) (?P<co>.+)$",
+    r"(?:invitation|invite|message|update|news|note) from (?P<co>.+)$",
+]
+GENERIC_SENDER = re.compile(r"no-?reply|workday|careers?|recruit|talent|\bhr\b|team|notification|jobs|hiring|"
+                            r"people|admin|support|info|greenhouse|lever|icims", re.I)
+FREE_MAIL = ("gmail.com", "yahoo.com", "outlook.com", "hotmail.com", "icloud.com", "asu.edu")
+
+
+def parse_confirmation(subject: str, from_name: str = "", from_email: str = "") -> dict | None:
+    """'Thank you for applying to GuidePoint Security, GPSU Internship' -> {company, title}."""
+    text = re.sub(r"\s+", " ", subject or "").strip().rstrip("!.")
+    for rx in CONFIRM_PATTERNS:
+        m = re.search(rx, text, re.I)
+        if m and m.group("co").strip():
+            co = re.sub(r"^(the)\s+", "", m.group("co").strip(" -:!.,"), flags=re.I)
+            title = (m.groupdict().get("title") or "").strip(" -:!.,") or None
+            if 1 < len(co) <= 80:
+                return {"company": co, "title": title}
+    if from_name and not GENERIC_SENDER.search(from_name) and len(from_name) <= 60:
+        return {"company": from_name.strip(), "title": None}  # "Kimball Electronics <kei@myworkday.com>"
+    if from_email:
+        local, _, host = from_email.partition("@")
+        if (any(host.endswith(s) for s in ("myworkday.com", "workday.com")) and local.isalpha() and len(local) > 2
+                and not GENERIC_SENDER.search(local)):
+            return {"company": local.upper() if len(local) <= 5 else local.title(), "title": None}  # oneok@myworkday.com
+        d = domain_of(from_email)
+        if d and not any(d.endswith(x) for x in ATS_SENDERS + FREE_MAIL):
+            return {"company": d.split(".")[0].title(), "title": None}  # talent@acmerobotics.com
+    return None
 
 
 def _application_for(db: Session, company_id: int, subject: str, snippet: str) -> Application | None:
@@ -278,10 +333,62 @@ def last_check() -> str | None:
     return _utc(max(times)).isoformat(timespec="seconds") if times else None
 
 
+def track(db: Session, r: EmailReply, company: str | None = None, title: str | None = None) -> Application:
+    """Turn an application you made outside Noderze into a tracked one (Applied), so its replies are watched."""
+    from ..util import slugify
+    from .ats import RawPosting
+    from .discovery import upsert_posting
+    from .jobs_engine import enrich_and_score
+    from .prep import FOLLOW_UP_DAYS
+    from ..models import ApplicationEvent
+    from datetime import timedelta
+    parsed = parse_confirmation(r.subject, r.from_name or "", r.from_email or "") or {}
+    company = (company or parsed.get("company") or "").strip()
+    title = (title or parsed.get("title") or "Application").strip()
+    if not company:
+        raise ValueError("Add the company name.")
+    c = db.scalar(select(Company).where(Company.slug == slugify(company)))
+    if c is None:
+        sender = domain_of(r.from_email)
+        c = Company(name=company, slug=slugify(company), watch_note="Added from an application confirmation email.",
+                    website=f"https://{sender}" if sender and not any(sender.endswith(s) for s in ATS_SENDERS) else None)
+        db.add(c)
+        db.flush()
+    job = db.scalar(select(Job).where(Job.company_id == c.id, Job.title == title))
+    if job is None:
+        p = RawPosting(title=title, url=r.url or "", ats_job_id="", location_text="", description=r.snippet or "",
+                       source="manual")
+        job, _ = upsert_posting(db, c, p, original=False)
+        job.needs_verification = True
+        enrich_and_score(db, job)
+    a = db.scalar(select(Application).where(Application.job_id == job.id))
+    when = r.received_at.date() if r.received_at else None
+    if a is None:
+        a = Application(job_id=job.id, stage="applied", date_found=when, date_applied=when)
+        db.add(a)
+        db.flush()
+        db.add(ApplicationEvent(application_id=a.id, kind="stage", to_stage="applied", note=f"From an email: {r.subject[:200]}"))
+    elif a.stage in PRE_APPLY + ("started",):
+        db.add(ApplicationEvent(application_id=a.id, kind="stage", from_stage=a.stage, to_stage="applied"))
+        a.stage = "applied"
+        a.date_applied = a.date_applied or when
+    if a.date_applied and not a.follow_up_date:
+        a.follow_up_date = a.date_applied + timedelta(days=FOLLOW_UP_DAYS[0])
+    r.company_id, r.application_id, r.seen = c.id, a.id, True
+    return a
+
+
 def reply_dict(db: Session, r: EmailReply) -> dict:
     c = db.get(Company, r.company_id) if r.company_id else None
     a = db.get(Application, r.application_id) if r.application_id else None
-    return {"id": r.id, "company": c.name if c else None, "company_id": r.company_id, "application_id": r.application_id,
+    if c is None:  # an application you made outside Noderze
+        guess = parse_confirmation(r.subject, r.from_name or "", r.from_email or "") or {}
+        return {"id": r.id, "untracked": True, "guess_company": guess.get("company"), "guess_title": guess.get("title"),
+                "from_name": r.from_name, "from_email": r.from_email, "subject": r.subject, "snippet": r.snippet,
+                "url": r.url, "account": r.account, "kind": r.kind, "kind_label": KIND_LABEL.get(r.kind, "Reply"),
+                "received_at": r.received_at.isoformat() if r.received_at else None, "seen": r.seen,
+                "company": None, "company_id": None, "application_id": None, "suggest": None}
+    return {"untracked": False, "id": r.id, "company": c.name if c else None, "company_id": r.company_id, "application_id": r.application_id,
             "job_title": a.job.title if a and a.job else None, "stage": a.stage if a else None,
             "from_name": r.from_name, "from_email": r.from_email, "subject": r.subject, "snippet": r.snippet,
             "url": r.url, "account": r.account, "kind": r.kind, "kind_label": KIND_LABEL.get(r.kind, "Reply"),
@@ -307,7 +414,9 @@ def _suggest(kind: str, stage: str | None) -> dict | None:
 
 def needs_you(db: Session, r: EmailReply) -> bool:
     """A reply worth a notification: anything but a plain 'we got your application', unless Noderze doesn't know yet
-    that you applied."""
+    that you applied. Applications made outside Noderze are listed separately, without a notification."""
+    if r.company_id is None:
+        return r.kind in ("interview", "assessment", "offer")
     if r.kind != "confirmation":
         return True
     a = db.get(Application, r.application_id) if r.application_id else None
