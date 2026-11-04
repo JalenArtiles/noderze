@@ -99,6 +99,19 @@ def _name_terms(name: str) -> list[str]:
     return terms
 
 
+ROLE_WORDS = re.compile(r"intern|engineer|representative|analyst|associate|specialist|manager|developer|assistant|"
+                        r"consultant|coordinator|director|executive|technician|administrator|scientist|designer|"
+                        r"program|sales|security|data|spring|summer|fall|winter|20\d\d|remote|hybrid", re.I)
+
+
+def _title_org(title: str | None) -> str | None:
+    """A team or brand named first in a job title ("Y Analytics, Data Analytics ...") is how its emails are signed."""
+    head = (title or "").split(",")[0].split(" - ")[0].strip()
+    if "," not in (title or "") or not (5 <= len(head) <= 40) or ROLE_WORDS.search(head):
+        return None
+    return re.sub(r"\s+", " ", re.sub(r"[^a-z0-9& ]", " ", head.lower())).strip()
+
+
 def watch_list(db: Session) -> list[dict]:
     """Companies with an application, and the email domains they write from."""
     out: dict[int, dict] = {}
@@ -109,6 +122,9 @@ def watch_list(db: Session) -> list[dict]:
         c: Company = j.company
         w = out.setdefault(c.id, {"company": c.name, "domains": set(), "terms": _name_terms(c.name), "stages": set()})
         w["stages"].add(a.stage)
+        org = _title_org(j.title)
+        if org and org not in w["terms"]:
+            w["terms"].append(org)  # "Y Analytics, Data Analytics and Reporting ..." posted under TPG
         for d in (domain_of(c.website), domain_of(c.careers_url)):
             if d and not any(d.endswith(s) for s in ATS_SENDERS):
                 w["domains"].add(d)
@@ -289,6 +305,20 @@ def _application_for(db: Session, company_id: int, subject: str, snippet: str) -
     return max(apps, key=lambda a: (STAGES.index(a.stage) if a.stage in STAGES else 0, a.updated_at or a.created_at))
 
 
+def rematch(db: Session) -> int:
+    """Emails kept as 'not tracked yet' are matched again whenever the companies you applied to change, so a reply
+    joins its application once you track it (or once Noderze learns the brand it's signed with)."""
+    watch = watch_list(db)
+    n = 0
+    for r in db.scalars(select(EmailReply).where(EmailReply.company_id.is_(None), EmailReply.dismissed.is_(False))):
+        w = match({"from": f"{r.from_name or ''} <{r.from_email or ''}>", "subject": r.subject, "snippet": r.snippet}, watch)
+        if w:
+            app = _application_for(db, w["company_id"], r.subject, r.snippet)
+            r.company_id, r.application_id = w["company_id"], app.id if app else None
+            n += 1
+    return n
+
+
 def import_dropped(db: Session, path_folder: Path | None = None) -> int:
     """Read data/reply-imports/*.json (except watch.json), keep the matches, move each file to done/."""
     f = path_folder or folder()
@@ -319,6 +349,8 @@ def import_dropped(db: Session, path_folder: Path | None = None) -> int:
                                                   "account": raw.get("account") if isinstance(raw, dict) else None},
                                                  indent=1), encoding="utf-8")
         path.unlink()
+    if rematch(db):
+        db.commit()
     if n:
         log.info("kept %s new replies", n)
     return n

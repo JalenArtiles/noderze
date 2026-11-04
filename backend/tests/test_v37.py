@@ -229,3 +229,25 @@ def test_applications_made_outside_noderze(client):
     db.commit()
     db.close()
     assert later and later[0].company_id is not None and later[0].kind == "interview"
+
+
+def test_brand_in_title_and_rematch(client):
+    """An internship posted under a parent company (TPG) but signed with its brand (Y Analytics) still matches,
+    including emails that arrived before Noderze knew about it."""
+    from app.db import SessionLocal
+    from app.services import replies as RP
+    db = SessionLocal()
+    early = RP.import_items(db, [{"id": "y1", "from": "no-reply@us.greenhouse-mail.io", "subject": "Thank You for Applying to Y Analytics",
+                                  "snippet": "We have received your application and our team will review it."}])
+    db.commit()
+    assert early and early[0].company_id is None
+    db.close()
+    it = _job(client, company_name="TPG", title="Y Analytics, Data Analytics and Reporting, Spring Research Assistant, Internship")
+    client.post(f"/api/apply/{it['id']}", json={})
+    db = SessionLocal()
+    assert RP.rematch(db) >= 1
+    db.commit()
+    db.close()
+    r = client.get("/api/replies").json()
+    y = next(x for x in r["items"] if x["subject"] == "Thank You for Applying to Y Analytics")
+    assert y["company"] == "TPG" and y["suggest"]["stage"] == "applied"
