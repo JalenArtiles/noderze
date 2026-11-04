@@ -174,3 +174,19 @@ def test_scheduler_loads_every_rule(client, monkeypatch):
     finally:
         scheduler.shutdown()
         scheduler._scheduler = None
+
+
+def test_stale_code_is_noticed(tmp_path):
+    """A managed backend notices its own code changed on disk (once the change has settled) and restarts."""
+    import os
+    import time
+
+    from app import selfupdate as SU
+    f = tmp_path / "x.py"
+    f.write_text("a = 1\n")
+    started = time.time() - 100
+    os.utime(f, (started - 50, started - 50))
+    assert not SU.stale_code(root=str(tmp_path), started=started)  # older than this process
+    os.utime(f, (time.time(), time.time()))
+    assert not SU.stale_code(root=str(tmp_path), started=started)  # still settling
+    assert SU.stale_code(now=time.time() + SU.CODE_SETTLE_S + 1, root=str(tmp_path), started=started)

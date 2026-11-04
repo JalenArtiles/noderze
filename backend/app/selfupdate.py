@@ -129,10 +129,50 @@ def _rebuild(fp: str) -> str:
     return "rebuilt"
 
 
+APP_DIR = os.path.dirname(os.path.abspath(__file__))
+STARTED = time.time()
+CODE_SETTLE_S = 12
+
+
+def newest_code_change(root: str = APP_DIR) -> float:
+    """The newest modification time of the backend's Python files."""
+    newest = 0.0
+    for d, _, files in os.walk(root):
+        if "__pycache__" in d:
+            continue
+        for f in files:
+            if f.endswith(".py"):
+                try:
+                    newest = max(newest, os.path.getmtime(os.path.join(d, f)))
+                except OSError:
+                    pass
+    return newest
+
+
+def stale_code(now: float | None = None, root: str = APP_DIR, started: float | None = None) -> bool:
+    """True when backend code changed after this process started and the change has settled.
+
+    uvicorn --reload on Windows stops the old process with a Ctrl+C event, and with no console window that
+    event can sit unprocessed for minutes, so the old code keeps running. A process that notices it's stale
+    stops itself the same way Ctrl+C would; the waiting reloader then starts the new code."""
+    now = now or time.time()
+    changed = newest_code_change(root)
+    return changed > (started or STARTED) + 1 and now - changed >= CODE_SETTLE_S
+
+
+def _stop_self() -> None:
+    import signal
+    log.warning("Backend code changed on disk; stopping so the reloader starts the new version")
+    signal.raise_signal(signal.SIGINT)
+
+
 def _loop() -> None:
     time.sleep(10)
     while True:
         try:
+            if stale_code():
+                _stop_self()
+                return
             result = check_once()
             if result not in ("current", "failed-before", "no-toolchain"):
                 log.info("interface update check: %s", result)
