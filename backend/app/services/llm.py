@@ -39,7 +39,7 @@ class LLM:
             return "The anthropic package isn't installed. Run setup-noderze.ps1 again."
         client = anthropic.Anthropic(api_key=key)
         try:
-            client.messages.create(model=settings.llm_fast_model, max_tokens=5,
+            client.messages.create(model=settings.llm_model, max_tokens=5,
                                    messages=[{"role": "user", "content": "Reply with OK."}])
         except Exception as e:
             msg = str(e)

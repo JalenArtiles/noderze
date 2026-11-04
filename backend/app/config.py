@@ -23,7 +23,7 @@ class Settings(BaseSettings):
     # LLM (optional; the app degrades to deterministic mode without it)
     anthropic_api_key: str | None = None
     llm_model: str = "claude-sonnet-5-5"
-    llm_fast_model: str = "claude-haiku-4-5-20251001"
+    llm_fast_model: str = "claude-haiku-5-5"
     anthropic_web_search_tool: str = "web_search_20250305"
 
     # Web search provider: auto | anthropic | tavily | brave | serper | none
