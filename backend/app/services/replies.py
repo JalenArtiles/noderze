@@ -70,13 +70,23 @@ def domain_of(url_or_email: str | None) -> str:
     return ".".join(parts[-2:]) if len(parts) >= 2 else host
 
 
+# A company's first word alone is only a good search term when it's distinctive: "GuidePoint" is, "Arizona" isn't.
+COMMON_FIRST = set("""alabama alaska arizona arkansas california colorado connecticut delaware florida georgia hawaii idaho
+illinois indiana iowa kansas kentucky louisiana maine maryland massachusetts michigan minnesota mississippi missouri
+montana nebraska nevada hampshire jersey mexico york carolina dakota ohio oklahoma oregon pennsylvania rhode tennessee
+texas utah vermont virginia washington wisconsin wyoming phoenix tempe mesa chandler scottsdale american america united
+national general first new global north south east west pacific atlantic digital data cloud smart blue red green black
+white golden best city state university college bank capital central western eastern southern northern advanced
+applied integrated premier united""".split())
+
+
 def _name_terms(name: str) -> list[str]:
     """Ways a company is written in mail: 'GuidePoint Security' -> ['guidepoint security', 'guidepoint']."""
     full = re.sub(r"[^a-z0-9& ]", " ", name.lower()).strip()
     full = re.sub(r"\s+", " ", full)
     words = [w for w in full.split() if w not in GENERIC]
     terms = [full] if full else []
-    if words and words[0] != full and (len(words[0]) >= 4 or name.isupper()):
+    if words and words[0] != full and words[0] not in COMMON_FIRST and (len(words[0]) >= 4 or name.isupper()):
         terms.append(words[0])
     return terms
 
