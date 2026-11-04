@@ -89,12 +89,22 @@ def _rewrite_cover_letters(db) -> None:
         d.flags, d.generated_by = flags, by
 
 
+def _next_action_v2(db) -> None:
+    """Stock answers with [bracketed] prompts are gone; so is the reminder to fill them."""
+    from sqlalchemy import select
+
+    from .models import Application
+    from .services.prep import NEXT_ACTION
+    for a in db.scalars(select(Application).where(Application.next_action == "Review resume edits and fill the [bracketed] prompts")):
+        a.next_action = NEXT_ACTION
+
+
 # rescore_v3_2: enterprise/strategic AE roles, foreign postings and state-limited remote roles left the entry list.
 STEPS = [("alerts_baseline_v1", _baseline_alerts), ("available_start_v1", _start_month), ("rescore_v3_1", _rescore),
          ("rescore_v3_2", _rescore), ("generic_notes_v1", _clear_generic_notes),
          ("resume_checks_v1", _refresh_resume_checks), ("intern_rule_v1", _intern_rule),
          ("rescore_interns_v1", _rescore),  # internship checks after the first live search
-         ("cover_letters_v2", _rewrite_cover_letters)]
+         ("cover_letters_v2", _rewrite_cover_letters), ("next_action_v2", _next_action_v2)]
 
 
 def apply_profile_updates(db) -> int:

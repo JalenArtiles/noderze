@@ -54,3 +54,20 @@ settings = Settings()
 settings.data_dir.mkdir(parents=True, exist_ok=True)
 (settings.data_dir / "resumes").mkdir(exist_ok=True)
 (settings.data_dir / "screenshots").mkdir(exist_ok=True)
+
+
+def save_env(key: str, value: str | None) -> None:
+    """Set or remove one KEY=value line in backend/.env, keeping every other line as it is."""
+    path = BACKEND_DIR / ".env"
+    lines = path.read_text(encoding="utf-8").splitlines() if path.exists() else []
+    out, done = [], False
+    for line in lines:
+        if line.strip().split("=", 1)[0].strip() == key:
+            if value and not done:
+                out.append(f"{key}={value}")
+                done = True
+            continue
+        out.append(line)
+    if value and not done:
+        out.append(f"{key}={value}")
+    path.write_text("\n".join(out) + "\n", encoding="utf-8")

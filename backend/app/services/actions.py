@@ -12,7 +12,7 @@ from .evidence import evidence_for
 from .profile import master_resume
 from .skills_gap import roadmap
 
-ACTIVE = ("target", "preparing", "applied", "recruiter_contacted", "recruiter_response", "interview",
+ACTIVE = ("target", "preparing", "started", "applied", "recruiter_contacted", "recruiter_response", "interview",
           "technical_interview", "final_interview")
 
 
@@ -23,7 +23,13 @@ def today_actions(db: Session, limit: int = 8) -> list[dict]:
     def add(prio, text, why, link):
         acts.append({"priority": prio, "text": text, "why": why, "link": link})
 
-    for app in db.scalars(select(Application).where(Application.stage.in_(("target", "preparing")),
+    from . import replies
+    for r in replies.unseen(db)[:3]:
+        app = db.get(Application, r.application_id) if r.application_id else None
+        who = app.job.company.name if app else (r.from_name or "A company")
+        add(99 if r.kind in ("interview", "offer", "assessment") else 92,
+            f"{who} replied: {replies.KIND_LABEL.get(r.kind, 'Reply').lower()}", r.subject[:120], "/replies")
+    for app in db.scalars(select(Application).where(Application.stage.in_(("target", "preparing", "started")),
                                                     Application.deadline.is_not(None))):
         days = (app.deadline - t).days
         if 0 <= days <= 7:

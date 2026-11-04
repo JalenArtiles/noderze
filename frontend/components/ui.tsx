@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { AlertTriangle, Info, Loader2, MoreHorizontal } from "lucide-react";
+import { AlertTriangle, Info, Loader2, MoreHorizontal, Undo2, X } from "lucide-react";
 import { api, day, label, money } from "@/lib/api";
 import { CompanyLogo } from "@/components/visual";
 import { useActivity } from "@/components/activity";
@@ -35,6 +35,42 @@ export function Callout({ tone, children, action }: { tone?: "warn" | "bad"; chi
 }
 
 export function Loading({ what = "Loading" }: { what?: string }) { return <p className="skeleton">{what}...</p>; }
+
+/** Where an application stands, in plain words. Saved and drafted roles aren't on the Applications board. */
+export const STAGE_LABEL: Record<string, string> = { researching: "Saved", target: "Saved", preparing: "Draft", started: "Started",
+  applied: "Applied", recruiter_contacted: "Recruiter contacted", recruiter_response: "Recruiter replied", interview: "Interviewing",
+  technical_interview: "Technical interview", final_interview: "Final interview", offer: "Offer", rejected: "Closed", withdrawn: "Withdrawn" };
+export const stageLabel = (s?: string | null) => (s ? STAGE_LABEL[s] || label(s) : "");
+export const PRE_APPLY = ["researching", "target", "preparing"];
+
+/** Remove a listing from every list (it can come back from Settings > Removed listings). */
+export function useRemove(job: any, onChange?: () => void, ids?: number[]) {
+  const [removed, setRemoved] = useState(false);
+  const [busy, setBusy] = useState(false);
+  async function set(hidden: boolean) {
+    setBusy(true);
+    try {
+      // The same internship posted several times is removed (or restored) all at once.
+      for (const id of ids?.length ? ids : [job.id]) await api(`/api/jobs/${id}`, { method: "PATCH", body: { hidden } });
+      setRemoved(hidden); onChange?.();
+    } catch {}
+    setBusy(false);
+  }
+  return { removed, busy, remove: () => set(true), undo: () => set(false) };
+}
+
+export function RemoveButton({ onClick, busy }: { onClick: () => void; busy?: boolean }) {
+  return <button className="btn sm quiet icon" onClick={onClick} disabled={busy} title="Remove this listing. It won't show up again." aria-label="Remove listing"><X /></button>;
+}
+
+export function RemovedRow({ title, onUndo, busy }: { title: string; onUndo: () => void; busy?: boolean }) {
+  return (
+    <div className="li removed-row">
+      <span className="small muted grow">Removed <b>{title}</b>. It won't show up in your lists.</span>
+      <button className="btn sm quiet" onClick={onUndo} disabled={busy}><Undo2 />Undo</button>
+    </div>
+  );
+}
 
 /** A small "more actions" menu so a screen keeps one obvious primary action. */
 export function Menu({ label: lab = "More actions", children }: { label?: string; children: React.ReactNode }) {
@@ -119,6 +155,8 @@ export const compText = (job: any) => job.comp_min ? `${money(job.comp_min)}${jo
 /** One role as a compact row: what it is, where, the few facts that decide whether to click, and the score. */
 export function JobRow({ job, showCompany = true, onChange }: { job: any; showCompany?: boolean; onChange?: () => void }) {
   const [busy, setBusy] = useState(false);
+  const rm = useRemove(job);
+  if (rm.removed) return <RemovedRow title={job.title} onUndo={rm.undo} busy={rm.busy} />;
   const comp = compText(job);
   const where = [showCompany ? job.company : null, job.location_text || "Location unknown", comp].filter(Boolean).join(", ");
   const grad = job.grad_status && job.grad_status !== "unclear" ? job.grad_status : null;
@@ -131,7 +169,7 @@ export function JobRow({ job, showCompany = true, onChange }: { job: any; showCo
         <div className="sub">{where}</div>
         <div className="meta" style={{ marginTop: ".4rem" }}>
           <PathBadge value={job.path_class} />
-          {job.application_stage ? <span className="tag good">{label(job.application_stage)}</span>
+          {job.application_stage ? <span className={`tag ${PRE_APPLY.includes(job.application_stage) ? "" : "good"}`}>{stageLabel(job.application_stage)}</span>
             : grad && <span className={`tag ${GRAD_TONE[grad] || ""}`} title={job.grad_reason}>{GRAD_SHORT[grad] || label(grad)}</span>}
           {job.flags?.includes("outside_area") ? <span className="tag warn">Outside your area</span>
             : job.sales_level ? <span className="tag">{job.sales_level.split(" (")[0]}</span>
@@ -143,6 +181,7 @@ export function JobRow({ job, showCompany = true, onChange }: { job: any; showCo
         <ScoreChip value={job.score_total} />
         {!job.application_stage && onChange && <button className="btn sm quiet" onClick={track} disabled={busy}>Save</button>}
         <Link className="btn sm primary" href={`/apply/${job.id}`}>Apply</Link>
+        <RemoveButton onClick={rm.remove} busy={rm.busy} />
       </div>
     </div>
   );

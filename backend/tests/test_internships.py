@@ -258,7 +258,7 @@ def test_internship_api_flow(client, tmp_path):
     db.close()
     page = client.get(f"/api/applications/{app.id}").json()
     kinds = {d["kind"] for d in page["docs"]}
-    assert {"availability", "why_field", "cover_letter"} <= kinds and "why_se" not in kinds
+    assert "cover_letter" in kinds and not kinds & {"availability", "why_field", "why_se"}  # questions are pasted in now
     cl = next(d for d in page["docs"] if d["kind"] == "cover_letter")["content"]
     assert "spring 2027" in cl.lower() and "sales engineering" not in cl.lower()
     assert "I am excited to apply" in cl and "Hiring Team," in cl and "Sincerely," in cl

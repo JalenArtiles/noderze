@@ -1,10 +1,10 @@
 "use client";
 import Link from "next/link";
 import { useState } from "react";
-import { CalendarRange, Check, CircleDollarSign, Clock, EyeOff, MapPin, Minus, TriangleAlert, UserSearch, X } from "lucide-react";
-import { ScoreChip } from "@/components/ui";
+import { CalendarRange, Check, CircleDollarSign, Clock, MapPin, Minus, TriangleAlert, UserSearch, X } from "lucide-react";
+import { PRE_APPLY, RemoveButton, RemovedRow, ScoreChip, stageLabel, useRemove } from "@/components/ui";
 import { CompanyLogo } from "@/components/visual";
-import { api, day, label } from "@/lib/api";
+import { api, day } from "@/lib/api";
 
 export const TRACKS: [string, string][] = [["cyber", "Cybersecurity"], ["data", "Data analytics"], ["network", "Networking"]];
 const STATE_ICON: Record<string, any> = { pass: Check, warn: TriangleAlert, fail: X };
@@ -47,14 +47,16 @@ export function useInternActions(job: any, onChange?: (it: any) => void) {
   return { busy, set };
 }
 
-export function InternRow({ job, count = 1, onChange }: { job: any; count?: number; onChange?: () => void }) {
+export function InternRow({ job, count = 1, ids, onChange }: { job: any; count?: number; ids?: number[]; onChange?: () => void }) {
   const it = job.intern || {};
   const { busy, set } = useInternActions(job, () => onChange?.());
   const [saving, setSaving] = useState(false);
+  const rm = useRemove(job, undefined, ids);
   const out = it.status === "out";
   const fails = (it.checks || []).filter((c: any) => c.state === "fail");
   const warns = (it.checks || []).filter((c: any) => c.state === "warn");
   async function track() { setSaving(true); try { await api("/api/applications", { body: { job_id: job.id } }); onChange?.(); } catch {} setSaving(false); }
+  if (rm.removed) return <RemovedRow title={`${job.title}${count > 1 ? ` (${count} postings)` : ""}`} onUndo={rm.undo} busy={rm.busy} />;
   return (
     <div className={`li hover irow ${out ? "out" : ""}`}>
       <CompanyLogo name={job.company} website={job.company_website} size="sm" />
@@ -68,7 +70,7 @@ export function InternRow({ job, count = 1, onChange }: { job: any; count?: numb
         <div className="meta" style={{ marginTop: ".45rem" }}>
           <span className={`tag track ${it.track}`}>{it.track_label}</span>
           <FactChips it={it} />
-          {job.application_stage && <span className="tag good">{label(job.application_stage)}</span>}
+          {job.application_stage && <span className={`tag ${PRE_APPLY.includes(job.application_stage) ? "" : "good"}`}>{stageLabel(job.application_stage)}</span>}
         </div>
         {out && fails.length > 0 && <div className="why-out"><b>Filtered out:</b> {fails.map((f: any) => f.detail).join(" ")}</div>}
         {!out && warns.length > 0 && <div className="why-out warn">Confirm before applying: {warns.map((w: any) => CHECK_NAME[w.key] || w.label).join(", ")}.</div>}
@@ -80,13 +82,14 @@ export function InternRow({ job, count = 1, onChange }: { job: any; count?: numb
           <>
             {fails.some((f: any) => f.key === "pay") && <button className="btn sm" disabled={busy} onClick={() => set({ paid: true })} title="Use this after the recruiter tells you it's paid">It's paid</button>}
             {!it.overrides?.include && <button className="btn sm quiet" disabled={busy} onClick={() => set({ include: true })} title="Count it even though it missed a rule">Count it anyway</button>}
-            <button className="btn sm quiet icon" disabled={busy} onClick={() => set({ hidden: true })} title="Hide" aria-label="Hide"><EyeOff /></button>
+            <RemoveButton onClick={rm.remove} busy={rm.busy} />
           </>
         ) : (
           <>
             {!job.application_stage && <button className="btn sm quiet" onClick={track} disabled={saving}>Save</button>}
             <Link className="btn sm" href={`/apply/${job.id}#recruiter`} title="Find the recruiter and copy a message"><UserSearch />Recruiter</Link>
             <Link className="btn sm primary" href={`/apply/${job.id}`}>Apply</Link>
+            <RemoveButton onClick={rm.remove} busy={rm.busy} />
           </>
         )}
       </div>

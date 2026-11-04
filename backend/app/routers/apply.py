@@ -11,10 +11,11 @@ from sqlalchemy.orm import Session
 
 from ..config import settings
 from ..db import Base, engine, get_db
-from ..models import (STAGES, Application, ApplicationEvent, Approval, Company, GeneratedDoc, InterviewStage, Job,
-                      Outreach, Person, Resume, ResumeVersion)
+from ..models import (PRE_APPLY, STAGES, Application, ApplicationEvent, Approval, Company, EmailReply, GeneratedDoc,
+                      InterviewStage, Job, Outreach, Person, QuestionAnswer, Resume, ResumeVersion)
 from ..services import approvals as A
 from ..services import prep
+from ..services import replies as R2
 from ..services import resume as R
 from ..services import writing as W
 from ..services.jobs_engine import rescore_all
@@ -146,12 +147,24 @@ def download(vid: int, db: Session = Depends(get_db)):
 
 # ----------------------------------------------------------------------------- tracker
 
+# The board's columns. Saved and drafts are roles you saved or opened in Apply without applying: they stay off the board
+# unless you ask for them.
+BOARD = [
+    ("saved", "Saved and drafts", PRE_APPLY, "Roles you saved or opened in Apply but haven't applied to"),
+    ("started", "Started", ("started",), "You opened the company's application"),
+    ("applied", "Applied", ("applied",), "Follow up about a week after applying"),
+    ("talking", "Talking to a recruiter", ("recruiter_contacted", "recruiter_response"), "You reached out, or they did"),
+    ("interviewing", "Interviewing", ("interview", "technical_interview", "final_interview"), "Prep lives on each application"),
+    ("offer", "Offer", ("offer",), ""),
+    ("closed", "Closed", ("rejected", "withdrawn"), "Not moving forward"),
+]
+
+
 @router.get("/applications")
 def board(db: Session = Depends(get_db)):
-    cols = {s: [] for s in STAGES}
-    for a in db.scalars(select(Application).order_by(Application.updated_at.desc())):
-        cols.setdefault(a.stage, []).append(app_card(db, a))
-    return {"stages": STAGES, "columns": cols}
+    cards = [app_card(db, a) for a in db.scalars(select(Application).order_by(Application.updated_at.desc()))]
+    return {"stages": STAGES, "cards": cards,
+            "groups": [{"key": k, "label": lab, "stages": list(st), "hint": hint} for k, lab, st, hint in BOARD]}
 
 
 def app_card(db: Session, a: Application) -> dict:
@@ -161,7 +174,8 @@ def app_card(db: Session, a: Application) -> dict:
             "follow_up_date": a.follow_up_date.isoformat() if a.follow_up_date else None, "next_action": a.next_action,
             "readiness": (a.readiness or {}).get("overall"), "date_applied": a.date_applied.isoformat() if a.date_applied else None,
             "location": j.location_text, "salary": f"${j.comp_min:,.0f}-{j.comp_max:,.0f}/{j.comp_period}" if j.comp_min else None,
-            "is_intern": j.family == "internship"}
+            "is_intern": j.family == "internship", "kind": "internship" if j.family == "internship" else "career",
+            "company_id": j.company_id, "company_website": j.company.website, "removed": j.hidden}
 
 
 @router.post("/applications")
@@ -194,7 +208,76 @@ def application_page(aid: int, db: Session = Depends(get_db)):
                        for e in events],
             "interviews": [{"id": s.id, "name": s.name, "scheduled_at": s.scheduled_at.isoformat() if s.scheduled_at else None,
                             "questions": s.questions, "notes": s.notes, "outcome": s.outcome} for s in stages],
-            "resume_version": version_dict(db, v) if v else None}
+            "resume_version": version_dict(db, v) if v else None,
+            "questions": [question_dict(q) for q in db.scalars(select(QuestionAnswer).where(
+                QuestionAnswer.application_id == a.id).order_by(QuestionAnswer.created_at.desc()))],
+            "replies": [R2.reply_dict(db, r) for r in db.scalars(select(EmailReply).where(
+                EmailReply.application_id == a.id).order_by(EmailReply.received_at.desc()))],
+            "llm": llm.available, "stages_all": [x for x in STAGES if x != "researching" or a.stage == x]}
+
+
+# ----------------------------------------------------------------------------- questions you paste in
+
+def question_dict(q: QuestionAnswer) -> dict:
+    return {"id": q.id, "question": q.question, "notes": q.notes, "limit_words": q.limit_words,
+            "limit_chars": q.limit_chars, "answer": q.answer, "flags": q.flags or [], "generated_by": q.generated_by,
+            "updated_at": q.updated_at.isoformat() if q.updated_at else None}
+
+
+class QuestionIn(BaseModel):
+    question: str
+    notes: str | None = None
+    limit_words: int | None = None
+    limit_chars: int | None = None
+
+
+def _write_answer(db: Session, q: QuestionAnswer) -> None:
+    a = db.get(Application, q.application_id)
+    ctx = prep._ctx(db, db.get(Job, a.job_id))
+    text, by = W.answer_question(ctx, q.question, q.notes, q.limit_words, q.limit_chars)
+    q.answer, q.generated_by = text, by
+    q.flags = W.answer_flags(text, q.limit_words, q.limit_chars)
+
+
+@router.post("/applications/{aid}/questions")
+def add_question(aid: int, body: QuestionIn, db: Session = Depends(get_db)):
+    a = db.get(Application, aid) or _404()
+    if not body.question.strip():
+        raise HTTPException(400, "Paste the question first.")
+    q = QuestionAnswer(application_id=a.id, question=body.question.strip()[:4000], notes=(body.notes or "").strip() or None,
+                       limit_words=body.limit_words or None, limit_chars=body.limit_chars or None)
+    db.add(q)
+    db.flush()
+    _write_answer(db, q)
+    db.commit()
+    return question_dict(q)
+
+
+@router.patch("/questions/{qid}")
+def patch_question(qid: int, body: dict, db: Session = Depends(get_db)):
+    """Save your edits ({answer}), or write it again ({regenerate: true, notes?, limit_words?, limit_chars?})."""
+    q = db.get(QuestionAnswer, qid) or _404()
+    for k in ("notes", "limit_words", "limit_chars"):
+        if k in body:
+            setattr(q, k, body[k] or None)
+    if (body.get("question") or "").strip():
+        q.question = body["question"].strip()[:4000]
+    if body.get("regenerate"):
+        _write_answer(db, q)
+    elif "answer" in body:
+        q.answer = W.clean_dashes(body["answer"] or "").strip()
+        q.flags = W.answer_flags(q.answer, q.limit_words, q.limit_chars)
+        q.generated_by = "you"
+    db.commit()
+    return question_dict(q)
+
+
+@router.delete("/questions/{qid}")
+def delete_question(qid: int, db: Session = Depends(get_db)):
+    q = db.get(QuestionAnswer, qid) or _404()
+    db.delete(q)
+    db.commit()
+    return {"deleted": qid}
 
 
 @router.patch("/applications/{aid}")
@@ -203,7 +286,7 @@ def patch_application(aid: int, body: dict, db: Session = Depends(get_db)):
     if "stage" in body and body["stage"] != a.stage:
         if body["stage"] not in STAGES:
             raise HTTPException(400, "Unknown stage")
-        if body["stage"] in ("applied",) and a.stage in ("target", "preparing", "researching"):
+        if body["stage"] in ("applied",) and a.stage in PRE_APPLY + ("started",):
             a.date_applied = a.date_applied or today()
             a.follow_up_date = a.follow_up_date or today() + timedelta(days=prep.FOLLOW_UP_DAYS[0])
         db.add(ApplicationEvent(application_id=a.id, kind="stage", from_stage=a.stage, to_stage=body["stage"],
@@ -245,7 +328,7 @@ def request_action(aid: int, body: dict, db: Session = Depends(get_db)):
         v = db.get(ResumeVersion, a.resume_version_id) if a.resume_version_id else None
         flagged = [e for e in (v.edits if v else []) if e.get("status") == "approved" and e.get("flags")]
         unfilled = [d.title for d in db.scalars(select(GeneratedDoc).where(GeneratedDoc.application_id == a.id))
-                    if "[" in d.content and d.kind in ("cover_letter", "why_company", "why_role")]
+                    if "[" in d.content and d.kind == "cover_letter"]
         summary = f"Submit application to {j.company.name}: {j.title}"
         payload = {"application_id": a.id, "job_url": j.apply_url or j.url,
                    "resume_path": v.output_path if v else None, "cover_letter_id": a.cover_letter_id,
@@ -446,7 +529,7 @@ def patch_outreach(oid: int, body: dict, db: Session = Depends(get_db)):
         o.follow_up_date = today() + timedelta(days=7)
         if o.application_id:
             a = db.get(Application, o.application_id)
-            if a.stage in ("target", "preparing", "applied"):
+            if a.stage in PRE_APPLY + ("started", "applied"):
                 db.add(ApplicationEvent(application_id=a.id, kind="stage", from_stage=a.stage, to_stage="recruiter_contacted"))
                 a.stage = "recruiter_contacted"
     for k in ("response", "outcome"):

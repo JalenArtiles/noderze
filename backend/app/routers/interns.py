@@ -65,14 +65,12 @@ def internships(db: Session = Depends(get_db)):
     prof = get_profile(db).data or {}
     run = db.scalar(select(SearchRun).where(SearchRun.kind == "find_internships").order_by(SearchRun.started_at.desc())
                     .limit(1))
-    hidden = db.scalar(select(Job.id).where(Job.family == IJ.FAMILY, Job.hidden.is_(True)).limit(1))
     return {
         "items": [_item(j, apps, unseen) for j in jobs],
         "counts": IJ.counts(db),
         "prefs": prefs(prof),
         "last_scan": prof.get("intern_last_scan"),
         "running": bool(run and run.status == "running"),
-        "has_hidden": bool(hidden),
         "links": search_links(), "fixed_links": FIXED_LINKS,
     }
 
@@ -119,16 +117,6 @@ def patch_internship(jid: int, body: InternPatch, db: Session = Depends(get_db))
     db.commit()
     apps = dict(db.execute(select(Application.job_id, Application.stage)).all())
     return _item(job, apps, set())
-
-
-@router.post("/internships/unhide")
-def unhide(db: Session = Depends(get_db)):
-    n = 0
-    for j in db.scalars(select(Job).where(Job.family == IJ.FAMILY, Job.hidden.is_(True))):
-        j.hidden = False
-        n += 1
-    db.commit()
-    return {"unhidden": n}
 
 
 @router.get("/internships/defaults")

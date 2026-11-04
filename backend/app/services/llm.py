@@ -29,6 +29,29 @@ class LLM:
     def available(self) -> bool:
         return self.client is not None
 
+    def set_key(self, key: str | None) -> str | None:
+        """Use a new API key right away, without a restart. Returns an error message, or None when it works.
+        A key that fails the check changes nothing; None turns Claude off."""
+        if not key:
+            settings.anthropic_api_key, self.client = None, None
+            return None
+        if anthropic is None:
+            return "The anthropic package isn't installed. Run setup-noderze.ps1 again."
+        client = anthropic.Anthropic(api_key=key)
+        try:
+            client.messages.create(model=settings.llm_fast_model, max_tokens=5,
+                                   messages=[{"role": "user", "content": "Reply with OK."}])
+        except Exception as e:
+            msg = str(e)
+            if "401" in msg or "authentication" in msg.lower() or "invalid x-api-key" in msg.lower():
+                return "Anthropic didn't accept that key. Copy it again from console.anthropic.com."
+            if "credit" in msg.lower() or "billing" in msg.lower():
+                return "The key works, but the account has no credit yet. Add some under Billing at console.anthropic.com."
+            log.warning("Anthropic key check failed: %s", type(e).__name__)
+            return "Couldn't reach Anthropic to check the key. Check your internet connection and try again."
+        settings.anthropic_api_key, self.client = key, client
+        return None
+
     def structured(self, system: str, prompt: str, schema: dict, *, fast: bool = False,
                    max_tokens: int = 3000) -> dict | None:
         if not self.client:

@@ -18,6 +18,9 @@ from .taxonomy import AREA_LABELS, areas_in
 FOLLOW_UP_DAYS = (5, 12)
 
 
+NEXT_ACTION = "Review the resume edits and the cover letter"
+
+
 def ensure_application(db: Session, job: Job) -> Application:
     app = db.scalar(select(Application).where(Application.job_id == job.id))
     if not app:
@@ -106,11 +109,7 @@ def prepare(db: Session, job: Job, log) -> Application:
     cl.flags = [f for f in cl.flags if "characters" not in f]
     app.cover_letter_id = cl.id
     pkg["docs"]["cover_letter"] = cl.id
-    for key, q in (W.INTERN_QUESTIONS if intern else W.QUESTIONS).items():
-        if key == "why_solutions_engineering":
-            continue
-        text, by = W.answer(key, ctx)
-        pkg["docs"][key] = _doc(db, app, job, key, q, text, by, "answer", corpus, held).id
+    # Application questions are answered one at a time on the Cover letter and questions tab: you paste the real question.
 
     iq = W.interview_questions(ctx)
     md = "\n\n".join(f"{k.replace('_', ' ').title()}\n" + "\n".join(f"- {q}" for q in qs) for k, qs in iq.items())
@@ -158,7 +157,7 @@ def prepare(db: Session, job: Job, log) -> Application:
     if intern:
         pkg["intern"] = {"track": ctx.get("track"), "checks": (job.intern.checks if job.intern else [])}
     app.package = pkg
-    app.next_action = app.next_action or "Review resume edits and fill the [bracketed] prompts"
+    app.next_action = app.next_action or NEXT_ACTION
     db.flush()
     app.readiness = readiness(db, app)
     db.commit()
@@ -235,7 +234,7 @@ def readiness(db: Session, app: Application) -> dict:
     outreach = list(db.scalars(select(Outreach).join(Person).where(Person.company_id == job.company_id)))
     recruiter = 100 if any(o.status in ("sent", "replied") for o in outreach) else 50 if outreach else 0
     docs = list(db.scalars(select(GeneratedDoc).where(GeneratedDoc.application_id == app.id)))
-    unfilled = [d for d in docs if "[" in d.content and d.kind not in ("interview_prep", "study_guide")]
+    unfilled = [d for d in docs if "[" in d.content and d.kind == "cover_letter"]  # the only draft on the page
     checklist_state = (app.package or {}).get("checklist_done", {})
     practiced = len((app.package or {}).get("practiced", []))
     interview = min(100, practiced * 20)

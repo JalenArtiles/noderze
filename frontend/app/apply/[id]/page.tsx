@@ -3,7 +3,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { Check, Copy, Download, ExternalLink, UserSearch } from "lucide-react";
-import { Callout, Err, PageHeader, PathBadge } from "@/components/ui";
+import { Callout, Err, PageHeader, PathBadge, PRE_APPLY, stageLabel } from "@/components/ui";
 import { FactChips } from "@/components/intern";
 import { CompanyLogo, ScoreRing } from "@/components/visual";
 import { api, fileUrl } from "@/lib/api";
@@ -36,6 +36,11 @@ export default function Apply() {
     load();
   }
   async function applied() { await api(`/api/applications/${d.application_id}`, { method: "PATCH", body: { stage: "applied" } }); load(); }
+  // Opening the company's application is what puts a role on your Applications board (as Started).
+  async function started() {
+    if (!PRE_APPLY.includes(d.stage)) return;
+    try { await api(`/api/applications/${d.application_id}`, { method: "PATCH", body: { stage: "started" } }); setD({ ...d, stage: "started" }); } catch {}
+  }
   if (err) return <><Err msg={err} />{err.includes("resume") && <p style={{ marginTop: "1rem" }}><Link className="btn primary" href="/resume">Upload your resume</Link></p>}</>;
   if (!d) return <div className="panel empty"><h3>Tailoring your resume</h3><p>Matching your experience to the keywords this company screens for.</p></div>;
   const j = d.job;
@@ -56,7 +61,7 @@ export default function Apply() {
           {it ? <><span className={`tag track ${it.track}`}>{it.track_label}</span><FactChips it={it} /></> : <><PathBadge value={j.path_class} /><span className="tag">{j.location_text}</span></>}
           {d.se_team?.open_se_roles > 0 && <span className="tag info">{d.se_team.open_se_roles} open SE roles</span>}
           {j.needs_verification && <span className="tag warn">Check the posting is still open</span>}
-          {d.stage === "applied" && <span className="tag good"><Check />Applied</span>}
+          {!PRE_APPLY.includes(d.stage) && <Link href={`/applications/${d.application_id}`} className="tag good"><Check />{stageLabel(d.stage)}</Link>}
         </div>
       </PageHeader>
 
@@ -103,11 +108,11 @@ export default function Apply() {
         <section className="panel">
           <span className="badge-n">2</span>
           <h2>Apply on {j.company}'s site</h2>
-          <p className="small muted" style={{ margin: ".3rem 0 .9rem" }}>Upload the tailored resume you just downloaded, then mark it applied so Noderze can remind you to follow up.{it ? " Before you accept an offer, check with your internship coordinator that it counts for credit." : ""}</p>
+          <p className="small muted" style={{ margin: ".3rem 0 .9rem" }}>Opening the application adds this role to your Applications board as Started. Upload the tailored resume you just downloaded, then click I applied so Noderze can remind you to follow up.{it ? " Before you accept an offer, check with your internship coordinator that it counts for credit." : ""}</p>
           <div className="row">
-            {d.apply_url && <a className="btn gold" href={d.apply_url} target="_blank" rel="noreferrer"><ExternalLink />Open the application</a>}
-            <button className="btn" onClick={applied} disabled={d.stage === "applied"}><Check />{d.stage === "applied" ? "Marked as applied" : "I applied"}</button>
-            <Link className="btn quiet" href={`/applications/${d.application_id}`}>Cover letter and answers</Link>
+            {d.apply_url && <a className="btn gold" href={d.apply_url} target="_blank" rel="noreferrer" onClick={started}><ExternalLink />Open the application</a>}
+            <button className="btn" onClick={applied} disabled={!PRE_APPLY.includes(d.stage) && d.stage !== "started"}><Check />{PRE_APPLY.includes(d.stage) || d.stage === "started" ? "I applied" : "Marked as applied"}</button>
+            <Link className="btn quiet" href={`/applications/${d.application_id}?tab=docs`}>Cover letter and questions</Link>
           </div>
         </section>
 

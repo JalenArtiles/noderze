@@ -1,15 +1,15 @@
 "use client";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { ArrowUpRight, Backpack, Briefcase, GraduationCap, Globe, MapPin, Shield, Sun, TrendingUp } from "lucide-react";
+import { ArrowUpRight, Backpack, Briefcase, GraduationCap, Globe, Mail, MapPin, Shield, Sun, TrendingUp } from "lucide-react";
 import { Callout, Err, JobList, PathBadge, SectionHead } from "@/components/ui";
 import { CompanyLogo, RouteArt, ScoreRing } from "@/components/visual";
-import { useApi } from "@/lib/api";
+import { api, useApi } from "@/lib/api";
 
 const TILE_ICON: Record<string, any> = { interns: Backpack, programs: GraduationCap, az: Sun, socal: MapPin, remote: Globe, cyber: Shield, goal: TrendingUp };
 
 export default function Home() {
-  const { data, error } = useApi("/api/home");
+  const { data, error, reload } = useApi("/api/home");
   const [greet, setGreet] = useState("Hello");
   useEffect(() => { const h = new Date().getHours(); setGreet(h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening"); }, []);
   const best = data?.best;
@@ -42,7 +42,8 @@ export default function Home() {
               </div>
               <p className="small muted" style={{ margin: ".7rem 0 .8rem" }}>{best.score_breakdown?.career_path?.reasons?.[0]?.replace(/^\w+: /, "")}</p>
               <div className="row"><Link className="btn primary sm" href={`/apply/${best.id}`}>Apply</Link>
-                <Link className="btn sm" href={`/jobs/${best.id}`}>See why it fits</Link></div>
+                <Link className="btn sm" href={`/jobs/${best.id}`}>See why it fits</Link>
+                <button className="btn sm quiet" onClick={async () => { await api(`/api/jobs/${best.id}`, { method: "PATCH", body: { hidden: true } }); reload(); }} title="Remove this listing and show the next best">Not for me</button></div>
             </div>)}
         </div>
       </section>
@@ -74,6 +75,7 @@ export default function Home() {
           </section>
           <section className="panel">
             <div className="spread" style={{ marginBottom: ".7rem" }}><h3>Your applications</h3><Link className="small" href="/applications">Open board</Link></div>
+            {data?.replies > 0 && <Link href="/replies" className="reply-note"><Mail />{data.replies} new {data.replies === 1 ? "reply" : "replies"} from companies</Link>}
             <div className="pipe">{data && Object.entries(data.pipeline).map(([k, v]: any) => <Link key={k} href="/applications"><b className="num">{v}</b><span>{k}</span></Link>)}</div>
             {data?.next_moves?.length > 0 && <div style={{ marginTop: ".9rem" }}>{data.next_moves.slice(0, 3).map((m: any, i: number) => (
               <div key={i} className="fact"><Link href={m.link} style={{ fontWeight: 600 }}>{m.text}</Link><div className="small muted">{m.why}</div></div>))}</div>}

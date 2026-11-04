@@ -9,8 +9,8 @@ from sqlalchemy.orm import Session
 
 from .. import scheduler
 from ..db import get_db
-from ..models import (Alert, AlertRule, Application, CareerPath, Company, Job, Person, Program, SearchRun)
-from ..services import careerpath, research
+from ..models import (PRE_APPLY, Alert, AlertRule, Application, CareerPath, Company, Job, Person, Program, SearchRun)
+from ..services import careerpath, replies, research
 from ..services.actions import best_next_moves, today_actions
 from ..services.ats import RawPosting, fetch_single, parse_ats_url
 from ..services.classify import GRAD_LABELS, parse_location
@@ -91,7 +91,7 @@ def dashboard(db: Session = Depends(get_db)):
             "high_fit": sum(1 for j in jobs if (j.score_total or 0) >= 70),
             "new_today": sum(1 for j in jobs if j.discovered_at and j.discovered_at.date() == t),
             "programs": db.scalar(select(func.count(Program.id))),
-            "applications": sum(v for k, v in stages.items() if k not in ("target", "researching")),
+            "applications": sum(v for k, v in stages.items() if k not in PRE_APPLY),
             "interviews": sum(v for k, v in stages.items() if "interview" in k),
         },
         "today": today_actions(db), "next_moves": best_next_moves(db),
@@ -374,9 +374,10 @@ def home(db: Session = Depends(get_db)):
         "name": (prof.get("name") or "").split(" ")[0], "best": research.job_brief(best) | {"company_website": best.company.website} if best else None,
         "tiles": tiles, "top": [research.job_brief(j) for j in (entry + [j for j in ok if j.category == "program"])][:6],
         "today": today_actions(db, limit=5), "next_moves": best_next_moves(db)[:3],
-        "pipeline": {"Target": stages.get("target", 0) + stages.get("researching", 0), "Preparing": stages.get("preparing", 0),
+        "pipeline": {"Started": stages.get("started", 0),
                      "Applied": stages.get("applied", 0) + stages.get("recruiter_contacted", 0) + stages.get("recruiter_response", 0),
                      "Interviewing": sum(v for k, v in stages.items() if "interview" in k), "Offers": stages.get("offer", 0)},
+        "replies": len(replies.unseen(db)),
         "totals": {"jobs": len(ok), "companies": db.scalar(select(func.count(Company.id)).where(Company.watch_status.is_not(None))),
                    "programs": db.scalar(select(func.count(Program.id))), "new": db.scalar(select(func.count(Alert.id)).where(Alert.seen.is_(False)))},
         "status": {"llm": llm.available, "search_provider": provider_name()},
@@ -452,13 +453,44 @@ def add_job(body: ManualJobIn, db: Session = Depends(get_db)):
 
 @router.patch("/jobs/{jid}")
 def patch_job(jid: int, body: dict, db: Session = Depends(get_db)):
+    """hidden: true removes a listing from every list (Remove); false brings it back."""
     j = db.get(Job, jid) or _404()
     for k in ("hidden", "deadline", "is_active", "program_id"):
         if k in body:
             setattr(j, k, date.fromisoformat(body[k]) if k == "deadline" and body[k] else body[k])
-    enrich_and_score(db, j)
+    if set(body) - {"hidden"}:  # removing or restoring a listing doesn't change its score
+        enrich_and_score(db, j)
+    if body.get("hidden"):
+        for a in db.scalars(select(Alert).where(Alert.job_id == jid, Alert.seen.is_(False))):
+            a.seen = True
     db.commit()
     return research.job_brief(j)
+
+
+@router.get("/removed")
+def removed(db: Session = Depends(get_db)):
+    """Listings you removed, newest first, so you can bring one back."""
+    jobs = db.scalars(select(Job).where(Job.hidden.is_(True)).order_by(Job.discovered_at.desc()).limit(500))
+    return [research.job_brief(j) | {"kind": "internship" if j.family == "internship" else "career",
+                                     "company_website": j.company.website} for j in jobs]
+
+
+class KeyIn(BaseModel):
+    key: str | None = None
+
+
+@router.post("/settings/anthropic-key")
+def set_anthropic_key(body: KeyIn):
+    """Paste your Anthropic API key once. It's checked, saved to backend/.env (never to GitHub) and used right away."""
+    from ..config import save_env
+    key = (body.key or "").strip()
+    if key and not key.startswith("sk-ant-"):
+        raise HTTPException(400, "That doesn't look like an Anthropic key. Keys start with sk-ant-.")
+    err = llm.set_key(key or None)
+    if err:
+        raise HTTPException(400, err)
+    save_env("ANTHROPIC_API_KEY", key or None)
+    return {"llm": llm.available}
 
 
 @router.post("/jobs/rescore")

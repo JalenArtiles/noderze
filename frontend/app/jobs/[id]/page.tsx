@@ -4,7 +4,7 @@ import { useParams } from "next/navigation";
 import { ExternalLink } from "lucide-react";
 import { Empty, Err, Fact, GRAD_SHORT, Loading, Menu, PageHeader, PathBadge, PathRail, RunButton, ScoreBars, Tabs, compText, useTab } from "@/components/ui";
 import { useActivity } from "@/components/activity";
-import { day, label, useApi } from "@/lib/api";
+import { api, day, label, useApi } from "@/lib/api";
 import { CompanyLogo, ScoreRing } from "@/components/visual";
 import { FactChips, InternChecks } from "@/components/intern";
 
@@ -27,21 +27,24 @@ export default function JobPage() {
           <Link className="btn primary" href={`/apply/${j.id}`}>Apply</Link>
           <Menu>
             {j.url && <a href={j.url} target="_blank" rel="noreferrer">{j.source_is_original ? "Open the original posting" : "Open the listing"}</a>}
-            <button onClick={() => act.start({ kind: "prepare_application", body: { job_id: j.id }, label: `${j.company}, ${j.title}`, onDone: reload })}>Prepare the full package<span className="d">Cover letter, answers, interview prep</span></button>
+            <button onClick={() => act.start({ kind: "prepare_application", body: { job_id: j.id }, label: `${j.company}, ${j.title}`, onDone: reload })}>Prepare the full package<span className="d">Cover letter and interview prep</span></button>
             <button onClick={() => act.start({ kind: "deep_research", body: { company_id: j.company_id, job_id: j.id }, label: j.company, onDone: reload })}>Research this company<span className="d">Sourced facts from the web</span></button>
             {intern && <Link href={`/apply/${j.id}#recruiter`}>Reach the recruiter<span className="d">LinkedIn searches and a message to copy</span></Link>}
             {intern && <button onClick={() => act.start({ kind: "find_recruiters", body: { company_id: j.company_id, mode: "intern" }, label: `${j.company} recruiters`, onDone: reload })}>Find recruiters and team managers<span className="d">Public profiles, unverified until you check them</span></button>}
-            {j.application_id && <Link href={`/applications/${j.application_id}`}>Open the application</Link>}
+            {j.application_id && <Link href={`/applications/${j.application_id}`}>Cover letter, questions and notes</Link>}
+            <button onClick={async () => { await api(`/api/jobs/${j.id}`, { method: "PATCH", body: { hidden: !j.hidden } }); reload(); }}>
+              {j.hidden ? "Bring this listing back" : "Remove this listing"}<span className="d">{j.hidden ? "Show it in your lists again" : "Hide it from every list; undo from Settings"}</span></button>
           </Menu>
         </>}>
         {intern ? <div className="meta"><span className={`tag track ${intern.track}`}>{intern.track_label}</span><FactChips it={intern} />
-          {!j.is_active && <span className="tag bad">Appears closed</span>}</div> : <div className="meta">
+          {!j.is_active && <span className="tag bad">Appears closed</span>}{j.hidden && <span className="tag">Removed</span>}</div> : <div className="meta">
           <PathBadge value={j.path_class} />
           <span className="tag">{j.location_text || "Location unknown"}</span>
           {j.remote_type !== "unknown" && <span className="tag">{label(j.remote_type)}</span>}
           {comp && <span className="tag num">{comp}</span>}
           {j.grad_status && <span className="tag" title={j.grad_reason}>{GRAD_SHORT[j.grad_status] || label(j.grad_status)}</span>}
           {!j.is_active && <span className="tag bad">Appears closed</span>}
+          {j.hidden && <span className="tag">Removed</span>}
         </div>}
         <p className="small faint" style={{ marginTop: ".5rem" }}>Found {day(j.discovered_at)}{j.last_verified_at ? `, still open as of ${day(j.last_verified_at)}` : ", not checked live yet"}{j.posted_at ? `, posted ${day(j.posted_at)}` : ""}.</p>
       </PageHeader>

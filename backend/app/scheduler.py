@@ -36,7 +36,7 @@ def reload() -> None:
     except ImportError:
         log.warning("APScheduler not installed; scheduled scans disabled")
         return
-    from .workflows import WORKFLOWS, start
+    from .workflows import WORKFLOWS
 
     if _scheduler is None:
         _scheduler = BackgroundScheduler(timezone=settings.timezone)
@@ -51,28 +51,49 @@ def reload() -> None:
                 log.warning("Bad cron for rule %s: %s", rule.id, rule.cron)
                 continue
             wf = (rule.params or {}).get("workflow", "scan_alerts")
+            if wf not in WORKFLOWS:
+                log.warning("Rule %s names an unknown workflow: %s", rule.id, wf)
+                continue
             kwargs = {"rule_id": rule.id} if wf == "scan_alerts" else {}
             # A laptop that was asleep, or a restart at the wrong second, used to skip the scan entirely
             # (the default grace period is one second). Now a missed scan runs once, late, when Noderze is back.
-            _scheduler.add_job(start, trigger, args=[wf, rule.name, WORKFLOWS[wf]], kwargs=kwargs,
+            _scheduler.add_job(_run_rule, trigger, args=[rule.id, wf, rule.name], kwargs=kwargs,
                                id=f"rule-{rule.id}", replace_existing=True, misfire_grace_time=12 * 3600,
                                coalesce=True)
     finally:
         db.close()
-    _scheduler.add_job(_intern_imports, "interval", minutes=1, id="intern-imports", replace_existing=True,
+    _scheduler.add_job(drop_folders, "interval", minutes=1, id="intern-imports", replace_existing=True,
                        coalesce=True, max_instances=1)
 
 
-def _intern_imports() -> None:
-    """Internships dropped in data/intern-imports/ get added within a minute (see intern_jobs.import_dropped)."""
-    from .services.intern_jobs import import_dropped
+def _run_rule(rule_id: int, wf: str, name: str, **kwargs) -> None:
+    """Start a scheduled workflow and note when it ran, so Settings shows the real last run."""
+    from .util import now
+    from .workflows import WORKFLOWS, start
     db = SessionLocal()
     try:
-        import_dropped(db)
-    except Exception:
-        log.exception("intern imports failed")
+        rule = db.get(AlertRule, rule_id)
+        if rule is not None:
+            rule.last_run_at = now()
+            db.commit()
     finally:
         db.close()
+    start(wf, name, WORKFLOWS[wf], **kwargs)
+
+
+def drop_folders() -> None:
+    """Every minute: internships dropped in data/intern-imports/ and emails dropped in data/reply-imports/ are added,
+    and data/reply-imports/watch.json is kept current for the scheduled Gmail check."""
+    from .services import intern_jobs, replies
+    for name, fn in (("intern imports", intern_jobs.import_dropped), ("reply imports", replies.import_dropped),
+                     ("reply watch list", replies.write_watch)):
+        db = SessionLocal()
+        try:
+            fn(db)
+        except Exception:
+            log.exception("%s failed", name)
+        finally:
+            db.close()
 
 
 def shutdown() -> None:

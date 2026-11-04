@@ -8,8 +8,8 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from ..db import get_db
-from ..models import Alert, Application, Company, Evidence, Job, Person, ResumeVersion, SearchRun
-from ..services import prep
+from ..models import Alert, Company, Evidence, Job, Person, ResumeVersion, SearchRun
+from ..services import prep, replies
 from ..services import resume as R
 from ..services import writing as W
 from ..services.classify import parse_location, sales_level
@@ -158,6 +158,7 @@ def updates(since: str | None = None, db: Session = Depends(get_db)):
                            "error": (upd.get("error") or "")[-600:] or None},
             "unseen": max(0, (db.scalar(select(func.count(Alert.id)).where(Alert.seen.is_(False))) or 0) - intern_new),
             "unseen_interns": intern_new,
+            "unseen_replies": len(replies.unseen(db)),
             "alerts": [{"id": a.id, "message": a.message, "job_id": a.job_id} for a in alerts],
             "last_run": {"kind": last.kind, "finished_at": last.finished_at.isoformat() if last.finished_at else None,
                          "status": last.status} if last else None}

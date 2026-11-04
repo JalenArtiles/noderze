@@ -11,7 +11,7 @@ from datetime import date
 
 from ..util import clean_dashes
 from .llm import llm
-from .taxonomy import AREA_LABELS, _area_regex, areas_in, certs_in
+from .taxonomy import _area_regex, areas_in, certs_in
 
 BANNED = ["i am thrilled", "i'm thrilled", "passionate about", "my passion",
           "dynamic", "fast-paced", "synergy", "leverage", "utilize", "delve", "testament", "unique blend",
@@ -117,14 +117,6 @@ def _relevant_courses(profile: dict, ledger: list[dict], text: str, k: int = 3) 
                 courses += [c.strip() for c in f["text"].split(",")]
     rx = [_area_regex("tech", a) for a in areas_in(text, "tech")] + [_area_regex("tech", a) for a in ("networking", "security")]
     return sorted(courses, key=lambda c: -sum(bool(r.search(c)) for r in rx))[:k]
-
-
-def _story_prompt(ledger: list[dict]) -> str:
-    teach = next((f for f in ledger if f["kind"] in ("bullet", "text") and re.search(r"instruct|teach|coach|tutor", f["text"], re.I)), None)
-    if teach:
-        return ("[Open with a short personal story. One option from your resume: " + teach["text"].rstrip(".").lower()
-                + ", where you had to explain the same thing several ways until it clicked.]")
-    return "[Open with a short personal story the interviewer can relate to.]"
 
 
 def _clean_title(title: str) -> str:
@@ -384,57 +376,6 @@ def cover_letter(ctx: dict) -> tuple[str, str]:
     return _finish_letter(ctx, _pattern_letter(ctx, None)), "template"
 
 
-def answer(question_key: str, ctx: dict) -> tuple[str, str]:
-    if ctx.get("mode") == "intern" and question_key in INTERN_QUESTIONS:
-        return intern_answer(question_key, ctx)
-    p, led = ctx["profile"], ctx["ledger"]
-    q = QUESTIONS[question_key]
-    if llm.available:
-        out = llm.text(VOICE + " Answer in 90 to 160 words.", _ctx_prompt(ctx, f"application answer to: {q}"))
-        if out:
-            return out, "llm"
-    jt = f"{ctx['job_title']}\n{ctx['job_text'] or ''}"
-    facts = best_facts(led, jt, k=2)
-    fp = " ".join(_first_person(f) for f in facts)
-    company = ctx["company"]
-    if question_key == "tell_me_about_yourself":
-        hook = ctx.get("story_hook") or _story_prompt(led)
-        return (f"{hook} I'm a senior at ASU studying {p.get('degree_short', 'Applied Computing (cybersecurity)')}, "
-                f"graduating {_grad_phrase(p)}. {fp} That mix is why I'm aiming for {_clean_title(ctx['job_title'])}: the job is "
-                f"half understanding the technology and half helping a customer decide, and I've done some of both."), "template"
-    if question_key == "why_company":
-        why = ctx.get("why_company_fact")
-        return ((f"{why} " if why else f"[A specific reason {company} stands out to you.] ") +
-                f"The {ctx['job_title']} role fits where I'm headed, and {ctx.get('program_line') or 'the team structure'} "
-                f"is the kind of start I'm looking for."), "template"
-    if question_key == "why_role":
-        fits = [f["requirement"] for f in (ctx.get("analysis") or {}).get("fits", [])][:3]
-        return (f"The posting asks for {', '.join(fits) if fits else 'a mix of technical and customer skills'}, which "
-                f"lines up with what I've done. {fp} I want the version of that work where I'm the technical voice in "
-                f"the deal."), "template"
-    if question_key in ("why_se", "why_solutions_engineering"):
-        return ("[One sentence on what draws you to being the technical voice in a sale.] "
-                f"{fp} My coursework covers the technical side, from networks to secure coding. Sales engineering is "
-                "the role where both halves of that background get used."), "template"
-    if question_key == "why_cybersecurity":
-        certs = [c.get("name") if isinstance(c, dict) else str(c) for c in p.get("certifications", [])]
-        return ("[Your personal reason for choosing cybersecurity.] I chose a cybersecurity focus at ASU"
-                + (f" and completed {certs[0]}" if certs else "") +
-                ". Security products are hard to buy because the risk is invisible until it isn't, which is exactly "
-                "where a technical seller helps."), "template"
-    return "[Write your answer.]", "template"
-
-
-QUESTIONS = {
-    "tell_me_about_yourself": "Tell us about yourself.",
-    "why_company": "Why this company?",
-    "why_role": "Why this role?",
-    "why_se": "Why sales engineering?",
-    "why_solutions_engineering": "Why solutions engineering?",
-    "why_cybersecurity": "Why cybersecurity?",
-}
-
-
 def outreach(kind: str, person: dict, ctx: dict) -> tuple[str, str]:
     if ctx.get("mode") == "intern":
         return intern_outreach(kind, person, ctx)
@@ -533,15 +474,6 @@ def _ctx_prompt(ctx: dict, what: str) -> str:
 # ----------------------------------------------------------------------------- spring internships
 
 TRACK_WORDS = {"cyber": "cybersecurity", "data": "data analytics", "network": "networking", "it": "IT"}
-INTERN_QUESTIONS = {
-    "tell_me_about_yourself": "Tell us about yourself.",
-    "why_company": "Why this company?",
-    "why_role": "Why this internship?",
-    "availability": "What is your availability this spring?",
-    "why_field": "Why this field?",
-}
-
-
 def _hours_phrase(ctx: dict) -> str:
     pref = (ctx.get("profile") or {}).get("internship") or {}
     return f"{pref.get('hours_min', 10)} to {pref.get('hours_max', 30)} hours a week"
@@ -554,49 +486,6 @@ def intern_cover_letter(ctx: dict) -> tuple[str, str]:
         if out:
             return _finish_letter(ctx, out), "llm"
     return _finish_letter(ctx, _pattern_letter(ctx, track)), "template"
-
-
-def intern_answer(key: str, ctx: dict) -> tuple[str, str]:
-    p, led = ctx["profile"], ctx["ledger"]
-    q = INTERN_QUESTIONS[key]
-    word = TRACK_WORDS.get(ctx.get("track"), "technical")
-    if llm.available:
-        out = llm.text(VOICE + " Answer in 80 to 150 words.",
-                       _ctx_prompt(ctx, f"application answer for a part-time spring internship to: {q}"))
-        if out:
-            return out, "llm"
-    jt = f"{ctx['job_title']}\n{ctx['job_text'] or ''}"
-    facts = best_facts(led, jt, k=2)
-    fp = " ".join(_first_person(f) for f in facts)
-    company = ctx["company"]
-    courses = _relevant_courses(p, led, jt, k=2)
-    if key == "tell_me_about_yourself":
-        hook = ctx.get("story_hook") or _story_prompt(led)
-        return (f"{hook} I'm a senior at ASU studying {p.get('degree_short', 'Applied Computing (cybersecurity)')}, "
-                f"graduating {_grad_phrase(p)}. {fp} This spring I'm looking for a part-time {word} internship so I can "
-                f"use what I've learned on real systems before I graduate."), "template"
-    if key == "why_company":
-        why = ctx.get("why_company_fact")
-        return ((f"{why} " if why else f"[A specific reason {company} stands out to you.] ") +
-                f"The {_clean_title(ctx['job_title'])} would give me hands-on {word} experience during my last spring "
-                f"at ASU, on a team that does this work every day."), "template"
-    if key == "why_role":
-        fits = [f["requirement"] for f in (ctx.get("analysis") or {}).get("fits", [])][:3]
-        course_line = f" My coursework in {' and '.join(courses)} covers the basics." if courses else ""
-        return (f"The posting asks for {', '.join(fits) if fits else 'curiosity and the fundamentals'}.{course_line} {fp} "
-                f"I want an internship where I do real {word} work and learn how a team runs it day to day."), "template"
-    if key == "availability":
-        return (f"I'm available January through May 2027 for {_hours_phrase(ctx)}, scheduled around my classes. "
-                "[Add the days and times you're free this spring.] The internship would also count toward my "
-                "degree, so I'm committed to the full term."), "template"
-    if key == "why_field":
-        reason = {"cyber": "[Your personal reason for choosing cybersecurity.] ",
-                  "data": "[Your personal reason for wanting to work with data.] ",
-                  "network": "[Your personal reason for wanting networking experience.] "}.get(ctx.get("track"), "[Your reason.] ")
-        return (reason + (f"Courses like {' and '.join(courses)} got me interested, and an internship is where I can "
-                          f"see how it works outside a classroom." if courses else
-                          "An internship is where I can see how it works outside a classroom.")), "template"
-    return "[Write your answer.]", "template"
 
 
 def intern_outreach(kind: str, person: dict, ctx: dict) -> tuple[str, str]:
@@ -674,3 +563,178 @@ def intern_interview_questions(ctx: dict) -> dict:
                  "What tools have you used, and how comfortable are you with each?"],
         "why": ["Why this internship?", f"Why {company}?", f"Why {TRACK_WORDS.get(track, 'this field')}?"],
     }
+
+
+# ----------------------------------------------------------------------------- questions you paste in
+# Modeled on the answers Jalen kept: sounds like a person, not a summary of the company's website; ties one or two
+# real things about the company to how he works; soft skills said plainly; experience in a sentence or two.
+
+SOFT_SKILLS = ["eager to learn and grow", "collaborative", "enthusiastic", "welcomes feedback",
+               "adaptable", "doesn't let a setback keep him down"]
+
+ANSWER_VOICE = (
+    "Write the candidate's answer to one job application question, in first person, as the candidate. Sound like a "
+    "real, thoughtful college senior talking to a person: natural sentences of varied length, warm and specific, never "
+    "robotic. Do not recite facts about the company that the reader already knows, such as a list of its brands, "
+    "products or program features. Instead pick one or two things from the posting or company facts that genuinely "
+    "connect to the candidate and say why they matter to him. Work in his soft skills where they fit the question: "
+    "{soft}. Use past experience briefly, one or two sentences at most, only from the resume facts provided, and "
+    "describe it by what it taught him rather than by duties or numbers. Never invent experience, numbers, tools, "
+    "places, personal stories, or opinions about specific shows or products. Do not mention availability, hours, "
+    "schedules, academic credit or assessments unless the question asks. Write 'I am' and 'I would' rather than "
+    "contractions. Never use em dashes. Avoid: {banned}. Length: {length}. Output only the answer, with no title and "
+    "no quotation marks.")
+
+QUESTION_KINDS = [
+    ("about", r"tell (us|me) (a bit |a little )?about yourself|introduce yourself|describe yourself"),
+    ("why_role", r"why (are you|do you want|would you like)?.*\b(this|the) (role|position|internship|program|job)\b|"
+                 r"interest(ed)? in (this|the) (role|position|internship|program)|why are you applying"),
+    ("why_company", r"why .*\b(work|join|intern|interested)\b.*\b(at|with|for)\b|why (this|our) company|"
+                    r"what (draws|attracts|interests) you"),
+    ("challenge", r"challeng|setback|fail|mistake|difficult|pressure|stress|obstacle|adversity|conflict"),
+    ("team", r"\bteam|collaborat|work(ed)? with others|group project"),
+    ("strength", r"strength|what (would|do) you bring|why should we (hire|choose)"),
+    ("weakness", r"weakness|area.{0,20}improve|improvement"),
+    ("learn", r"\blearn|new skill|feedback|grow"),
+    ("goals", r"goal|five years|5 years|future|long[- ]term|career plans"),
+]
+
+
+def question_kind(question: str) -> str:
+    q = question.lower()
+    return next((k for k, rx in QUESTION_KINDS if re.search(rx, q)), "general")
+
+
+def _length_rule(limit_words: int | None, limit_chars: int | None) -> str:
+    if limit_chars:
+        return f"at most {limit_chars} characters including spaces; aim a little under"
+    if limit_words:
+        return f"at most {limit_words} words; aim a little under"
+    return ("about 120 to 180 words in two or three short paragraphs, unless the question clearly wants only a sentence "
+            "or two")
+
+
+def _culture(text: str) -> str | None:
+    """'a culture of creativity, entrepreneurial spirit and community' from a posting, when it says so."""
+    m = re.search(r"culture of ([a-z ,\-]{8,90}?)(?: that|\.|,? which)", text or "", re.I)
+    return m.group(1).strip() if m else None
+
+
+def _answer_template(kind: str, ctx: dict) -> str:
+    p, led, company = ctx["profile"], ctx["ledger"], ctx["company"]
+    jt = f"{ctx['job_title']}\n{ctx.get('job_text') or ''}"
+    track = ctx.get("track")
+    field = TRACK_WORDS.get(track, "cybersecurity") if ctx.get("mode") == "intern" else "technology and sales"
+    intern = ctx.get("mode") == "intern"
+    noun = "internship" if intern else "role"
+    culture = _culture(ctx.get("job_text") or "")
+    roles = _relevant_roles(led, jt, k=2)
+    # A job you held beats a project, and the one that put you under pressure (sales) tells the best story.
+    roles.sort(key=lambda r: (r["section"] == "projects", not r["taught"].startswith("the importance of communication")))
+    exp = ""
+    if roles:
+        r = roles[0]
+        art = "an" if r["title"][:1].lower() in "aeiou" else "a"
+        if r["taught"].startswith("the importance of communication") and r["section"] != "projects":
+            where = f" at {r['org']}" if r["org"] else ""
+            exp = (f"As {art} {r['title']}{where}, I was thrown into the fire a lot, especially when cold calling. Not "
+                   f"every call went well, but I learned not to let one bad moment carry into the next.")
+        elif r["section"] == "projects":
+            exp = f"Working with {r['org'] or r['title']} taught me {r['taught']}."
+        else:
+            exp = f"My time as {art} {r['title']}{' at ' + r['org'] if r['org'] else ''} taught me {r['taught']}."
+    learner = ("I love learning new things, I get genuinely excited about the work I am part of, and I do my best on "
+               "teams where people share ideas and give honest feedback.")
+    student = f"As {_student_phrase(p)}"
+    if kind in ("why_company", "why_role", "general"):
+        first = (f"This {noun} stands out to me because it means doing real {field} work alongside people who do it every "
+                 f"day." if kind == "why_role" else
+                 f"What draws me to {company} is the chance to do real {field} work and learn from people who do it every "
+                 f"day.")
+        open_ = first + (f" I also like that {company} is built around a culture of {culture}, because that is the kind "
+                         f"of place where I do my best work." if culture else "")
+        mid = (f"{student}, I have built a solid foundation in the classroom, but I want to see how those skills hold up "
+               f"in a real work environment. {learner}")
+        end = (f"{exp} Being able to adapt is something I would bring to {company}." if exp else
+               f"I would bring that same energy and willingness to learn to {company}.")
+        return "\n\n".join([open_, mid, end])
+    if kind == "about":
+        return (f"I am a senior at Arizona State University studying {p.get('degree_short', 'Applied Computing with a cybersecurity focus')}, "
+                f"graduating in {_grad_phrase(p)}. {exp} {learner}\n\nRight now I am looking for a place where I can "
+                f"apply what I have learned to real work, and this {noun} at {company} is exactly that kind of opportunity.").replace("  ", " ")
+    if kind == "challenge":
+        story = exp if "thrown into the fire" in exp else ("One of the hardest stretches for me was learning to keep "
+                                                           "going when things did not work the first time.")
+        return (story + " What helped most was treating each setback as information instead of a verdict: I "
+                "figured out what went wrong, adjusted, and tried again. That habit has made me more adaptable, and it "
+                f"is a big part of how I would handle a fast-paced environment at {company}.")
+    if kind == "team":
+        return ("I do my best work on teams where people share ideas openly and are not afraid to give honest feedback. "
+                "I try to bring energy, listen first, and pick up whatever the group needs, even when it is outside "
+                f"what I usually do. {exp} I would bring that same collaborative mindset to {company}.").replace("  ", " ")
+    if kind == "strength":
+        return ("My biggest strength is how quickly I adapt and keep learning. I am enthusiastic about new challenges, I "
+                f"take feedback seriously, and I do not let a setback keep me down. {exp} I think that combination would "
+                f"help me contribute quickly at {company}.").replace("  ", " ")
+    if kind == "weakness":
+        return ("I sometimes want to figure everything out on my own before asking for help. I have learned that asking "
+                "good questions early saves time and usually leads to a better result, so now I check in sooner and "
+                "treat feedback as a shortcut rather than a setback.")
+    if kind == "learn":
+        return (f"I am at my best when I am learning something new. {learner} When I get feedback, I try to put it to "
+                f"use right away, because that is the fastest way for me to improve. {exp}").strip()
+    if kind == "goals":
+        return (f"In the next few years I want to build real technical depth in {field} while getting better at working "
+                f"with people, both teammates and customers. This {noun} at {company} would be a great first step, "
+                f"because I would get to apply what I have learned and keep growing alongside experienced professionals.")
+    return _answer_template("general", ctx)
+
+
+def answer_question(ctx: dict, question: str, notes: str | None = None, limit_words: int | None = None,
+                    limit_chars: int | None = None) -> tuple[str, str]:
+    """Answer any application question you paste in. Returns (answer, 'llm' | 'template')."""
+    question = question.strip()
+    if llm.available:
+        p = ctx["profile"]
+        soft = ", ".join(p.get("soft_skills_long") or SOFT_SKILLS)
+        system = ANSWER_VOICE.format(soft=soft, banned=", ".join(BANNED), length=_length_rule(limit_words, limit_chars))
+        prompt = _ctx_prompt(ctx, f"answer to this application question: {question}")
+        if notes:
+            prompt += f"\n\nWhat the candidate wants this answer to lean on: {notes.strip()}"
+        out = llm.text(system, prompt, max_tokens=900)
+        if out:
+            return clean_dashes(out.strip().strip('"')), "llm"
+    text = _answer_template(question_kind(question), ctx)
+    if limit_chars and len(text) > limit_chars:
+        text = _trim_to(text, limit_chars)
+    if limit_words and len(text.split()) > limit_words:
+        text = _trim_words(text, limit_words)
+    return text, "template"
+
+
+def _trim_to(text: str, limit: int) -> str:
+    """Cut at the last full sentence that fits."""
+    out = ""
+    for sent in re.split(r"(?<=[.!?])\s+", text.replace("\n\n", " ")):
+        if len(out) + len(sent) + 1 > limit:
+            break
+        out = f"{out} {sent}".strip()
+    return out or text[:limit]
+
+
+def _trim_words(text: str, limit: int) -> str:
+    out = []
+    for sent in re.split(r"(?<=[.!?])\s+", text.replace("\n\n", " ")):
+        if len(" ".join(out + [sent]).split()) > limit:
+            break
+        out.append(sent)
+    return " ".join(out) or " ".join(text.split()[:limit])
+
+
+def answer_flags(text: str, limit_words: int | None, limit_chars: int | None) -> list[str]:
+    _, flags = style_check(text, "question")
+    if limit_chars and len(text) > limit_chars:
+        flags.append(f"{len(text)} characters; the limit is {limit_chars}.")
+    if limit_words and len(text.split()) > limit_words:
+        flags.append(f"{len(text.split())} words; the limit is {limit_words}.")
+    return flags

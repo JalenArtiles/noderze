@@ -263,9 +263,12 @@ class GeneratedDoc(Base):
 
 
 STAGES = [
-    "researching", "target", "preparing", "applied", "recruiter_contacted", "recruiter_response",
+    "researching", "target", "preparing", "started", "applied", "recruiter_contacted", "recruiter_response",
     "interview", "technical_interview", "final_interview", "offer", "rejected", "withdrawn",
 ]
+# Before "started" a role is only saved or being drafted: it stays off the Applications board until you open the
+# company's application ("started") or say you applied.
+PRE_APPLY = ("researching", "target", "preparing")
 
 
 class Application(Base):
@@ -394,3 +397,42 @@ class LearningResource(Base):
     cost: Mapped[str | None] = mapped_column(String(100))
     kind: Mapped[str] = mapped_column(String(30), default="course")  # course | cert | project | lab
     why: Mapped[str] = mapped_column(Text)  # why it raises the odds of being useful as an SE
+
+
+class QuestionAnswer(Base):
+    """An application question you pasted in, and the answer written for it."""
+
+    __tablename__ = "question_answers"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    application_id: Mapped[int] = mapped_column(ForeignKey("applications.id"), index=True)
+    question: Mapped[str] = mapped_column(Text)
+    notes: Mapped[str | None] = mapped_column(Text)  # what you want it to lean on, e.g. "mention wakeboard club"
+    limit_words: Mapped[int | None] = mapped_column(Integer)
+    limit_chars: Mapped[int | None] = mapped_column(Integer)
+    answer: Mapped[str] = mapped_column(Text, default="")
+    flags: Mapped[list] = mapped_column(JSON, default=list)
+    generated_by: Mapped[str] = mapped_column(String(20), default="template")  # llm | template | you
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=now, onupdate=now)
+
+
+class EmailReply(Base):
+    """An email from a company you applied to. Only emails that match one of your applications are kept."""
+
+    __tablename__ = "email_replies"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    message_id: Mapped[str] = mapped_column(String(200), unique=True)
+    thread_id: Mapped[str | None] = mapped_column(String(200))
+    account: Mapped[str | None] = mapped_column(String(200))  # the inbox it arrived in
+    from_name: Mapped[str | None] = mapped_column(String(300))
+    from_email: Mapped[str | None] = mapped_column(String(300))
+    subject: Mapped[str] = mapped_column(Text, default="")
+    snippet: Mapped[str] = mapped_column(Text, default="")
+    url: Mapped[str | None] = mapped_column(String(800))
+    received_at: Mapped[datetime | None] = mapped_column(DateTime)
+    company_id: Mapped[int | None] = mapped_column(ForeignKey("companies.id"))
+    application_id: Mapped[int | None] = mapped_column(ForeignKey("applications.id"))
+    kind: Mapped[str] = mapped_column(String(30), default="other")  # interview | assessment | offer | rejection | confirmation | other
+    seen: Mapped[bool] = mapped_column(Boolean, default=False)
+    dismissed: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=now)

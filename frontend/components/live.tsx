@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { Backpack, Bell, RefreshCw } from "lucide-react";
+import { Backpack, Bell, Mail, RefreshCw } from "lucide-react";
 import { api } from "@/lib/api";
 import { useActivity } from "@/components/activity";
 
@@ -23,6 +23,7 @@ export default function LiveBar() {
       lastRun.current = finished;
       setU(d);
       setBusy(d.running > 0);
+      window.dispatchEvent(new CustomEvent("noderze:counts", { detail: { replies: d.unseen_replies || 0 } }));
       const b = d.app_update?.build_id || null;
       if (b && !firstBuild.current) firstBuild.current = b;
       // A new version of the interface was just swapped in: load it.
@@ -54,6 +55,7 @@ export default function LiveBar() {
       <span className="small">{busy ? "Scanning job boards" : `Last scan ${ago}`}</span>
       {u?.unseen > 0 && <Link href="/opportunities?new=1" className="new"><Bell size={13} />{u.unseen} new</Link>}
       {u?.unseen_interns > 0 && <Link href="/internships?new=1" className="new"><Backpack size={13} />{u.unseen_interns} new {u.unseen_interns === 1 ? "internship" : "internships"}</Link>}
+      {u?.unseen_replies > 0 && <Link href="/replies" className="new reply"><Mail size={13} />{u.unseen_replies} new {u.unseen_replies === 1 ? "reply" : "replies"}</Link>}
       <button className="btn sm" onClick={refresh} disabled={busy}><RefreshCw />Scan now</button>
     </div>
   );

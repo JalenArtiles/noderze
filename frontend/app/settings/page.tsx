@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
-import { CheckCircle2, CircleDashed } from "lucide-react";
+import Link from "next/link";
+import { CheckCircle2, CircleDashed, Undo2 } from "lucide-react";
 import { Callout, Err, Loading, PageHeader, SectionHead } from "@/components/ui";
 import { api, day, useApi } from "@/lib/api";
 import ThemePicker from "@/components/theme-picker";
@@ -13,6 +14,8 @@ export default function Settings() {
   const { data, error, reload } = useApi("/api/profile");
   const meta = useApi("/api/meta");
   const rules = useApi<any[]>("/api/alert-rules");
+  const removed = useApi<any[]>("/api/removed");
+  const replies = useApi<any>("/api/replies");
   const [w, setW] = useState<Record<string, number>>({});
   const [p, setP] = useState<any>(null);
   const [json, setJson] = useState("");
@@ -61,10 +64,11 @@ export default function Settings() {
         <div className="sec" id="connections">
           <SectionHead title="Connections" />
           <div className="list">
+            <AnthropicKey connected={!!m?.llm} onChange={meta.reload} />
             <div className="li" style={{ alignItems: "flex-start" }}>
-              {m?.llm ? <CheckCircle2 style={{ color: "var(--green)" }} /> : <CircleDashed style={{ color: "var(--faint)" }} />}
-              <div className="grow"><div className="title">Anthropic API key {m?.llm ? "connected" : "not set"}</div>
-                <div className="sub">Writes better cover letters, answers and resume wording, and powers web research by default. Get a key at console.anthropic.com and add <code>ANTHROPIC_API_KEY=</code> to <code>backend/.env</code>.</div></div>
+              {replies.data?.last_check ? <CheckCircle2 style={{ color: "var(--green)" }} /> : <CircleDashed style={{ color: "var(--faint)" }} />}
+              <div className="grow"><div className="title">Email replies {replies.data?.last_check ? `checked ${day(replies.data.last_check)}` : "waiting for the first check"}</div>
+                <div className="sub">A scheduled Claude task reads your Gmail a few times a day and drops replies from companies you applied to into <Link href="/replies">Replies</Link>. Nothing is ever sent.</div></div>
             </div>
             <div className="li" style={{ alignItems: "flex-start" }}>
               {m && m.search_provider !== "none" ? <CheckCircle2 style={{ color: "var(--green)" }} /> : <CircleDashed style={{ color: "var(--faint)" }} />}
@@ -72,7 +76,17 @@ export default function Settings() {
                 <div className="sub">Turns on company research, recruiter and alumni search, and program discovery. An Anthropic key with web search enabled covers it, or add a Tavily, Brave or Serper key to <code>backend/.env</code>.</div></div>
             </div>
           </div>
-          <p className="small faint" style={{ marginTop: ".5rem" }}>Noderze picks up changes to backend/.env the next time it starts.</p>
+          <p className="small faint" style={{ marginTop: ".5rem" }}>Other keys in backend/.env are picked up the next time Noderze starts.</p>
+        </div>
+
+        <div className="sec" id="removed">
+          <SectionHead title="Removed listings" count={removed.data?.length ?? null} aside={<span className="muted">Roles and internships you removed</span>} />
+          {!removed.data ? <Loading /> : !removed.data.length ? <p className="small muted">Nothing removed. The X on any listing removes it from every list.</p> :
+            <div className="list">{removed.data.map((j: any) => (
+              <div key={j.id} className="li compact">
+                <div className="grow"><Link href={`/jobs/${j.id}`} className="title">{j.title}</Link><div className="sub">{j.company}, {j.kind === "internship" ? "spring internship" : "career role"}</div></div>
+                <button className="btn sm" onClick={async () => { await api(`/api/jobs/${j.id}`, { method: "PATCH", body: { hidden: false } }); removed.reload(); }}><Undo2 />Bring back</button>
+              </div>))}</div>}
         </div>
 
         <div className="sec">
@@ -103,5 +117,34 @@ export default function Settings() {
         </div>
       </>}
     </>
+  );
+}
+
+/** Paste your Anthropic key once: Noderze checks it, saves it to backend/.env on this computer and uses it right away. */
+function AnthropicKey({ connected, onChange }: { connected: boolean; onChange: () => void }) {
+  const [key, setKey] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+  async function save(value: string) {
+    setBusy(true); setErr(null); setMsg(null);
+    try { const r = await api("/api/settings/anthropic-key", { body: { key: value } }); setKey(""); setMsg(r.llm ? "Connected. Answers and cover letters are now written by Claude." : "Key removed."); onChange(); }
+    catch (e: any) { setErr(e.message); }
+    setBusy(false);
+  }
+  return (
+    <div className="li" style={{ alignItems: "flex-start" }}>
+      {connected ? <CheckCircle2 style={{ color: "var(--green)" }} /> : <CircleDashed style={{ color: "var(--faint)" }} />}
+      <div className="grow stack" style={{ gap: ".5rem" }}>
+        <div><div className="title">Anthropic API key {connected ? "connected" : "not set"}</div>
+          <div className="sub">Writes your application answers and cover letters for the exact question, and powers web research. Create a key at console.anthropic.com under API keys (it starts with sk-ant-), then paste it here. It stays on this computer.</div></div>
+        <div className="row" style={{ flexWrap: "nowrap" }}>
+          <input type="password" autoComplete="off" value={key} onChange={(e) => setKey(e.target.value)} placeholder={connected ? "Paste a new key to replace it" : "sk-ant-..."} style={{ flex: 1, maxWidth: 420 }} aria-label="Anthropic API key" />
+          <button className="btn sm primary" onClick={() => save(key.trim())} disabled={busy || !key.trim()}>{busy ? "Checking" : "Save key"}</button>
+          {connected && <button className="btn sm quiet" onClick={() => save("")} disabled={busy}>Remove</button>}
+        </div>
+        <Err msg={err} />{msg && <span className="small muted">{msg}</span>}
+      </div>
+    </div>
   );
 }

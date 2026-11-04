@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { BarChart3, CalendarRange, CircleDollarSign, Clock, ExternalLink, Globe, MapPin, Network, Search, Shield } from "lucide-react";
 import { Empty, Err, Loading, Menu, PageHeader, RunButton, SectionHead, Tabs } from "@/components/ui";
@@ -48,7 +49,7 @@ export default function Internships() {
     const seen = new Map<string, any>();
     for (const j of tab === "out" ? out : ok) {
       const k = `${j.company}|${j.title}|${j.intern?.status}`;
-      if (seen.has(k)) seen.get(k).count += 1; else seen.set(k, { job: j, count: 1 });
+      if (seen.has(k)) { const g = seen.get(k); g.count += 1; g.ids.push(j.id); } else seen.set(k, { job: j, count: 1, ids: [j.id] });
     }
     return Array.from(seen.values());
   }, [tab, out, ok]);
@@ -63,7 +64,7 @@ export default function Internships() {
           <Menu>
             <a href="#add">Add one you found<span className="d">A link or the posting text</span></a>
             <a href="#sites">Search Handshake and LinkedIn<span className="d">Sites you log into yourself</span></a>
-            {data?.has_hidden && <button onClick={async () => { await api("/api/internships/unhide", { body: {} }); reload(); }}>Show hidden internships</button>}
+            <Link href="/settings#removed">Removed internships<span className="d">Bring back one you removed</span></Link>
           </Menu>
         </>} />
 
@@ -97,7 +98,7 @@ export default function Internships() {
           <Tabs value={tab} onChange={setTab} tabs={[["ok", "Qualify", uniq(ok)], ["out", "Filtered out", uniq(out)]]} />
           {tab === "out" && out.length > 0 && <p className="small muted" style={{ margin: "-.3rem 0 .8rem" }}>These missed one of your rules. If a recruiter tells you one is paid, or your coordinator says an IT internship counts, you can bring it back.</p>}
           <div className="list">
-            {shown.length ? grouped.map(({ job, count }) => <InternRow key={job.id} job={job} count={count} onChange={reload} />) :
+            {shown.length ? grouped.map(({ job, count, ids }) => <InternRow key={job.id} job={job} count={count} ids={ids} onChange={reload} />) :
               <Empty title={tab === "out" ? "Nothing filtered out" : "None that qualify yet"}>
                 {tab === "out" ? "Every internship found so far meets your rules." : "Try another field or place, check the sites below, or run the search again tomorrow. New spring postings appear through December."}</Empty>}
           </div>
