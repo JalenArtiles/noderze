@@ -157,6 +157,11 @@ def sections(text: str | None, limit: int = 6) -> dict:
     return out
 
 
+def _long(d) -> str:
+    """'November 9, 2026' on every system (Windows strftime has no day-without-zero code)."""
+    return f"{d:%B} {d.day}, {d.year}"
+
+
 def details(job: Job) -> dict:
     """The facts shown at the top of an internship's page, each from the posting or marked as not stated."""
     d = job.intern
@@ -174,9 +179,9 @@ def details(job: Job) -> dict:
             {"key": "term", "label": "Dates", "value": term.get("label") or "Not stated", "evidence": term.get("evidence")},
             {"key": "where", "label": "Where", "value": where.get("label") or job.location_text or "Not stated",
              "evidence": job.location_text},
-            {"key": "deadline", "label": "Apply by", "value": job.deadline.strftime("%B %-d, %Y") if job.deadline else
+            {"key": "deadline", "label": "Apply by", "value": _long(job.deadline) if job.deadline else
              "No deadline listed"},
-            {"key": "posted", "label": "Posted", "value": job.posted_at.strftime("%B %-d, %Y") if job.posted_at else
+            {"key": "posted", "label": "Posted", "value": _long(job.posted_at) if job.posted_at else
              "Not stated"},
         ],
         "do": sec["do"], "need": sec["need"], "source": source, "url": job.url, "original": job.source_is_original,

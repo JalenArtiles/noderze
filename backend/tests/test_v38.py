@@ -302,3 +302,12 @@ def test_logo_from_posting_and_board(client):
     assert got == {"Regional Planners Group": "regionalplanners.org", "Haulco": "haulco.com"}
     assert client.get(f"/api/jobs/{a['id']}").json()["company_website"] == "regionalplanners.org"
     db.close()
+
+
+def test_no_platform_specific_date_formats():
+    """Windows' strftime has no %-d; the app runs on Windows."""
+    import pathlib
+    import re
+    app = pathlib.Path(__file__).resolve().parent.parent / "app"
+    bad = [str(f) for f in app.rglob("*.py") if re.search(r"%-[dmIHMSj]", f.read_text(encoding="utf-8"))]
+    assert bad == []

@@ -214,7 +214,7 @@ def check(f: PoliteFetcher, job: Job, twins: list[Job] | None = None) -> Result:
     today = date.today()
     deadline = job.deadline or stated_deadline(job.description_text)
     if deadline and deadline < today:
-        return Result("closed", f"The application deadline ({deadline:%B %-d, %Y}) passed", extra={"deadline": deadline})
+        return Result("closed", f"The application deadline ({deadline:%B} {deadline.day}, {deadline.year}) passed", extra={"deadline": deadline})
     url = (job.url or job.apply_url or "").strip()
     host = urlparse(url).netloc.lower()
     # A copy of a posting Noderze already reads from the employer follows that posting.
