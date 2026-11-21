@@ -123,6 +123,17 @@ def _intern_details(db) -> None:
         start("verify_internships", "Check every internship posting", WORKFLOWS["verify_internships"])
 
 
+def _first_verify(db) -> None:
+    """Check every listed internship against its live posting until one full check has finished. Checked at every
+    start, because an update restarts the backend and can cut a check short."""
+    from .config import settings
+    prof = (get_profile(db).data or {})
+    if not settings.enable_scheduler or prof.get("intern_last_verify") or not prof.get("intern_last_scan"):
+        return
+    from .workflows import WORKFLOWS, start
+    start("verify_internships", "Check every internship posting", WORKFLOWS["verify_internships"])
+
+
 def _verify_again(db) -> None:
     """The first live check stopped on Windows at a date format; run it once more."""
     from .config import settings
@@ -209,6 +220,7 @@ def run() -> None:
             log.info("migration %s applied", name)
         apply_profile_updates(db)
         _first_intern_scan(db)
+        _first_verify(db)
     except Exception:
         db.rollback()
         log.exception("migration failed")
