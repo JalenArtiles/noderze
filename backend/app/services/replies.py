@@ -43,8 +43,17 @@ REJECTION = (r"unfortunately|not (be )?moving forward|(move|moving|proceed|go) f
              r"(decided|chosen|chose) (not )?to (move|pursue|proceed)|pursue other|not (a )?match for|decided not to")
 ASSESSMENT = (r"assessment|coding challenge|hackerrank|codesignal|online test|take[- ]home|skills test|hirevue|"
               r"video interview link")
-INTERVIEW = (r"\binterview\b(?! process)|schedule (a|some) (time|call)|phone screen|your availability|availability for|"
-             r"calendly|invite you to|set up a (call|time)|meet with (you|our)")
+# An interview needs scheduling words next to it: "interview findings" in a class meeting report is not one.
+INTERVIEW = (r"(invite|invitation|schedul\w*|like to|love to|move (you )?forward (to|with)|next round|availability|book|"
+             r"select a time|pick a time|confirm\w*)\W+(?:\w+\W+){0,6}?interview|"
+             r"\binterview\W+(?:\w+\W+){0,4}?(invitation|invite|request|schedul\w*|availability|confirm\w*|slot|time|"
+             r"with (our|the|a|me|us))|phone screen|recruiter (screen|call)|your availability|availability (for|to)|"
+             r"calendly\.com|schedule (a|some) (time|call)|set up a (call|time)|invite you to (an? )?(interview|call|"
+             r"chat|meet|speak|conversation)|meet with (our|the) (team|hiring|recruit)")
+# Words that make "interview" in a subject something else: tips, a class's interview findings, a mock interview.
+NOT_INTERVIEW = re.compile(r"interview (findings|notes|tips|prep|guide|questions|skills|workshop|series|recap|report)|"
+                           r"mock interview|interview(ed|ing) (customers|users|stakeholders|experts)|"
+                           r"(customer|user|stakeholder|expert|beneficiary) interviews?", re.I)
 CONFIRMATION = (r"thanks? (you )?for (applying|your application|your interest)|application (has been )?received|"
                 r"(we )?(have )?received your application|successfully submitted|application submitted")
 SOFT_INTERVIEW = r"next steps|speak with you|chat with you"
@@ -60,6 +69,18 @@ RECRUITING = re.compile(r"\bapplica|\bappl(y|ied|ying)\b|interview|candida|posit
 # Job alerts and newsletters from Handshake and job boards are not replies.
 NOISE = re.compile(r"\bjob alert|jobs? (you might|for you|recommended)|new jobs?\b|recommended for you|"
                    r"top (jobs|picks)|weekly digest|is hiring|apply now|events? (near|for) you|webinar|newsletter", re.I)
+# Meeting notetakers, calendars and class tools write about meetings, never about your application.
+NOT_HIRING_SENDERS = ("zoom.us", "zoom.com", "calendar-notification@google.com",
+                      "instructure.com", "canvaslms.com", "piazza.com", "gradescope.com", "slack.com", "notion.so",
+                      "linkedin.com", "facebookmail.com", "discord.com", "groupme.com", "meetup.com", "eventbrite.com",
+                      "luma-mail.com", "substack.com", "medium.com", "quora.com", "github.com")
+MEETING = re.compile(r"meeting (report|notes|recap|summary|transcript)|\brecap\b|transcript|notetaker|"
+                     r"^(updated )?invitation:|^accepted:|^declined:|^tentative|^canceled( event)?:|^reminder:|"
+                     r"office hours|\bclass\b|lecture|assignment|syllabus|\bcourse\b|\bquiz\b|\bexam\b|homework", re.I)
+# For mail from a company Noderze isn't tracking: the subject itself has to be about an application.
+APP_SUBJECT = re.compile(r"\bapplica|\bappl(y|ied|ying)\b|candida|interview|\boffer\b|assessment|your (resume|submission)|"
+                         r"thank you for your interest|position|\brole\b|internship|\bintern\b|next steps|hiring|recruit|"
+                         r"\bjob\b|requisition|career", re.I)
 
 
 def folder() -> Path:
@@ -148,9 +169,117 @@ def write_watch(db: Session) -> Path:
 def classify(subject: str, snippet: str) -> str:
     text = f"{subject} {snippet}"
     for kind, rx in KINDS:
+        if kind == "interview" and rx is INTERVIEW:
+            # "Interview with Acme" in a subject counts by itself; in the body it needs scheduling words.
+            subj = subject or ""
+            if (re.search(r"\binterview\b", subj, re.I) and not NOT_INTERVIEW.search(subj)) or (
+                    re.search(rx, text, re.I) and not NOT_INTERVIEW.search(text)):
+                return kind
+            continue
         if re.search(rx, text, re.I):
             return kind
     return "other"
+
+
+NOTETAKERS = ("read.ai", "otter.ai", "fireflies.ai", "fathom.video", "fathom.ai", "tldv.io", "grain.com", "avoma.com",
+              "gong.io")
+
+
+def not_hiring(name: str, addr: str, subject: str) -> bool:
+    """Meeting reports, calendar notices, class mail and social notifications: never a reply to an application,
+    even when they mention interviews or a company you applied to. A calendar invite for an interview still counts."""
+    addr, subject = (addr or "").lower(), subject or ""
+    host = addr.split("@")[-1]
+    if any(host == t or host.endswith("." + t) for t in NOTETAKERS) or re.search(
+            r"\bvia (read|otter|fireflies|fathom|zoom|tldv|grain|gong|avoma)\b", name or "", re.I):
+        return True  # meeting notes and recaps, whatever they mention
+    hiring = bool(re.search(r"\binterview\b|phone screen|recruit|hiring|your application|\boffer\b", subject, re.I)) \
+        and not NOT_INTERVIEW.search(subject)
+    if any(addr == x or host == x or host.endswith("." + x) for x in NOT_HIRING_SENDERS):
+        return not hiring
+    return bool(MEETING.search(subject)) and not hiring
+
+
+def keep(subject: str, snippet: str, name: str, addr: str, matched: bool) -> tuple[bool, str]:
+    """Whether an email belongs on the Replies page, and its kind. The same rules run on new mail and, after an
+    update, on mail already stored."""
+    subject, snippet = (subject or "").strip(), (snippet or "").strip()
+    kind = classify(subject, snippet)
+    if blocked(addr):
+        return False, kind
+    if not_hiring(name, addr, subject):
+        return False, kind
+    if "joinhandshake.com" in (addr or "") and NOISE.search(subject):
+        return False, kind  # Handshake job alerts, not a reply
+    if NOISE.search(subject) and kind == "other":
+        return False, kind
+    if not RECRUITING.search(f"{subject} {snippet}"):
+        return False, kind  # newsletters, promotions, campus mail
+    if matched:
+        return True, kind
+    # An application you made outside Noderze: it has to read like one, from a hiring system or with an
+    # application subject, and name a company that isn't a person.
+    via_ats = _via_ats(addr)
+    if kind == "other" or not (via_ats or APP_SUBJECT.search(subject)):
+        return False, kind
+    return bool(parse_confirmation(subject, name, addr)), kind
+
+
+def _via_ats(addr: str) -> bool:
+    addr = (addr or "").lower()
+    d = domain_of(addr)
+    return any(d.endswith(s) or addr.endswith(s) for s in ATS_SENDERS)
+
+
+_BLOCKED: set[str] = set()
+
+
+def load_blocked(db: Session) -> set[str]:
+    """Senders you marked "Not about a job", kept in your profile."""
+    from .profile import get_profile
+    global _BLOCKED
+    _BLOCKED = {s.lower() for s in (get_profile(db).data or {}).get("reply_blocked_senders", [])}
+    return _BLOCKED
+
+
+def blocked(addr: str) -> bool:
+    return bool(addr) and addr.lower() in _BLOCKED
+
+
+def block_sender(db: Session, r: EmailReply) -> int:
+    """'Not about a job': hide this email and everything else from the same sender, now and later."""
+    from .profile import get_profile
+    addr = (r.from_email or "").lower()
+    n = 0
+    if addr:
+        prof = get_profile(db)
+        data = dict(prof.data or {})
+        senders = list(dict.fromkeys(list(data.get("reply_blocked_senders", [])) + [addr]))
+        data["reply_blocked_senders"] = senders
+        prof.data = data
+        _BLOCKED.add(addr)
+        for x in db.scalars(select(EmailReply).where(EmailReply.from_email == r.from_email,
+                                                     EmailReply.dismissed.is_(False))):
+            x.dismissed, x.seen = True, True
+            n += 1
+    r.dismissed, r.seen = True, True
+    return max(n, 1)
+
+
+def refilter(db: Session) -> int:
+    """Run today's rules over the mail already stored: drop what isn't about an application, fix the kind of the
+    rest. Returns how many were removed."""
+    load_blocked(db)
+    removed = 0
+    for r in list(db.scalars(select(EmailReply))):
+        ok, kind = keep(r.subject, r.snippet, r.from_name or "", r.from_email or "", matched=r.company_id is not None)
+        if not ok:
+            db.delete(r)
+            removed += 1
+        elif kind != r.kind:
+            r.kind = kind
+    db.flush()
+    return removed
 
 
 def _parse_from(value: str | None) -> tuple[str, str]:
@@ -217,6 +346,7 @@ def match(item: dict, watch: list[dict]) -> dict | None:
 
 def import_items(db: Session, items: list[dict], account: str | None = None) -> list[EmailReply]:
     """Keep the emails that match one of your applications. Returns the new replies."""
+    load_blocked(db)
     watch = watch_list(db)
     added = []
     for it in items:
@@ -225,25 +355,20 @@ def import_items(db: Session, items: list[dict], account: str | None = None) -> 
             continue
         subject, snippet = (it.get("subject") or "").strip(), (it.get("snippet") or "").strip()
         name, addr = _parse_from(it.get("from"))
-        if "joinhandshake.com" in addr and NOISE.search(subject):
-            continue  # Handshake job alerts, not a reply
-        if NOISE.search(subject) and classify(subject, snippet) == "other":
+        w = None if not_hiring(name, addr, subject) else match(it, watch)
+        ok, kind = keep(subject, snippet, name, addr, matched=w is not None)
+        if not ok:
             continue
-        if not RECRUITING.search(f"{subject} {snippet}"):
-            continue  # newsletters, promotions, campus mail
-        w = match(it, watch)
-        kind = classify(subject, snippet)
         if not w:
             # An application you made outside Noderze ("Thank you for applying to Workiva", or an interview invite from
             # its Workday). Kept so you can track it; interviews, assessments and offers still notify you.
-            if kind != "other" and parse_confirmation(subject, name, addr):
-                r = EmailReply(message_id=mid, thread_id=it.get("thread_id"), account=it.get("account") or account,
-                               from_name=name or None, from_email=addr or None, subject=subject[:2000],
-                               snippet=snippet[:2000], url=it.get("url"), received_at=_parse_date(it.get("date")),
-                               kind=kind)
-                db.add(r)
-                db.flush()
-                added.append(r)
+            r = EmailReply(message_id=mid, thread_id=it.get("thread_id"), account=it.get("account") or account,
+                           from_name=name or None, from_email=addr or None, subject=subject[:2000],
+                           snippet=snippet[:2000], url=it.get("url"), received_at=_parse_date(it.get("date")),
+                           kind=kind)
+            db.add(r)
+            db.flush()
+            added.append(r)
             continue
         app = _application_for(db, w["company_id"], subject, snippet)
         r = EmailReply(message_id=mid, thread_id=it.get("thread_id"), account=it.get("account") or account,
@@ -265,7 +390,8 @@ CONFIRM_PATTERNS = [
 ]
 GENERIC_SENDER = re.compile(r"no-?reply|workday|careers?|recruit|talent|\bhr\b|team|notification|jobs|hiring|"
                             r"people|admin|support|info|greenhouse|lever|icims", re.I)
-FREE_MAIL = ("gmail.com", "yahoo.com", "outlook.com", "hotmail.com", "icloud.com", "asu.edu")
+FREE_MAIL = ("gmail.com", "googlemail.com", "google.com", "yahoo.com", "outlook.com", "hotmail.com", "live.com",
+             "icloud.com", "me.com", "aol.com", "asu.edu")
 
 
 def parse_confirmation(subject: str, from_name: str = "", from_email: str = "") -> dict | None:
@@ -278,7 +404,7 @@ def parse_confirmation(subject: str, from_name: str = "", from_email: str = "") 
             title = (m.groupdict().get("title") or "").strip(" -:!.,") or None
             if 1 < len(co) <= 80:
                 return {"company": co, "title": title}
-    if from_name and not GENERIC_SENDER.search(from_name) and len(from_name) <= 60:
+    if from_name and not GENERIC_SENDER.search(from_name) and len(from_name) <= 60 and _org_name(from_name, from_email):
         return {"company": from_name.strip(), "title": None}  # "Kimball Electronics <kei@myworkday.com>"
     if from_email:
         local, _, host = from_email.partition("@")
@@ -286,9 +412,22 @@ def parse_confirmation(subject: str, from_name: str = "", from_email: str = "") 
                 and not GENERIC_SENDER.search(local)):
             return {"company": local.upper() if len(local) <= 5 else local.title(), "title": None}  # oneok@myworkday.com
         d = domain_of(from_email)
-        if d and not any(d.endswith(x) for x in ATS_SENDERS + FREE_MAIL):
+        if (d and not any(d.endswith(x) for x in ATS_SENDERS + FREE_MAIL) and not any(s in d for s in NOT_HIRING_SENDERS)
+                and re.search(r"\bapplica|\bappl(y|ied|ying)\b|candida|interview|\boffer\b|assessment", text, re.I)):
             return {"company": d.split(".")[0].title(), "title": None}  # talent@acmerobotics.com
     return None
+
+
+def _org_name(name: str, email: str) -> bool:
+    """A sender name that is a company, not a person: 'Kimball Electronics' from a hiring system, or a name that
+    matches the sender's domain. 'Jordan Lee via Read AI' is a person."""
+    if re.search(r"\bvia\b", name, re.I):
+        return False
+    if _via_ats(email):
+        return True
+    words = [w for w in re.sub(r"[^a-z0-9 ]", " ", name.lower()).split() if len(w) > 2]
+    host = (email or "").split("@")[-1].replace("-", "")
+    return any(w in host for w in words)
 
 
 def _application_for(db: Session, company_id: int, subject: str, snippet: str) -> Application | None:
@@ -311,6 +450,8 @@ def rematch(db: Session) -> int:
     watch = watch_list(db)
     n = 0
     for r in db.scalars(select(EmailReply).where(EmailReply.company_id.is_(None), EmailReply.dismissed.is_(False))):
+        if not_hiring(r.from_name or "", r.from_email or "", r.subject or ""):
+            continue
         w = match({"from": f"{r.from_name or ''} <{r.from_email or ''}>", "subject": r.subject, "snippet": r.snippet}, watch)
         if w:
             app = _application_for(db, w["company_id"], r.subject, r.snippet)
@@ -407,6 +548,12 @@ def track(db: Session, r: EmailReply, company: str | None = None, title: str | N
     if a.date_applied and not a.follow_up_date:
         a.follow_up_date = a.date_applied + timedelta(days=FOLLOW_UP_DAYS[0])
     r.company_id, r.application_id, r.seen = c.id, a.id, True
+    if not c.website and not (c.data or {}).get("logo_domain"):
+        from .logos import find
+        d = find(db, c) or (domain_of(r.from_email) if r.from_email and not _via_ats(r.from_email)
+                            and domain_of(r.from_email) not in FREE_MAIL else None)
+        if d:
+            c.data = dict(c.data or {}) | {"logo_domain": d}
     return a
 
 
@@ -420,7 +567,9 @@ def reply_dict(db: Session, r: EmailReply) -> dict:
                 "url": r.url, "account": r.account, "kind": r.kind, "kind_label": KIND_LABEL.get(r.kind, "Reply"),
                 "received_at": r.received_at.isoformat() if r.received_at else None, "seen": r.seen,
                 "company": None, "company_id": None, "application_id": None, "suggest": None}
-    return {"untracked": False, "id": r.id, "company": c.name if c else None, "company_id": r.company_id, "application_id": r.application_id,
+    from .logos import site as logo_site
+    return {"untracked": False, "id": r.id, "company": c.name if c else None, "company_id": r.company_id,
+            "company_website": logo_site(c), "application_id": r.application_id,
             "job_title": a.job.title if a and a.job else None, "stage": a.stage if a else None,
             "from_name": r.from_name, "from_email": r.from_email, "subject": r.subject, "snippet": r.snippet,
             "url": r.url, "account": r.account, "kind": r.kind, "kind_label": KIND_LABEL.get(r.kind, "Reply"),

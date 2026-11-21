@@ -433,3 +433,13 @@ details.more-info[open] > summary { margin-bottom: .8rem; }
 .replies .li.unread .title::before { content: ""; display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--maroon); margin-right: .45rem; vertical-align: middle; }
 .replies .snippet { margin-top: .3rem; color: var(--muted); font-size: .88rem; line-height: 1.45; }
 .nav .link .badge { margin-left: auto; background: var(--maroon); color: #fff; border-radius: 999px; font-size: .7rem; font-weight: 700; padding: .05rem .45rem; min-width: 1.3rem; text-align: center; }
+
+/* Internship details, read from the posting */
+.idetails .dfacts { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: .8rem 1.2rem; }
+.idetails .dfacts .k { font-size: .72rem; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+.idetails .dfacts .v { font-weight: 600; margin-top: .15rem; }
+.idetails h4 { font-size: .85rem; margin: .6rem 0 .2rem; }
+.idetails ul { margin: .3rem 0 0; padding-left: 1.1rem; font-size: .9rem; }
+.idetails li { margin: .3rem 0; max-width: 70ch; }
+.gist { font-size: .84rem; margin-top: .45rem; max-width: 75ch; }
+.gist b { font-weight: 600; }

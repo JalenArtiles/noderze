@@ -6,7 +6,8 @@ import { Empty, Err, Fact, GRAD_SHORT, Loading, Menu, PageHeader, PathBadge, Pat
 import { useActivity } from "@/components/activity";
 import { api, day, label, useApi } from "@/lib/api";
 import { CompanyLogo, ScoreRing } from "@/components/visual";
-import { FactChips, InternChecks } from "@/components/intern";
+import { FactChips, InternChecks, checkedLine } from "@/components/intern";
+import { useState } from "react";
 
 export default function JobPage() {
   const { id } = useParams() as { id: string };
@@ -48,12 +49,45 @@ export default function JobPage() {
         </div>}
         <p className="small faint" style={{ marginTop: ".5rem" }}>Found {day(j.discovered_at)}{j.last_verified_at ? `, still open as of ${day(j.last_verified_at)}` : ", not checked live yet"}{j.posted_at ? `, posted ${day(j.posted_at)}` : ""}.</p>
       </PageHeader>
+      {intern && j.details && <Details j={j} onChange={reload} />}
       {intern ? <div style={{ marginTop: ".4rem" }}><InternChecks job={j} onChange={reload} /></div> : <PathRail job={j} />}
       <Tabs value={tab} onChange={setTab} tabs={[["why", intern ? "Why it fits" : "Why this role"], ["report", "Research"], ["posting", "Posting"]]} />
       {tab === "why" && <Why j={j} />}
       {tab === "report" && <Report id={id} companyId={j.company_id} company={j.company} />}
       {tab === "posting" && <section className="panel"><pre style={{ whiteSpace: "pre-wrap", font: "inherit", margin: 0, maxWidth: "80ch" }}>{j.description_text || "No posting text stored."}</pre></section>}
     </>
+  );
+}
+
+/** The internship's facts and duties, read from the posting, with when it was last checked live. */
+function Details({ j, onChange }: { j: any; onChange: () => void }) {
+  const d = j.details;
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+  async function check() {
+    setBusy(true); setMsg(null);
+    try { const r = await api(`/api/internships/${j.id}/verify`, { method: "POST" }); setMsg(r.verify?.reason || null); onChange(); } catch (e: any) { setMsg(e.message); }
+    setBusy(false);
+  }
+  return (
+    <section className="panel idetails" style={{ marginTop: ".6rem" }}>
+      <div className="spread" style={{ alignItems: "center", marginBottom: ".7rem" }}>
+        <h3>The internship</h3>
+        <div className="row" style={{ gap: ".5rem" }}>
+          {d.url && <a className="btn sm" href={d.url} target="_blank" rel="noreferrer"><ExternalLink />{d.original ? "Open the employer's posting" : "Open the listing"}</a>}
+          <button className="btn sm quiet" onClick={check} disabled={busy}>{busy ? "Checking" : "Check it's still open"}</button>
+        </div>
+      </div>
+      <div className="dfacts">
+        {d.facts.map((f: any) => <div key={f.key} title={f.evidence || ""}><div className="k">{f.label}</div><div className="v">{f.value}</div></div>)}
+      </div>
+      {(d.do.length > 0 || d.need.length > 0) && <div className="grid2" style={{ marginTop: ".4rem" }}>
+        {d.do.length > 0 && <div><h4>What you'd do</h4><ul>{d.do.map((x: string, i: number) => <li key={i}>{x}</li>)}</ul></div>}
+        {d.need.length > 0 && <div><h4>What they ask for</h4><ul>{d.need.map((x: string, i: number) => <li key={i}>{x}</li>)}</ul></div>}
+      </div>}
+      {!d.do.length && !d.need.length && <p className="small muted">The posting doesn't list duties or requirements in a way Noderze can pull out. The full text is under Posting below.</p>}
+      <p className="tiny faint" style={{ marginTop: ".8rem" }}>{d.source}. {checkedLine(j)}{msg ? ` ${msg}.` : ""}</p>
+    </section>
   );
 }
 

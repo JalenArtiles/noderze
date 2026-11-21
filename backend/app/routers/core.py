@@ -28,6 +28,7 @@ from ..services.standout import recommendations
 from ..services.recruiters import alumni_search_url
 from ..util import slugify, today
 from ..workflows import WORKFLOWS, start
+from ..services.logos import site as logo_site
 
 router = APIRouter(prefix="/api")
 
@@ -202,7 +203,7 @@ def list_programs(db: Session = Depends(get_db)):
         out.append({"id": p.id, "name": p.name, "company": p.company.name, "company_id": p.company_id,
                     "role_title": p.role_title, "kind": p.kind, "target_family": p.target_family, "status": p.status,
                     "typical_open_window": p.typical_open_window, "summary": p.summary,
-                    "watch_status": p.company.watch_status, "company_website": p.company.website,
+                    "watch_status": p.company.watch_status, "company_website": logo_site(p.company),
                     "headline": {k: (facts.get(k) or [{}])[0].get("value") for k in
                                  ("program.duration", "program.location", "comp.base", "program.next_role")}})
     return out
@@ -336,7 +337,7 @@ def list_jobs(category: str | None = None, company_id: int | None = None, min_sc
     for j in db.scalars(query):
         if not _job_matches(j, state, remote, industry, q, fits):
             continue
-        b = research.job_brief(j) | {"application_stage": apps.get(j.id), "company_website": j.company.website if j.company else None}
+        b = research.job_brief(j) | {"application_stage": apps.get(j.id), "company_website": logo_site(j.company)}
         out.append({k: v for k, v in b.items() if k not in heavy} if lite else b)
         if len(out) >= limit:
             break
@@ -371,7 +372,7 @@ def home(db: Session = Depends(get_db)):
     ]
     stages = dict(db.execute(select(Application.stage, func.count(Application.id)).group_by(Application.stage)).all())
     return {
-        "name": (prof.get("name") or "").split(" ")[0], "best": research.job_brief(best) | {"company_website": best.company.website} if best else None,
+        "name": (prof.get("name") or "").split(" ")[0], "best": research.job_brief(best) | {"company_website": logo_site(best.company)} if best else None,
         "tiles": tiles, "top": [research.job_brief(j) for j in (entry + [j for j in ok if j.category == "program"])][:6],
         "today": today_actions(db, limit=5), "next_moves": best_next_moves(db)[:3],
         "pipeline": {"Started": stages.get("started", 0),
@@ -393,8 +394,12 @@ def job_page(jid: int, db: Session = Depends(get_db)):
         a.seen = True
     db.commit()
     app = db.scalar(select(Application).where(Application.job_id == jid))
+    extra = {}
+    if j.family == "internship" and j.intern:
+        from ..services.intern_jobs import details
+        extra = {"details": details(j), "application_stage": app.stage if app else None}
     return research.job_brief(j) | {"description_text": j.description_text, "application_id": app.id if app else None,
-                                    "standout": recommendations(j.company, j)[:6]}
+                                    "standout": recommendations(j.company, j)[:6]} | extra
 
 
 @router.get("/jobs/{jid}/report")
@@ -472,7 +477,7 @@ def removed(db: Session = Depends(get_db)):
     """Listings you removed, newest first, so you can bring one back."""
     jobs = db.scalars(select(Job).where(Job.hidden.is_(True)).order_by(Job.discovered_at.desc()).limit(500))
     return [research.job_brief(j) | {"kind": "internship" if j.family == "internship" else "career",
-                                     "company_website": j.company.website} for j in jobs]
+                                     "company_website": logo_site(j.company)} for j in jobs]
 
 
 class KeyIn(BaseModel):

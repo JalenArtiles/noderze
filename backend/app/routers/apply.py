@@ -23,6 +23,7 @@ from ..services.llm import llm
 from ..services.profile import get_profile, master_resume
 from ..services.research import job_brief, person_dict
 from ..util import now, slugify, today
+from ..services.logos import site as logo_site
 
 router = APIRouter(prefix="/api")
 
@@ -175,7 +176,7 @@ def app_card(db: Session, a: Application) -> dict:
             "readiness": (a.readiness or {}).get("overall"), "date_applied": a.date_applied.isoformat() if a.date_applied else None,
             "location": j.location_text, "salary": f"${j.comp_min:,.0f}-{j.comp_max:,.0f}/{j.comp_period}" if j.comp_min else None,
             "is_intern": j.family == "internship", "kind": "internship" if j.family == "internship" else "career",
-            "company_id": j.company_id, "company_website": j.company.website, "removed": j.hidden}
+            "company_id": j.company_id, "company_website": logo_site(j.company), "removed": j.hidden}
 
 
 @router.post("/applications")

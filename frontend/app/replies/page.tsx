@@ -48,7 +48,7 @@ export default function Replies() {
         <div className="list replies">
           {shown.length ? shown.map((r) => (
             <div key={r.id} className={`li ${fresh.has(r.id) ? "unread" : ""}`}>
-              <CompanyLogo name={r.company || r.guess_company || r.from_name || "?"} size="sm" />
+              <CompanyLogo name={r.company || r.guess_company || r.from_name || "?"} website={r.company_website} size="sm" />
               <div className="grow">
                 <div className="row" style={{ gap: ".45rem" }}>
                   <span className="title">{r.subject || "(no subject)"}</span>
@@ -63,6 +63,7 @@ export default function Replies() {
                   {r.suggest && <button className="btn sm primary" onClick={() => act(`/api/replies/${r.id}/apply`)}><MailCheck />{r.suggest.label}</button>}
                   {r.application_id && <Link className="btn sm quiet" href={`/applications/${r.application_id}`}>Open the application</Link>}
                   {r.untracked && <button className="btn sm primary" onClick={() => act(`/api/replies/${r.id}/track`, { company: r.guess_company, title: r.guess_title })}>Track {r.guess_company || "it"}</button>}
+                  <button className="btn sm quiet" title="Hide it and every email from this sender" onClick={() => act(`/api/replies/${r.id}`, { not_job: true }, "PATCH")}>Not about a job</button>
                   <button className="btn sm quiet icon" title="Dismiss" aria-label="Dismiss" onClick={() => act(`/api/replies/${r.id}`, { dismissed: true }, "PATCH")}><X /></button>
                 </div>
               </div>
@@ -113,6 +114,7 @@ function Untracked({ u, onDone }: { u: any; onDone: () => void }) {
           <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Role (optional)" aria-label="Role" style={{ width: 260 }} />
           <button className="btn sm primary" onClick={track} disabled={busy || !company.trim()}>{busy ? "Adding" : "Track it"}</button>
           {u.url && <a className="btn sm quiet" href={u.url} target="_blank" rel="noreferrer"><ExternalLink />Open in Gmail</a>}
+          <button className="btn sm quiet" title="Hide it and every email from this sender" onClick={async () => { await api(`/api/replies/${u.id}`, { method: "PATCH", body: { not_job: true } }); onDone(); }}>Not about a job</button>
           <button className="btn sm quiet icon" title="Not an application" aria-label="Dismiss" onClick={async () => { await api(`/api/replies/${u.id}`, { method: "PATCH", body: { dismissed: true } }); onDone(); }}><X /></button>
         </div>
         <Err msg={err} />

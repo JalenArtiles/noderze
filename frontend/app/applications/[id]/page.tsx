@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { Copy, Download, Mail, RotateCcw, Trash2 } from "lucide-react";
 import { Callout, Empty, Err, Loading, PageHeader, RunButton, Tabs, stageLabel, useTab } from "@/components/ui";
 import { api, day, fileUrl, label, useApi } from "@/lib/api";
+import { CompanyLogo } from "@/components/visual";
 
 export default function ApplicationPage() {
   const { id } = useParams() as { id: string };
@@ -23,7 +24,8 @@ export default function ApplicationPage() {
   const unread = (data.replies || []).filter((x: any) => !x.seen).length;
   return (
     <>
-      <PageHeader crumb={<Link href={`/jobs/${data.job.id}`}>{a.company}</Link>} title={a.title}
+      <PageHeader crumb={<Link href={`/jobs/${data.job.id}`}>{a.company}</Link>}
+        title={<span className="ph-id"><CompanyLogo name={a.company} website={a.company_website} size="lg" /><span>{a.title}</span></span>}
         actions={<>{prepared && <div style={{ textAlign: "right", marginRight: ".4rem" }}><div className="score num" style={{ fontFamily: "var(--display)", fontSize: "1.8rem", fontWeight: 800, lineHeight: 1 }}>{r.overall ?? 0}%</div><div className="tiny muted">ready</div></div>}{prepare}</>}>
         <div className="meta">
           <select className="stage-pick" value={a.stage} onChange={(e) => patch({ stage: e.target.value })} aria-label="Stage">

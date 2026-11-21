@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { BarChart3, CalendarRange, CircleDollarSign, Clock, ExternalLink, Globe, MapPin, Network, Search, Shield } from "lucide-react";
 import { Empty, Err, Loading, Menu, PageHeader, RunButton, SectionHead, Tabs } from "@/components/ui";
 import { InternRow, Season, TRACKS } from "@/components/intern";
+import { useActivity } from "@/components/activity";
 import { api, useApi } from "@/lib/api";
 
 const TRACK_ICON: Record<string, any> = { cyber: Shield, data: BarChart3, network: Network };
@@ -19,6 +20,7 @@ function ago(iso?: string | null) {
 
 export default function Internships() {
   const { data, error, reload } = useApi<any>("/api/internships");
+  const act = useActivity();
   const [tab, setTab] = useState("ok");
   const [track, setTrack] = useState("");
   const [where, setWhere] = useState("");
@@ -62,6 +64,7 @@ export default function Internships() {
         actions={<>
           <RunButton kind="find_internships" label="Spring internships" className="btn primary" onDone={() => reload()}><Search />Find internships</RunButton>
           <Menu>
+            <button onClick={() => act.start({ kind: "verify_internships", label: "Checking every internship posting", onDone: () => reload() })}>Check every posting is still open<span className="d">Opens each employer's live posting and refreshes the details</span></button>
             <a href="#add">Add one you found<span className="d">A link or the posting text</span></a>
             <a href="#sites">Search Handshake and LinkedIn<span className="d">Sites you log into yourself</span></a>
             <Link href="/settings#removed">Removed internships<span className="d">Bring back one you removed</span></Link>
@@ -77,7 +80,8 @@ export default function Internships() {
           <span><CalendarRange />January to May 2027</span>
           <span><MapPin />Remote, or onsite in the Phoenix area</span>
         </div>
-        <p className="tiny faint">{data?.running ? "Searching now. New internships appear as they're found." : data?.last_scan ? `Last search ${ago(data.last_scan)}. Noderze searches again every morning.` : "Not searched yet."}</p>
+        <p className="tiny faint">{data?.running ? "Searching now. New internships appear as they're found." : data?.last_scan ? `Last search ${ago(data.last_scan)}. Noderze searches again every morning.` : "Not searched yet."}
+          {data?.last_verify ? ` Every posting was last checked against the employer's site ${ago(data.last_verify)}; closed ones are taken off.` : ""}</p>
       </div>
 
       <Err msg={error} />
@@ -96,6 +100,8 @@ export default function Internships() {
             <label className="check"><input type="checkbox" checked={fresh} onChange={(e) => setFresh(e.target.checked)} />Only new</label>
           </div>
           <Tabs value={tab} onChange={setTab} tabs={[["ok", "Qualify", uniq(ok)], ["out", "Filtered out", uniq(out)]]} />
+          {data?.moved && (data.moved.applied + data.moved.started + data.moved.closed_out) > 0 && <p className="small muted" style={{ margin: "-.3rem 0 .8rem" }}>
+            Internships you started, applied to or heard back from aren't listed here. <Link href="/applications?kind=internship">See them on Applications ({data.moved.applied + data.moved.started + data.moved.closed_out})</Link>.</p>}
           {tab === "out" && out.length > 0 && <p className="small muted" style={{ margin: "-.3rem 0 .8rem" }}>These missed one of your rules. If a recruiter tells you one is paid, or your coordinator says an IT internship counts, you can bring it back.</p>}
           <div className="list">
             {shown.length ? grouped.map(({ job, count, ids }) => <InternRow key={job.id} job={job} count={count} ids={ids} onChange={reload} />) :

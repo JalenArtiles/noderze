@@ -40,6 +40,11 @@ def patch_reply(rid: int, body: dict, db: Session = Depends(get_db)):
     for k in ("seen", "dismissed"):
         if k in body:
             setattr(r, k, bool(body[k]))
+    if body.get("not_job"):
+        # "Not about a job": this sender's mail never shows here again.
+        n = RP.block_sender(db, r)
+        db.commit()
+        return RP.reply_dict(db, r) | {"hidden_from_sender": n}
     db.commit()
     return RP.reply_dict(db, r)
 

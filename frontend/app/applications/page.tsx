@@ -21,7 +21,11 @@ export default function Board() {
   const replies = useApi("/api/replies");
   const [kind, setKind] = useState("all");
   const [drafts, setDrafts] = useState(false);
-  useEffect(() => { setKind(remembered("noderze.apps.kind", "all")); setDrafts(remembered("noderze.apps.drafts", "0") === "1"); }, []);
+  useEffect(() => {
+    const asked = new URLSearchParams(window.location.search).get("kind");
+    setKind(asked && KINDS.some(([k]) => k === asked) ? asked : remembered("noderze.apps.kind", "all"));
+    setDrafts(remembered("noderze.apps.drafts", "0") === "1");
+  }, []);
   const pick = (k: string) => { setKind(k); remember("noderze.apps.kind", k); };
   const toggleDrafts = (v: boolean) => { setDrafts(v); remember("noderze.apps.drafts", v ? "1" : "0"); };
   async function move(id: number, stage: string) { await api(`/api/applications/${id}`, { method: "PATCH", body: { stage } }); reload(); }
@@ -65,7 +69,7 @@ export default function Board() {
                   <div key={c.id} className="kcard">
                     <div className="row" style={{ gap: ".45rem", flexWrap: "nowrap" }}>
                       <CompanyLogo name={c.company} website={c.company_website} size="sm" />
-                      <span className="tiny muted" style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.company}</span>
+                      <span className="small" style={{ fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.company}</span>
                       {unread[c.id] > 0 && <Link href="/replies" className="tag new" style={{ marginLeft: "auto" }} title="New email from this company"><Mail size={12} />{unread[c.id]}</Link>}
                     </div>
                     <Link href={`/applications/${c.id}`} className="ktitle">{c.title}</Link>

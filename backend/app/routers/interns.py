@@ -58,8 +58,7 @@ def search_links() -> list[dict]:
 
 @router.get("/internships")
 def internships(db: Session = Depends(get_db)):
-    jobs = list(db.scalars(select(Job).where(Job.family == IJ.FAMILY, Job.hidden.is_(False), Job.is_active.is_(True))
-                           .order_by(Job.score_total.desc())))
+    jobs, moved = IJ.board(db)
     apps = dict(db.execute(select(Application.job_id, Application.stage)).all())
     unseen = set(db.scalars(select(Alert.job_id).where(Alert.seen.is_(False), Alert.job_id.is_not(None))))
     prof = get_profile(db).data or {}
@@ -68,6 +67,8 @@ def internships(db: Session = Depends(get_db)):
     return {
         "items": [_item(j, apps, unseen) for j in jobs],
         "counts": IJ.counts(db),
+        "moved": moved,  # on the Applications board now, or removed, so not listed here
+        "last_verify": prof.get("intern_last_verify"),
         "prefs": prefs(prof),
         "last_scan": prof.get("intern_last_scan"),
         "running": bool(run and run.status == "running"),
@@ -122,3 +123,16 @@ def patch_internship(jid: int, body: InternPatch, db: Session = Depends(get_db))
 @router.get("/internships/defaults")
 def defaults():
     return DEFAULT_PREFS
+
+
+@router.post("/internships/{jid}/verify")
+def verify_internship(jid: int, db: Session = Depends(get_db)):
+    """Open this internship's live posting now: refresh its details, or mark it closed."""
+    from ..services import intern_verify
+    job = db.get(Job, jid)
+    if not job or job.family != IJ.FAMILY:
+        raise HTTPException(404, "Not an internship")
+    r = intern_verify.verify_job(db, job)
+    db.commit()
+    apps = dict(db.execute(select(Application.job_id, Application.stage)).all())
+    return _item(job, apps, set()) | {"verify": {"state": r.state, "reason": r.reason}}

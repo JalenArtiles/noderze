@@ -1,6 +1,8 @@
 """Stores and re-checks internship postings (Job rows with family "internship" plus an InternDetail)."""
 from __future__ import annotations
 
+import re
+
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -91,7 +93,96 @@ def intern_summary(job: Job) -> dict | None:
             "where": {k: w.get(k) for k in ("status", "label", "city", "tier")}, "note": w.get("note"),
             "reasons_out": w.get("reasons_out") or [], "track_reason": w.get("track_reason"),
             "track_strength": w.get("track_strength"), "sources": d.sources or [], "overrides": d.overrides or {},
-            "readable": d.readable, "evaluated_at": d.evaluated_at.isoformat() if d.evaluated_at else None}
+            "readable": d.readable, "evaluated_at": d.evaluated_at.isoformat() if d.evaluated_at else None,
+            "verify": (d.hints or {}).get("verify"), "gist": (sections(job.description_text).get("do") or [None])[0]}
+
+
+# ----------------------------------------------------------------------------- what the posting says
+
+_DO_HEAD = re.compile(r"^(?:primary |key |core |main |essential )?(?:responsibilities|duties|what you(?:'|’)?ll do|"
+                      r"what you will do|your role|the role|the position|in this role|day[- ]to[- ]day|job duties|"
+                      r"what you(?:'|’)?ll work on|projects|your impact|the impact you will make|about the (?:role|job)|"
+                      r"job description|position summary|the opportunity|what we need from you|you will)\b", re.I)
+_NEED_HEAD = re.compile(r"^(?:minimum |basic |required |preferred |desired |additional )?(?:qualifications|requirements|"
+                        r"what you(?:'|’)?ll (?:need|bring)|what you bring|what we(?:'|’)?re looking for|who you are|"
+                        r"skills|experience(?: and education)?|education|you have|must haves?|nice to have|"
+                        r"the candidate|eligibility|about you|experience that matters)\b", re.I)
+_BULLET = re.compile(r"^\s*(?:[-•*·▪●◦]|\d{1,2}[.)])\s+")
+
+
+def sections(text: str | None, limit: int = 6) -> dict:
+    """The posting's own bullet lists: what you'd do and what they ask for, in its words."""
+    out: dict[str, list[str]] = {"do": [], "need": []}
+    cur, lead = None, None  # lead: "Pursuing a degree in:" waiting for its short sub-bullets
+
+    def add(item: str) -> None:
+        if cur and len(out[cur]) < limit and 12 <= len(item) <= 600:
+            out[cur].append(item if len(item) <= 230 else item[:227].rsplit(" ", 1)[0] + "...")
+
+    def flush() -> None:
+        nonlocal lead
+        if lead and lead[1]:
+            add(f"{lead[0]} {', '.join(lead[1])}")
+        lead = None
+
+    for raw in (text or "").splitlines():
+        line = raw.strip()
+        if not line:
+            continue
+        head = line.rstrip(":").strip("*# ").strip()
+        is_bullet = bool(_BULLET.match(line))
+        item = _BULLET.sub("", line).strip()
+        if not is_bullet and len(head) <= 70:
+            kind = "do" if _DO_HEAD.match(head) else "need" if _NEED_HEAD.match(head) else None
+            if kind or line.endswith(":") or (head.istitle() and len(head.split()) <= 6):
+                flush()
+                cur = kind
+                continue
+        if not cur:
+            continue
+        if is_bullet:
+            if lead is not None and len(item) <= 45 and not item.endswith((".", ":")):
+                lead[1].append(item)  # "Computer Science" under "Pursuing a degree in:"
+                continue
+            flush()
+            if item.endswith(":"):
+                lead = (item, [])
+                continue
+            if len(item.split()) <= 5 and not item.endswith(".") and item.replace("&", "And").istitle():
+                continue  # a sub-heading written as a bullet ("Presales & Client Engagement")
+            add(item)
+        elif cur == "do" and not out["do"] and len(line) >= 80:
+            add(line)  # a role described in a paragraph instead of bullets
+    flush()
+    return out
+
+
+def details(job: Job) -> dict:
+    """The facts shown at the top of an internship's page, each from the posting or marked as not stated."""
+    d = job.intern
+    pay, hours, term, where = (d.pay or {}), (d.hours or {}), (d.term or {}), (d.where or {}) if d else ({},) * 4
+    v = (d.hints or {}).get("verify") if d else None
+    sec = sections(job.description_text)
+    source = ("The employer's own posting" if job.source_is_original else
+              "Added by you" if job.source == "manual" else
+              "A copy on The Muse" if job.source == "themuse" else
+              "A copy on the SimplifyJobs list" if job.source == "simplify" else "Another job site")
+    return {
+        "facts": [
+            {"key": "pay", "label": "Pay", "value": pay.get("label") or "Not stated", "evidence": pay.get("evidence")},
+            {"key": "hours", "label": "Hours", "value": hours.get("label") or "Not stated", "evidence": hours.get("evidence")},
+            {"key": "term", "label": "Dates", "value": term.get("label") or "Not stated", "evidence": term.get("evidence")},
+            {"key": "where", "label": "Where", "value": where.get("label") or job.location_text or "Not stated",
+             "evidence": job.location_text},
+            {"key": "deadline", "label": "Apply by", "value": job.deadline.strftime("%B %-d, %Y") if job.deadline else
+             "No deadline listed"},
+            {"key": "posted", "label": "Posted", "value": job.posted_at.strftime("%B %-d, %Y") if job.posted_at else
+             "Not stated"},
+        ],
+        "do": sec["do"], "need": sec["need"], "source": source, "url": job.url, "original": job.source_is_original,
+        "verify": v, "open": job.is_active,
+        "checked": job.last_verified_at.isoformat() if job.last_verified_at else None,
+    }
 
 
 def set_override(db: Session, job: Job, key: str, value: bool) -> InternDetail:
@@ -113,10 +204,92 @@ def alert_new(db: Session, job: Job) -> None:
                                             + (f" ({pay})" if pay and "$" in pay else "")))
 
 
+def posting_key(job: Job) -> str:
+    """One key per real posting, however it reached Noderze: the Greenhouse job id, the Workday path, or the link
+    without tracking parameters. 'U-Haul' and 'Uhaul' with the same Workday link are one internship."""
+    import re
+    from urllib.parse import parse_qs, urlparse
+
+    from .ats import parse_ats_url, parse_workday_url
+    url = (job.url or job.apply_url or "").strip()
+    if not url:
+        return f"title:{job.company_id}:{(job.title or '').lower()}"
+    wd = parse_workday_url(url)
+    if wd:
+        host = re.sub(r"^wd\d+\.", "", wd[0])
+        return f"workday:{host}:{wd[1].lower()}:{wd[2].rstrip('/').lower()}"
+    u = urlparse(url)
+    q = parse_qs(u.query)
+    if q.get("gh_jid"):
+        return f"greenhouse:{q['gh_jid'][0]}"
+    parsed = parse_ats_url(url)
+    if parsed and parsed[2]:
+        if parsed[0] == "greenhouse":
+            return f"greenhouse:{parsed[2]}"  # job ids are unique across Greenhouse boards
+        return f"{parsed[0]}:{parsed[1].lower()}:{parsed[2].lower()}"
+    keep = sorted((k, v[0]) for k, v in q.items() if not re.match(r"utm_|gh_src|source|ref|mobile|needsredirect|lang",
+                                                                    k, re.I))
+    return f"url:{u.netloc.lower().removeprefix('www.')}{u.path.rstrip('/').lower()}?{keep}"
+
+
+def _rank(j: Job, stage: str | None) -> tuple:
+    return (stage is not None, bool(j.source_is_original), len(j.description_text or "") >= 250, j.score_total or 0)
+
+
+def board(db: Session) -> tuple[list[Job], dict]:
+    """The Spring internships list: open postings you haven't acted on, one per real posting.
+
+    Left out: anything you removed (Not for me), anything you opened the application for, applied to, heard back
+    from or were turned down for (those live on the Applications board), and postings that closed. Duplicates of
+    the same posting (from two lists, or under two spellings of the company) show once."""
+    from ..models import PRE_APPLY
+    stages = dict(db.execute(select(Application.job_id, Application.stage)).all())
+    import re
+    groups: dict[str, list[Job]] = {}
+    originals: dict[tuple[str, str], list[Job]] = {}
+    norm = lambda t: re.sub(r"[^a-z0-9]", "", (t or "").lower())
+    for j in db.scalars(select(Job).where(Job.family == FAMILY)):
+        groups.setdefault(posting_key(j), []).append(j)
+        if j.source_is_original:
+            originals.setdefault((norm(j.company.name if j.company else ""), norm(j.title)), []).append(j)
+    # A copy (The Muse, the SimplifyJobs list) of a posting Noderze reads from the employer joins that posting.
+    for key, members in list(groups.items()):
+        if any(j.source_is_original for j in members):
+            continue
+        j0 = members[0]
+        twin = originals.get((norm(j0.company.name if j0.company else ""), norm(j0.title)))
+        if twin:
+            groups.pop(key)
+            groups[posting_key(twin[0])] = list(dict.fromkeys(groups.get(posting_key(twin[0]), []) + members))
+    shown: list[Job] = []
+    moved = {"started": 0, "applied": 0, "closed_out": 0, "removed": 0, "closed": 0}
+    for members in groups.values():
+        acted = [stages[j.id] for j in members if j.id in stages and stages[j.id] not in PRE_APPLY]
+        if acted:
+            st = acted[0]
+            moved["started" if st == "started" else "closed_out" if st in ("rejected", "withdrawn") else "applied"] += 1
+            continue
+        if any(j.hidden for j in members):
+            moved["removed"] += 1
+            continue
+        # A posting the employer's own site says is gone takes its copies on other lists with it.
+        if any(not j.is_active and j.source_is_original for j in members):
+            moved["closed"] += 1 if any(j.is_active for j in members) else 0
+            continue
+        live = [j for j in members if j.is_active]
+        if not live:
+            continue
+        shown.append(max(live, key=lambda j: _rank(j, stages.get(j.id))))
+    shown.sort(key=lambda j: -(j.score_total or 0))
+    return shown, moved
+
+
 def counts(db: Session) -> dict:
-    jobs = list(db.scalars(select(Job).where(Job.family == FAMILY, Job.is_active.is_(True), Job.hidden.is_(False))))
-    applied = set(db.scalars(select(Application.job_id).where(Application.job_id.in_([j.id for j in jobs])))) if jobs else set()
-    out = {"qualifies": 0, "check": 0, "out": 0, "applied": len(applied)}
+    from ..models import PRE_APPLY
+    jobs, moved = board(db)
+    stages = dict(db.execute(select(Application.job_id, Application.stage)).all())
+    out = {"qualifies": 0, "check": 0, "out": 0, "saved": sum(1 for j in jobs if j.id in stages),
+           "applied": moved["applied"] + moved["started"], "closed_out": moved["closed_out"]}
     for j in jobs:
         st = j.intern.status if j.intern else "out"
         out[st] = out.get(st, 0) + 1

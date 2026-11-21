@@ -36,6 +36,16 @@ export function FactChips({ it }: { it: any }) {
   return <>{shortFacts(it).map((f) => { const Icon = f.icon; return <span key={f.key} className={`tag ifact ${f.tone}`}><Icon />{f.text}</span>; })}</>;
 }
 
+/** When Noderze last opened the live posting, and what it found. */
+export function checkedLine(job: any) {
+  const v = job.intern?.verify;
+  if (v?.state === "open") return v.original ? `Open on the employer's site as of ${day(v.at)}.` : `${v.reason}, as of ${day(v.at)}.`;
+  if (v?.state === "unchecked") return `Not checked live: ${v.reason.replace(/\.$/, "")}.`;
+  if (v?.state === "closed") return `Closed: ${v.reason.replace(/\.$/, "")}.`;
+  if (job.source_is_original && job.last_verified_at) return `Read from the employer's site ${day(job.last_verified_at)}.`;
+  return "Not checked against the employer's site yet.";
+}
+
 /** Your own confirmations: they never get overwritten by a scan. */
 export function useInternActions(job: any, onChange?: (it: any) => void) {
   const [busy, setBusy] = useState(false);
@@ -72,9 +82,11 @@ export function InternRow({ job, count = 1, ids, onChange }: { job: any; count?:
           <FactChips it={it} />
           {job.application_stage && <span className={`tag ${PRE_APPLY.includes(job.application_stage) ? "" : "good"}`}>{stageLabel(job.application_stage)}</span>}
         </div>
+        {it.gist && !out && <div className="gist"><b>What you'd do:</b> {it.gist}</div>}
         {out && fails.length > 0 && <div className="why-out"><b>Filtered out:</b> {fails.map((f: any) => f.detail).join(" ")}</div>}
         {!out && warns.length > 0 && <div className="why-out warn">Confirm before applying: {warns.map((w: any) => CHECK_NAME[w.key] || w.label).join(", ")}.</div>}
         {it.note && <div className="why-out">{it.note}</div>}
+        <div className="tiny faint" style={{ marginTop: ".35rem" }}>{checkedLine(job)}</div>
       </div>
       <div className="end">
         <ScoreChip value={job.score_total} />

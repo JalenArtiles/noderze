@@ -24,6 +24,7 @@ from .evidence import add_evidence, classify_source, evidence_for, grouped, seri
 from .fetch import FetchBlocked, PoliteFetcher
 from .llm import llm
 from .search import search
+from .logos import site as logo_site
 
 FIELDS = {
     "program.name": "Official program name", "program.role_title": "Exact role title",
@@ -321,7 +322,7 @@ def job_brief(j: Job) -> dict:
         "last_verified_at": j.last_verified_at.isoformat() if j.last_verified_at else None,
         "posted_at": j.posted_at.isoformat() if j.posted_at else None,
         "company_category": j.company.category if j.company else None,
-        "company_website": j.company.website if j.company else None,
+        "company_website": logo_site(j.company),
         "sales_level": _sales_level(j.title),
         "se_roles_seen": int((((j.company.data or {}) if j.company else {}).get("se_team") or {}).get("open_se_roles") or 0),
         "program_name": j.program.name if j.program else None,

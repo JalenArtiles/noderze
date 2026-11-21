@@ -99,12 +99,44 @@ def _next_action_v2(db) -> None:
         a.next_action = NEXT_ACTION
 
 
+def _refilter_replies(db) -> None:
+    """Stricter email rules: meeting reports, calendar notices and class mail that mention interviews are dropped."""
+    from .services import replies
+    n = replies.refilter(db)
+    if n:
+        log.info("removed %s emails that weren't about an application", n)
+
+
+def _intern_details(db) -> None:
+    """Newer date and hours reading (explicit date ranges, benefits boilerplate), then a live check of every
+    listed internship right after the update."""
+    from sqlalchemy import select
+
+    from .config import settings
+    from .models import Job
+    from .services.intern_jobs import evaluate_job
+    for job in db.scalars(select(Job).where(Job.family == "internship")):
+        evaluate_job(db, job)
+    db.commit()
+    if settings.enable_scheduler:
+        from .workflows import WORKFLOWS, start
+        start("verify_internships", "Check every internship posting", WORKFLOWS["verify_internships"])
+
+
+def _logos(db) -> None:
+    """Logos for companies that arrived without a website (Workday and Greenhouse links, Muse copies, emails)."""
+    from .services import logos
+    log.info("found logos for %s companies", logos.fill(db))
+
+
 # rescore_v3_2: enterprise/strategic AE roles, foreign postings and state-limited remote roles left the entry list.
 STEPS = [("alerts_baseline_v1", _baseline_alerts), ("available_start_v1", _start_month), ("rescore_v3_1", _rescore),
          ("rescore_v3_2", _rescore), ("generic_notes_v1", _clear_generic_notes),
          ("resume_checks_v1", _refresh_resume_checks), ("intern_rule_v1", _intern_rule),
          ("rescore_interns_v1", _rescore),  # internship checks after the first live search
-         ("cover_letters_v2", _rewrite_cover_letters), ("next_action_v2", _next_action_v2)]
+         ("cover_letters_v2", _rewrite_cover_letters), ("next_action_v2", _next_action_v2),
+         ("replies_refilter_v1", _refilter_replies), ("intern_verify_v1", _intern_details),
+         ("logos_v1", _logos)]
 
 
 def apply_profile_updates(db) -> int:

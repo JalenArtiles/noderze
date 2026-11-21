@@ -457,10 +457,10 @@ def import_job_sites(db: Session, log, stats: dict) -> int:
 # ----------------------------------------------------------------------------- the workflow
 
 def run(db: Session, log) -> dict:
-    from .intern_jobs import counts, evaluate_job
+    from .intern_jobs import board, counts, evaluate_job
     from .profile import get_profile
     log.plan(["Read the internship lists", "Scan Phoenix-area employers", "Check Arizona public employers",
-              "Scan your target companies", "Check pay, hours, dates and location"])
+              "Scan your target companies", "Check pay, hours, dates and location", "Check each posting is still open"])
     stats: dict = {}
     f = PoliteFetcher(min_interval=1.0)
     boards = load_boards()
@@ -501,8 +501,31 @@ def run(db: Session, log) -> dict:
     data["intern_last_scan"] = now().isoformat(timespec="seconds")
     prof.data = data
     db.commit()
+    log.done("Rules checked")
+    log.step(5)
+    from . import intern_verify
+    tally = {"open": 0, "closed": 0, "unchecked": 0}
+    shown, _ = board(db)
+    vf = PoliteFetcher(min_interval=1.0)
+    try:
+        for job in sorted(shown, key=lambda j: (not j.source_is_original, j.id)):
+            # The employer's own postings were just read; copies and older reads get a live check.
+            if job.source_is_original and job.last_verified_at and (now() - job.last_verified_at).total_seconds() < 6 * 3600:
+                tally["open"] += 1
+                continue
+            tally[intern_verify.verify_job(db, job, vf).state] += 1
+            db.commit()
+    finally:
+        vf.close()
+    from . import logos
+    logos.fill(db)
+    data = dict(prof.data or {})
+    data["intern_last_verify"] = now().isoformat(timespec="seconds")
+    prof.data = data
+    db.commit()
     c = counts(db)
-    log.done(f"{c['qualifies']} qualify, {c['check']} qualify with one thing to confirm, {c['out']} filtered out")
+    log.done(f"{c['qualifies']} qualify, {c['check']} qualify with one thing to confirm, {c['out']} filtered out. "
+             f"{tally['closed']} closed since the last check.")
     return {"counts": c, "stats": stats, "first_scan": first,
             "highlights": [{"label": "Qualify", "value": c["qualifies"] + c["check"], "href": "/internships"},
                            {"label": "New this scan", "value": stats.get("new", 0), "href": "/internships?new=1"},

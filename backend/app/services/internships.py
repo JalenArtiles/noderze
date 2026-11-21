@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
-from datetime import date
+from datetime import date, timedelta
 
 from .classify import _dates_in, parse_comp, parse_location
 
@@ -265,6 +265,8 @@ _FULL = re.compile(r"\bfull[- ]?time\b", re.I)
 _FULL_NOT = re.compile(r"student|enrol|undergrad|college|universit|degree|status|upon|offer|conver|after graduation|"
                        r"graduat|hire|hiring|opportunit|employment|role after|position after|career|return", re.I)
 _PART = re.compile(r"\bpart[- ]?time\b", re.I)
+_PART_NOT = re.compile(r"employees|benefit|eligib|\bPRN\b|casual|regularly scheduled|full[- ]?time (?:and|or|&|/) part|"
+                       r"part[- ]?time (?:and|or|&|/) full|(?:full|part)[- ]?time,? (?:and|or) (?:part|full)", re.I)
 
 
 def _week_context(text: str, m: re.Match) -> bool:
@@ -337,10 +339,13 @@ def hours_of(text: str, hints: dict | None = None, title: str = "", lo_pref: flo
             full = True
             ev = ev or _sentence_around(body, m.start(), m.end())
             break
-    pm = _PART.search(body)
-    if pm:
+    for pm in _PART.finditer(body):
+        # Benefits boilerplate ("Casual, PRN & Part Time employees ...") says nothing about this internship.
+        if _PART_NOT.search(body[max(0, pm.start() - 40): pm.end() + 40]):
+            continue
         part = True
         ev = ev or _sentence_around(body, pm.start(), pm.end())
+        break
 
     if lows or highs:
         lo = min(lows) if lows else None
@@ -397,10 +402,58 @@ class Term:
         return {"status": self.status, "label": self.label, "evidence": self.evidence}
 
 
+_RANGE_CONTEXT = re.compile(r"intern|program|dates?\b|duration|\bruns?\b|running|\bfrom\b|through|start|begin|schedule|"
+                            r"\bterm\b|session|co-?op|period|assignment", re.I)
+_NOT_WORK_DATES = re.compile(r"appl(y|ication)|deadline|accept|submi|post(ed|ing)|clos(e|ing)|review|interview|"
+                             r"recruit|career fair|info(rmation)? session|webinar|event|benefit|holiday", re.I)
+
+
+_MONTH_NUM = {m: i for i, m in enumerate(("jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov",
+                                          "dec"), 1)}
+_MD_RANGE = re.compile(r"\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\s+(\d{1,2})(?:st|nd|rd|th)?,?\s*"
+                       r"(?:-|–|to|through|thru|until)\s*(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\s+"
+                       r"(\d{1,2})(?:st|nd|rd|th)?\b", re.I)
+
+
+def _date_range(blob: str, start: date, end: date) -> Term | None:
+    """'Dates of Internship: May 18, 2026 - August 17, 2026' or 'runs from January 2027 through June 2027'."""
+    for sent in re.split(r"(?<=[.!?])\s+|\n+", blob):
+        if not _RANGE_CONTEXT.search(sent) or _NOT_WORK_DATES.search(sent):
+            continue
+        ds = sorted({d for d in _dates_in(sent) if d.year >= 2025})
+        if len(ds) < 2 and not re.search(r"\b20\d\d\b", sent):
+            m = _MD_RANGE.search(sent)  # "will run from February 1st through April 30th": the year is the term's
+            if m and re.search(r"spring|intern|program", blob[:4000], re.I):
+                a, b = _MONTH_NUM[m.group(1).lower()[:3]], _MONTH_NUM[m.group(3).lower()[:3]]
+                try:
+                    yr = start.year if a <= 6 else start.year - 1
+                    ds = [date(yr, a, int(m.group(2))), date(yr if b >= a else yr + 1, b, int(m.group(4)))]
+                except ValueError:
+                    ds = []
+        if len(ds) < 2:
+            continue
+        lo, hi = ds[0], ds[-1]
+        span = (f"{lo:%b %Y} to {hi:%b %Y}" if lo.year != hi.year else f"{lo:%b} to {hi:%b %Y}"
+                if lo.month != hi.month else f"{lo:%B %Y}")
+        ev = sent.strip()[:180]
+        if hi < date(2026, 12, 1):
+            return Term("past", f"Ran {span}, already over", ev)
+        if lo > end - timedelta(days=10):
+            return Term("summer" if lo.month in (5, 6, 7) else "later", f"Runs {span}, after spring", ev)
+        if lo <= date(start.year, 3, 15) and hi >= date(start.year, 2, 1):
+            return Term("spring", f"Runs {span}", ev)
+        if hi < start + timedelta(days=14):
+            return Term("fall", f"Runs {span}, before spring", ev)
+    return None
+
+
 def term_of(title: str, text: str, feed_terms: list[str] | None = None, start: date = date(2027, 1, 1),
             end: date = date(2027, 5, 31)) -> Term:
     blob = f"{title}\n{(text or '')[:9000]}"
     terms = [t.lower() for t in feed_terms or []]
+    r = _date_range(blob, start, end)
+    if r:
+        return r
     m = _SPRING.search(blob)
     if m or any(t in ("spring 2027", "winter 2027") for t in terms):
         return Term("spring", "Spring 2027", _sentence_around(blob, m.start(), m.end()) if m else "Listed for spring 2027.")
@@ -624,7 +677,7 @@ def evaluate(x: InternInput, pref: dict | None = None) -> dict:
     # Dates
     if term.status in ("spring", "school_year"):
         checks.append(_check("term", "January to May 2027", "pass", term.label, term.evidence))
-    elif term.status in ("summer", "fall", "later"):
+    elif term.status in ("summer", "fall", "later", "past"):
         checks.append(_check("term", "January to May 2027", "fail", term.label, term.evidence))
     else:
         checks.append(_check("term", "January to May 2027", "warn", "Dates not listed. Confirm it runs this spring."))

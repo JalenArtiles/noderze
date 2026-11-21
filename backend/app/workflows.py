@@ -19,7 +19,7 @@ from .util import now
 
 
 SCAN_KINDS = ("discover_jobs", "scan_alerts", "wide_scan", "import_feeds", "find_programs")
-SEPARATE_SCANS = ("find_internships",)  # single-flight on their own, so a long job scan never blocks them
+SEPARATE_SCANS = ("find_internships", "verify_internships")  # single-flight on their own, so a long job scan never blocks them
 STALE_AFTER_S = 3 * 3600
 _start_lock = threading.Lock()
 
@@ -155,7 +155,7 @@ def _execute(rid: int, fn, kwargs: dict) -> None:
 TITLES = {"full_company_analysis": "Full company analysis", "deep_research": "Deep research", "discover_jobs": "Job scan",
           "find_recruiters": "People search", "prepare_application": "Application package", "scan_alerts": "Scheduled scan",
           "find_programs": "Program search", "wide_scan": "Wide scan", "import_feeds": "Job feeds",
-          "find_internships": "Spring internship search"}
+          "find_internships": "Spring internship search", "verify_internships": "Internship posting check"}
 
 
 def run_view(r: SearchRun) -> dict:
@@ -451,6 +451,11 @@ def wf_find_internships(db: Session, log) -> dict:
     return intern_sources.run(db, log)
 
 
+def wf_verify_internships(db: Session, log) -> dict:
+    from .services import intern_verify
+    return intern_verify.run(db, log)
+
+
 def wf_wide_scan(db: Session, log, include_workday: bool = False) -> dict:
     return sources.wide_scan(db, log, include_workday=include_workday)
 
@@ -464,5 +469,5 @@ WORKFLOWS = {
     "discover_jobs": wf_discover, "find_programs": wf_find_programs, "deep_research": wf_deep_research,
     "find_recruiters": wf_find_recruiters, "prepare_application": wf_prepare,
     "full_company_analysis": wf_full_company_analysis, "scan_alerts": wf_scan_alerts,
-    "find_internships": wf_find_internships,
+    "find_internships": wf_find_internships, "verify_internships": wf_verify_internships,
 }

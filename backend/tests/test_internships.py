@@ -396,7 +396,7 @@ def test_search_runs_offline_against_saved_pages(client, monkeypatch):
     assert "Account Executive" not in titles
     assert titles.get("College Intern - TechStop IT Help Desk") == "out"  # SRP: general IT
     steps = [s["status"] for s in r["view"]["steps"]]
-    assert steps == ["done"] * 5, json.dumps(r["view"]["steps"])[:600]
+    assert steps == ["done"] * 6, json.dumps(r["view"]["steps"])[:600]
 
 
 def test_dropped_internships_are_imported_once(client, tmp_path):
