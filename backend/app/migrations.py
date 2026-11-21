@@ -123,6 +123,14 @@ def _intern_details(db) -> None:
         start("verify_internships", "Check every internship posting", WORKFLOWS["verify_internships"])
 
 
+def _verify_again(db) -> None:
+    """The first live check stopped on Windows at a date format; run it once more."""
+    from .config import settings
+    if settings.enable_scheduler:
+        from .workflows import WORKFLOWS, start
+        start("verify_internships", "Check every internship posting", WORKFLOWS["verify_internships"])
+
+
 def _logos(db) -> None:
     """Logos for companies that arrived without a website (Workday and Greenhouse links, Muse copies, emails)."""
     from .services import logos
@@ -136,7 +144,7 @@ STEPS = [("alerts_baseline_v1", _baseline_alerts), ("available_start_v1", _start
          ("rescore_interns_v1", _rescore),  # internship checks after the first live search
          ("cover_letters_v2", _rewrite_cover_letters), ("next_action_v2", _next_action_v2),
          ("replies_refilter_v1", _refilter_replies), ("intern_verify_v1", _intern_details),
-         ("logos_v1", _logos)]
+         ("logos_v1", _logos), ("intern_verify_v2", _verify_again)]
 
 
 def apply_profile_updates(db) -> int:
