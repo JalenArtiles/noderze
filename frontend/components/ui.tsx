@@ -1,17 +1,37 @@
 "use client";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { AlertTriangle, Info, Loader2, MoreHorizontal, Undo2, X } from "lucide-react";
+import { AlertTriangle, ArrowLeft, ExternalLink, Info, Loader2, MoreHorizontal, Undo2, X } from "lucide-react";
 import { api, day, label, money } from "@/lib/api";
 import { CompanyLogo } from "@/components/visual";
 import { useActivity } from "@/components/activity";
 
 export function Err({ msg }: { msg?: string | null }) { return msg ? <div className="error" role="alert">{msg}</div> : null; }
 
-export function PageHeader({ title, lede, crumb, actions, children }: { title: React.ReactNode; lede?: React.ReactNode; crumb?: React.ReactNode; actions?: React.ReactNode; children?: React.ReactNode }) {
+/** Back to wherever you came from; the list page when there's no history (a page opened in a new tab). */
+export function BackButton({ fallback, label = "Back" }: { fallback: string; label?: string }) {
+  const router = useRouter();
+  return (
+    <button className="back" onClick={() => {
+      const sameSite = typeof document !== "undefined" && document.referrer.startsWith(window.location.origin);
+      if (sameSite && window.history.length > 1) router.back(); else router.push(fallback);
+    }}><ArrowLeft />{label}</button>
+  );
+}
+
+/** The company's own application form (or its posting when there's no separate form). */
+export function ApplyLink({ job, className = "btn sm gold" }: { job: any; className?: string }) {
+  const href = job?.apply_url || job?.url;
+  if (!href) return null;
+  return <a className={className} href={href} target="_blank" rel="noreferrer"><ExternalLink />Open the application</a>;
+}
+
+export function PageHeader({ title, lede, crumb, actions, children, back }: { title: React.ReactNode; lede?: React.ReactNode; crumb?: React.ReactNode; actions?: React.ReactNode; children?: React.ReactNode; back?: string }) {
   return (
     <header className="ph">
       <div style={{ minWidth: 0, flex: "1 1 420px" }}>
+        {back && <BackButton fallback={back} />}
         {crumb && <span className="crumb">{crumb}</span>}
         <h1>{title}</h1>
         {lede && <p className="lede">{lede}</p>}

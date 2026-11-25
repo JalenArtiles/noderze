@@ -3,7 +3,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Copy, Download, Mail, RotateCcw, Trash2 } from "lucide-react";
-import { Callout, Empty, Err, Loading, PageHeader, RunButton, Tabs, stageLabel, useTab } from "@/components/ui";
+import { ApplyLink, Callout, Empty, Err, Loading, PageHeader, RunButton, Tabs, stageLabel, useTab } from "@/components/ui";
 import { api, day, fileUrl, label, useApi } from "@/lib/api";
 import { CompanyLogo } from "@/components/visual";
 
@@ -24,9 +24,9 @@ export default function ApplicationPage() {
   const unread = (data.replies || []).filter((x: any) => !x.seen).length;
   return (
     <>
-      <PageHeader crumb={<Link href={`/jobs/${data.job.id}`}>{a.company}</Link>}
+      <PageHeader back="/applications" crumb={<Link href={`/jobs/${data.job.id}`}>{a.company}</Link>}
         title={<span className="ph-id"><CompanyLogo name={a.company} website={a.company_website} size="lg" /><span>{a.title}</span></span>}
-        actions={<>{prepared && <div style={{ textAlign: "right", marginRight: ".4rem" }}><div className="score num" style={{ fontFamily: "var(--display)", fontSize: "1.8rem", fontWeight: 800, lineHeight: 1 }}>{r.overall ?? 0}%</div><div className="tiny muted">ready</div></div>}{prepare}</>}>
+        actions={<>{prepared && <div style={{ textAlign: "right", marginRight: ".4rem" }}><div className="score num" style={{ fontFamily: "var(--display)", fontSize: "1.8rem", fontWeight: 800, lineHeight: 1 }}>{r.overall ?? 0}%</div><div className="tiny muted">ready</div></div>}{data.job.is_active !== false && <ApplyLink job={data.job} className="btn gold" />}{prepare}</>}>
         <div className="meta">
           <select className="stage-pick" value={a.stage} onChange={(e) => patch({ stage: e.target.value })} aria-label="Stage">
             {data.stages_all?.map((x: string) => <option key={x} value={x}>{stageLabel(x)}</option>) || <option value={a.stage}>{stageLabel(a.stage)}</option>}</select>
@@ -37,6 +37,10 @@ export default function ApplicationPage() {
           <Link className="small" href={`/apply/${data.job.id}`}>Tailored resume and apply</Link>
           {a.url && <a className="small" href={a.url} target="_blank" rel="noreferrer">Posting</a>}</div>
       </PageHeader>
+      {data.job.is_active === false && <div style={{ marginBottom: "1rem" }}><Callout tone="warn">
+        This posting is closed{data.job.intern?.verify?.reason ? `: ${data.job.intern.verify.reason.replace(/\.$/, "")}` : ""}. If you didn't finish applying, set the stage to Withdrawn.</Callout></div>}
+      {data.job.is_active !== false && data.job.intern?.term?.status === "past" && <div style={{ marginBottom: "1rem" }}><Callout tone="warn">
+        {data.job.intern.term.label}. This isn't a spring 2027 internship; set the stage to Withdrawn if you don't want it here.</Callout></div>}
       <Err msg={err} />
       {note && <Callout action={<Link href="/approvals">Open approvals</Link>}>{note}</Callout>}
       <Tabs tabs={[["ready", "Checklist"], ["docs", "Cover letter and questions", (data.questions || []).length || null], ["resume", "Resume"], ["outreach", "Outreach"], ["interview", "Interview prep"], ["log", "Notes and dates"]]} value={tab} onChange={setTab} />

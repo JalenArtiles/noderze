@@ -443,3 +443,9 @@ details.more-info[open] > summary { margin-bottom: .8rem; }
 .idetails li { margin: .3rem 0; max-width: 70ch; }
 .gist { font-size: .84rem; margin-top: .45rem; max-width: 75ch; }
 .gist b { font-weight: 600; }
+
+/* Back to the previous page */
+.ph .back { display: inline-flex; align-items: center; gap: .35rem; background: none; border: 0; padding: .2rem 0; margin-bottom: .45rem;
+  color: var(--muted); font: inherit; font-size: .85rem; cursor: pointer; }
+.ph .back:hover { color: inherit; }
+.ph .back svg { width: 15px; height: 15px; }

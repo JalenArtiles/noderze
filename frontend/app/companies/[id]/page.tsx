@@ -25,7 +25,7 @@ export default function CompanyPage() {
   const run = (kind: string, body: any) => act.start({ kind, body, label: c.name, onDone: reload });
   return (
     <>
-      <PageHeader
+      <PageHeader back="/companies"
         crumb={<Link href="/companies">Companies</Link>}
         title={<span className="ph-id"><CompanyLogo name={c.name} website={c.website} size="lg" /><span>{c.name}</span></span>}
         lede={c.summary || (c.subcategory ? `${label(c.category)}: ${c.subcategory}` : label(c.category))}

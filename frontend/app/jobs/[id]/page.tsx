@@ -20,7 +20,7 @@ export default function JobPage() {
   const intern = j.family === "internship" && j.intern;
   return (
     <>
-      <PageHeader
+      <PageHeader back={intern ? "/internships" : "/jobs"}
         crumb={intern ? <><Link href="/internships">Spring internships</Link>, <Link href={`/companies/${j.company_id}`}>{j.company}</Link></> : <Link href={`/companies/${j.company_id}`}>{j.company}</Link>}
         title={<span className="ph-id"><CompanyLogo name={j.company} website={j.company_website} size="lg" /><span>{j.title}</span></span>}
         actions={<>

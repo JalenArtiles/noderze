@@ -53,7 +53,7 @@ export default function Apply() {
   const edits = allChanges ? d.edits : d.edits.slice(0, 5);
   return (
     <>
-      <PageHeader
+      <PageHeader back={`/jobs/${j.id}`}
         crumb={<Link href={`/companies/${j.company_id}`}>{j.company}</Link>}
         title={<span className="ph-id"><CompanyLogo name={j.company} website={j.company_website} size="lg" /><span>{j.title}</span></span>}
         actions={<><ScoreRing value={j.score_total} /><Link className="btn" href={`/jobs/${j.id}`}>Why it fits</Link></>}>
