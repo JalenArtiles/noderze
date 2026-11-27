@@ -218,3 +218,25 @@ def test_messages_about_a_removed_posting_are_set_aside(client, monkeypatch):
         assert O.find(db, "hr@liveagency.gov").status == "skipped"
     finally:
         db.close()
+
+
+def test_structured_call_falls_back_when_forced_tools_are_refused(monkeypatch):
+    from types import SimpleNamespace
+
+    from app.services.llm import LLM
+    calls = []
+
+    class Messages:
+        def create(self, **kw):
+            calls.append(kw)
+            if "tool_choice" in kw:
+                raise RuntimeError("Error code: 400 - tool_choice: type 'tool' and 'any' are not supported for this model.")
+            return SimpleNamespace(content=[SimpleNamespace(type="tool_use", input={"ok": True})])
+
+    m = LLM()
+    m.client = SimpleNamespace(messages=Messages())
+    m._no_forced_tools = set()
+    assert m.structured("sys", "prompt", {"type": "object"}) == {"ok": True}
+    assert m.structured("sys", "prompt", {"type": "object"}) == {"ok": True}
+    assert ["tool_choice" in c for c in calls] == [True, False, False]  # remembered after the first refusal
+    assert calls[1]["system"].endswith("Answer only by calling the record tool.")

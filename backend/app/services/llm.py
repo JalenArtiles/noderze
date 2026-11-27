@@ -56,19 +56,38 @@ class LLM:
                    max_tokens: int = 3000) -> dict | None:
         if not self.client:
             return None
+        model = settings.llm_fast_model if fast else settings.llm_model
+        forced = model not in self._no_forced_tools
         try:
-            resp = self.client.messages.create(
-                model=settings.llm_fast_model if fast else settings.llm_model, max_tokens=max_tokens, system=system,
-                messages=[{"role": "user", "content": prompt}],
-                tools=[{"name": "record", "description": "Record the structured result.", "input_schema": schema}],
-                tool_choice={"type": "tool", "name": "record"})
+            resp = self._record_call(model, system, prompt, schema, max_tokens, forced)
         except Exception as e:  # network, auth, rate limit
-            log.warning("LLM structured call failed: %s", e)
-            return None
+            if forced and "tool_choice" in str(e):
+                # Some models don't accept a forced tool; ask for it in words instead and remember for next time.
+                self._no_forced_tools.add(model)
+                try:
+                    resp = self._record_call(model, system, prompt, schema, max_tokens, False)
+                except Exception as e2:
+                    log.warning("LLM structured call failed: %s", e2)
+                    return None
+            else:
+                log.warning("LLM structured call failed: %s", e)
+                return None
         for block in resp.content:
             if getattr(block, "type", None) == "tool_use":
                 return dict(block.input)
         return None
+
+    _no_forced_tools: set = set()
+
+    def _record_call(self, model: str, system: str, prompt: str, schema: dict, max_tokens: int, forced: bool):
+        tools = [{"name": "record", "description": "Record the structured result.", "input_schema": schema}]
+        if forced:
+            return self.client.messages.create(model=model, max_tokens=max_tokens, system=system, tools=tools,
+                                               messages=[{"role": "user", "content": prompt}],
+                                               tool_choice={"type": "tool", "name": "record"})
+        return self.client.messages.create(model=model, max_tokens=max_tokens, tools=tools,
+                                           system=system + "\n\nAnswer only by calling the record tool.",
+                                           messages=[{"role": "user", "content": prompt}])
 
     def text(self, system: str, prompt: str, *, fast: bool = False, max_tokens: int = 1500) -> str | None:
         if not self.client:
