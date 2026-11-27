@@ -128,8 +128,35 @@ def import_items(db: Session, items: list[dict], batch: str | None = None) -> li
                      job_title=it.get("job_title"))
         db.add(p)
         db.flush()
+        drop_if_gone(p)
         added.append(p)
     return added
+
+
+GONE_NOTE = "Not sent: the posting this is about is gone (its page says 404 Not found)."
+
+
+def posting_gone(url: str | None) -> bool:
+    """True only when the page itself says it's gone (404 or 410). A timeout or another error isn't proof, and
+    search tools can show a cached copy of a page that was taken down, so Noderze checks the live page."""
+    if not url or not url.lower().startswith("http"):
+        return False
+    import httpx
+    try:
+        r = httpx.get(url, follow_redirects=True, timeout=10,
+                      headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                                             "(KHTML, like Gecko) Chrome/124.0 Safari/537.36"})
+    except httpx.HTTPError:
+        return False
+    return r.status_code in (404, 410)
+
+
+def drop_if_gone(p: Prospect) -> bool:
+    """A message about a posting that no longer exists is set aside (Skipped, with the reason) instead of sent."""
+    if p.status in ("ready", "drafted", "scheduled") and posting_gone(p.source_url):
+        p.status, p.send_at, p.send_error = "skipped", None, GONE_NOTE
+        return True
+    return False
 
 
 EDITABLE = {"name": "name", "title": "title", "subject": "subject", "body": "email_body", "email_body": "email_body",

@@ -123,8 +123,12 @@ def send_due(db: Session) -> int:
     due = list(db.scalars(select(Prospect).where(Prospect.status == "scheduled", Prospect.send_at <= now(),
                                                  Prospect.email.is_not(None)).order_by(Prospect.send_at, Prospect.id)
                           .limit(PER_RUN)))
+    from .outreach import drop_if_gone
     sent = 0
     for p in due:
+        if drop_if_gone(p):  # checked again right before sending: postings close
+            db.commit()
+            continue
         sent += send_one(p)
         db.commit()
     if due:

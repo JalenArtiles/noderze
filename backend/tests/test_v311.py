@@ -175,3 +175,46 @@ def test_rewrites_reach_unsent_messages_only(client):
         assert O.find(db, "hr@sentco.com").email_body == "Old body"
     finally:
         db.close()
+
+
+def test_messages_about_a_removed_posting_are_set_aside(client, monkeypatch):
+    from datetime import datetime
+
+    import httpx
+
+    from app.db import SessionLocal
+    from app.services import mailer
+    from app.services import outreach as O
+
+    class Resp:
+        def __init__(self, code): self.status_code = code
+
+    def fake_get(url, **kw):
+        if "timeout" in url:
+            raise httpx.ConnectTimeout("slow")
+        return Resp(404 if "gone" in url else 200)
+    monkeypatch.setattr(httpx, "get", fake_get)
+    db = SessionLocal()
+    try:
+        O.import_items(db, [
+            {"company": "Gone Agency", "email": "hr@goneagency.gov", "subject": "S", "body": "B",
+             "source_url": "https://jobs.example.gov/gone-intern"},
+            {"company": "Live Agency", "email": "hr@liveagency.gov", "subject": "S", "body": "B",
+             "source_url": "https://jobs.example.gov/live-intern"},
+            {"company": "Slow Agency", "email": "hr@slowagency.gov", "subject": "S", "body": "B",
+             "source_url": "https://jobs.example.gov/timeout-intern"},
+        ], batch="g")
+        db.commit()
+        gone, live, slow = (O.find(db, e) for e in ("hr@goneagency.gov", "hr@liveagency.gov", "hr@slowagency.gov"))
+        assert (gone.status, gone.send_error) == ("skipped", O.GONE_NOTE)
+        assert live.status == "ready" and slow.status == "ready"
+        # A posting that closes after approval is caught right before sending
+        live.source_url = "https://jobs.example.gov/gone-later"
+        live.status, live.send_at = "scheduled", datetime(2026, 1, 1)
+        db.commit()
+        monkeypatch.setattr(mailer, "configured", lambda: True)
+        monkeypatch.setattr(mailer, "send_one", lambda p: (_ for _ in ()).throw(AssertionError("sent a dead posting")))
+        assert mailer.send_due(db) == 0
+        assert O.find(db, "hr@liveagency.gov").status == "skipped"
+    finally:
+        db.close()
