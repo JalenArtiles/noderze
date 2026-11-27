@@ -257,3 +257,28 @@ def test_linkedin_cards_open_campus_recruiters_first():
     named = O.prospect_dict(Prospect(company_name="Axon", channel="linkedin", status="ready",
                                      linkedin_url="https://www.linkedin.com/in/pat-example"))
     assert named["searches"] == [] and named["linkedin_url"] == "https://www.linkedin.com/in/pat-example"
+
+
+def test_closed_listing_keeps_linkedin_hello_but_sets_email_aside(client, monkeypatch):
+    import httpx
+
+    from app.db import SessionLocal
+    from app.services import outreach as O
+    monkeypatch.setattr(httpx, "get", lambda url, **kw: type("R", (), {"status_code": 410})())
+    db = SessionLocal()
+    try:
+        O.import_items(db, [
+            {"company": "Closed Co", "linkedin_url": "https://www.linkedin.com/search/results/people/?keywords=Closed+Co",
+             "note": "Hi!", "source_url": "https://jobs.example.com/closed"},
+            {"company": "Closed Co", "email": "jobs@closedco.com", "subject": "S", "body": "B",
+             "source_url": "https://jobs.example.com/closed"},
+            {"company": "Flagged Co", "linkedin_url": "https://www.linkedin.com/search/results/people/?keywords=Flagged+Co",
+             "note": "Hi!", "posting_closed": True},
+        ], batch="c")
+        db.commit()
+        li = O.find(db, linkedin_url="https://www.linkedin.com/search/results/people/?keywords=Closed+Co")
+        assert li.status == "ready" and li.posting_closed is True and O.prospect_dict(li)["posting_closed"]
+        assert O.find(db, "jobs@closedco.com").status == "skipped"
+        assert O.find(db, linkedin_url="https://www.linkedin.com/search/results/people/?keywords=Flagged+Co").posting_closed
+    finally:
+        db.close()

@@ -38,7 +38,8 @@ export default function Outreach() {
   function copy(id: number, text: string) { navigator.clipboard.writeText(text); setCopied(id); setTimeout(() => setCopied(null), 2500); }
   const items: any[] = data?.items || [];
   const of = (k: string) => items.filter((p) => TABS.find(([t]) => t === k)![2].includes(p.status));
-  const shown = of(tab).sort((a, b) => (a.channel === "email" ? 0 : 1) - (b.channel === "email" ? 0 : 1));
+  const rank = (p: any) => (p.channel === "email" ? 0 : p.posting_closed ? 2 : 1);
+  const shown = of(tab).sort((a, b) => rank(a) - rank(b));
   const c = data?.counts || {};
   const sending = data?.sending || {};
   const waiting = items.filter((p) => p.channel === "email" && ["ready", "drafted"].includes(p.status));
@@ -87,6 +88,7 @@ export default function Outreach() {
                   <span className="title">{p.company}</span>
                   <span className="tag">{p.channel === "email" ? <><Mail />Email</> : <><UserRound />LinkedIn</>}</span>
                   {p.kind === "applied" && <span className="tag good">You applied{p.job_title ? `: ${p.job_title}` : ""}</span>}
+                  {p.posting_closed && <span className="tag" title="The internship listing is gone, but a hello to their recruiters can still open a door.">Listing closed</span>}
                   {p.track && <span className="tag">{TRACK[p.track] || p.track}</span>}
                   <span className={`tag ${p.status === "replied" ? "good" : p.status === "bounced" ? "bad" : ""}`}>{STATUS[p.status] || p.status}</span>
                 </div>

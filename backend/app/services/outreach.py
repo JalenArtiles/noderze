@@ -125,7 +125,7 @@ def import_items(db: Session, items: list[dict], batch: str | None = None) -> li
                      draft_url=it.get("draft_url"), note=note, followup=it.get("followup"), batch=batch,
                      status="drafted" if channel == "email" and it.get("draft_id") else "ready",
                      kind="applied" if app_id else "cold", application_id=app_id if app_id and db.get(Application, app_id) else None,
-                     job_title=it.get("job_title"))
+                     job_title=it.get("job_title"), posting_closed=bool(it.get("posting_closed")) or None)
         db.add(p)
         db.flush()
         drop_if_gone(p)
@@ -152,16 +152,20 @@ def posting_gone(url: str | None) -> bool:
 
 
 def drop_if_gone(p: Prospect) -> bool:
-    """A message about a posting that no longer exists is set aside (Skipped, with the reason) instead of sent."""
-    if p.status in ("ready", "drafted", "scheduled") and posting_gone(p.source_url):
-        p.status, p.send_at, p.send_error = "skipped", None, GONE_NOTE
-        return True
-    return False
+    """An email about a posting that no longer exists is set aside (Skipped, with the reason) instead of sent. A
+    LinkedIn hello is still worth sending, so it stays, marked as about a closed listing and listed last."""
+    if p.status not in ("ready", "drafted", "scheduled") or p.posting_closed or not posting_gone(p.source_url):
+        return False
+    if p.channel == "linkedin":
+        p.posting_closed = True
+        return False
+    p.status, p.send_at, p.send_error = "skipped", None, GONE_NOTE
+    return True
 
 
 EDITABLE = {"name": "name", "title": "title", "subject": "subject", "body": "email_body", "email_body": "email_body",
             "note": "note", "followup": "followup", "why": "why", "source_url": "source_url", "linkedin_url": "linkedin_url",
-            "email": "email", "draft_id": "draft_id", "draft_url": "draft_url"}
+            "email": "email", "draft_id": "draft_id", "draft_url": "draft_url", "posting_closed": "posting_closed"}
 
 
 def _rewrite(p: Prospect, fields: dict) -> bool:
@@ -378,7 +382,8 @@ def prospect_dict(p: Prospect) -> dict:
             "replied_at": p.replied_at.isoformat() if p.replied_at else None, "reply_id": p.reply_id,
             "created_at": p.created_at.isoformat() if p.created_at else None, "kind": p.kind or "cold",
             "application_id": p.application_id, "job_title": p.job_title,
-            "send_at": p.send_at.isoformat() if p.send_at else None, "send_error": p.send_error}
+            "send_at": p.send_at.isoformat() if p.send_at else None, "send_error": p.send_error,
+            "posting_closed": bool(p.posting_closed)}
 
 
 def counts(db: Session) -> dict:

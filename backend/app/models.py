@@ -477,5 +477,6 @@ class Prospect(Base):
     approved_at: Mapped[datetime | None] = mapped_column(DateTime)
     send_error: Mapped[str | None] = mapped_column(Text)
     message_id: Mapped[str | None] = mapped_column(String(300))
+    posting_closed: Mapped[bool | None] = mapped_column(Boolean)  # reaching out though the listing is gone: listed last
 
     company: Mapped[Company | None] = relationship()
