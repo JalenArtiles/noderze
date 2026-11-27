@@ -18,7 +18,6 @@ from ..services import prep
 from ..services import replies as R2
 from ..services import resume as R
 from ..services import writing as W
-from ..services.jobs_engine import rescore_all
 from ..services.llm import llm
 from ..services.profile import get_profile, master_resume
 from ..services.research import job_brief, person_dict
@@ -45,16 +44,7 @@ def upload_resume(file: UploadFile = File(...), db: Session = Depends(get_db)):
 
 
 def _ingest(db: Session, path: str, filename: str) -> dict:
-    parsed = R.parse_docx(path)
-    prof = get_profile(db).data or {}
-    for old in db.scalars(select(Resume).where(Resume.is_master.is_(True))):
-        old.is_master = False
-    res = Resume(filename=filename, path=path, parsed=parsed, ledger=R.build_ledger(parsed),
-                 checks=R.consistency_checks(parsed, prof), is_master=True)
-    db.add(res)
-    db.commit()
-    rescore_all(db)
-    return resume_dict(res)
+    return resume_dict(R.ingest_master(db, path, filename))
 
 
 def resume_dict(r: Resume) -> dict:
@@ -132,7 +122,7 @@ def decide_edit(vid: int, eid: str, body: EditDecision, db: Session = Depends(ge
 def render(vid: int, db: Session = Depends(get_db)):
     v = db.get(ResumeVersion, vid) or _404()
     res = db.get(Resume, v.resume_id)
-    out = R.render(res.path, v.edits, f"{v.label}-v{v.id}")
+    out = R.render(res.path, v.edits, f"{v.label}-v{v.id}", filename=R.version_label(db, v))
     v.output_path, v.status, v.rendered_at = str(out), "rendered", now()
     db.commit()
     return version_dict(db, v)
@@ -143,7 +133,7 @@ def download(vid: int, db: Session = Depends(get_db)):
     v = db.get(ResumeVersion, vid) or _404()
     if not v.output_path:
         raise HTTPException(400, "Render the version first")
-    return FileResponse(v.output_path, filename=f"{slugify(v.label)}.docx")
+    return FileResponse(v.output_path, filename=f"{R.version_label(db, v)}.docx")
 
 
 # ----------------------------------------------------------------------------- tracker
@@ -443,9 +433,16 @@ def doc_docx(did: int, db: Session = Depends(get_db)):
     buf = io.BytesIO()
     doc.save(buf)
     buf.seek(0)
-    name = slugify(f"{(get_profile(db).data or {}).get('name', '')} {d.title}").replace("-", "_") or "document"
+    if d.kind == "cover_letter":
+        job = db.get(Job, d.job_id) if d.job_id else None
+        if job is None and d.application_id:
+            a = db.get(Application, d.application_id)
+            job = a.job if a else None
+        name = R.file_label(R.person_name(db), job.company.name if job else None, "Cover Letter")
+    else:
+        name = slugify(f"{(get_profile(db).data or {}).get('name', '')} {d.title}").replace("-", "_") or "document"
     return StreamingResponse(buf, media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                             headers={"Content-Disposition": f'attachment; filename="{name}.docx"'})
+                             headers={"Content-Disposition": R.disposition(f"{name}.docx")})
 
 
 @router.patch("/docs/{did}")

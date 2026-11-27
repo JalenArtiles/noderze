@@ -16,7 +16,7 @@ from pathlib import Path
 import docx
 
 from ..config import settings
-from ..util import slugify
+from ..util import now, slugify
 from .llm import llm
 from .taxonomy import AREA_LABELS, _area_regex, areas_in, certs_in, certs_required
 
@@ -90,6 +90,113 @@ def parse_docx(path: str | Path) -> dict:
                                  "role": last_role["text"] if last_role else None})
     sections.append(current)
     return {"contact": contact, "sections": [s for s in sections if s["key"] != "header" or s["items"]]}
+
+
+# ----------------------------------------------------------------------------- the master and file names
+
+_BAD_FILE_CHARS = re.compile(r'[\\/:*?"<>|\x00-\x1f]+')
+
+
+def file_label(person: str | None, company: str | None, kind: str) -> str:
+    """The name for a tailored file: 'Jalen Artiles (GuidePoint Security) Resume' or '... Cover Letter'.
+    Characters Windows can't put in a file name are dropped."""
+    company = (company or "").strip()
+    label = " ".join(p for p in ((person or "").strip(), f"({company})" if company else "", kind) if p)
+    return re.sub(r"\s+", " ", _BAD_FILE_CHARS.sub(" ", label)).strip().rstrip(".")
+
+
+def person_name(db) -> str:
+    from .profile import get_profile, master_resume
+    name = (get_profile(db).data or {}).get("name")
+    if name:
+        return name
+    res = master_resume(db)
+    return (((res.parsed or {}).get("contact") or {}).get("name") or "") if res else ""
+
+
+def version_label(db, v) -> str:
+    """File name (without .docx) for a tailored resume version."""
+    from ..models import Job
+    job = db.get(Job, v.job_id) if v.job_id else None
+    return file_label(person_name(db), job.company.name if job else None, "Resume")
+
+
+def disposition(filename: str) -> str:
+    """Content-Disposition for a download, keeping spaces, parentheses and accents in the saved name."""
+    from urllib.parse import quote
+    plain = filename.encode("ascii", "ignore").decode().replace('"', "") or "document.docx"
+    return f"attachment; filename=\"{plain}\"; filename*=UTF-8''{quote(filename)}"
+
+
+def ingest_master(db, path: str, filename: str):
+    """Parse a .docx and make it the master resume every tailored version starts from."""
+    from sqlalchemy import select
+
+    from ..models import Resume
+    from .jobs_engine import rescore_all
+    from .profile import get_profile
+    parsed = parse_docx(path)
+    prof = get_profile(db).data or {}
+    for old in db.scalars(select(Resume).where(Resume.is_master.is_(True))):
+        old.is_master = False
+    res = Resume(filename=filename, path=path, parsed=parsed, ledger=build_ledger(parsed),
+                 checks=consistency_checks(parsed, prof), is_master=True)
+    db.add(res)
+    db.commit()
+    rescore_all(db)
+    return res
+
+
+def imports_folder() -> Path:
+    return settings.data_dir / "resume-imports"
+
+
+def import_dropped(db, folder: Path | None = None) -> int:
+    """data/resume-imports/: a .docx becomes the master resume, a .pdf becomes the copy attached to outreach emails.
+    Each file is moved to done/ once it's in."""
+    from . import mailer
+    f = folder or imports_folder()
+    if not f.exists():
+        return 0
+    n = 0
+    for path in sorted(f.iterdir()):
+        suffix = path.suffix.lower()
+        if not path.is_file() or suffix not in (".docx", ".pdf") or path.name.startswith("~$"):
+            continue
+        try:
+            if suffix == ".docx":
+                dest_dir = settings.data_dir / "resumes"
+                dest_dir.mkdir(parents=True, exist_ok=True)
+                stamp, k = f"{now():%Y%m%d%H%M%S}", 1
+                dest = dest_dir / f"master-{stamp}.docx"
+                while dest.exists():
+                    k += 1
+                    dest = dest_dir / f"master-{stamp}-{k}.docx"
+                shutil.copy(path, dest)
+                ingest_master(db, str(dest), path.name)
+            else:
+                target = mailer.resume_file()
+                target.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy(path, target)
+            _move(path, f / "done")
+            n += 1
+        except PermissionError:  # still open in Word: try again next minute
+            db.rollback()
+        except Exception:  # not a readable .docx: set it aside so it isn't retried every minute
+            db.rollback()
+            import logging
+            logging.getLogger(__name__).exception("resume import failed for %s", path.name)
+            try:
+                _move(path, f / "failed")
+            except OSError:
+                pass
+    return n
+
+
+def _move(path: Path, to: Path) -> None:
+    to.mkdir(exist_ok=True)
+    (to / path.name).unlink(missing_ok=True)
+    shutil.move(str(path), str(to / path.name))
 
 
 def build_ledger(parsed: dict) -> list[dict]:
@@ -371,10 +478,14 @@ def _replace_in_runs(p, find: str, replace: str) -> bool:
     return False
 
 
-def render(master_path: str, edits: list[dict], out_name: str) -> Path:
+def render(master_path: str, edits: list[dict], out_name: str, filename: str | None = None) -> Path:
+    """Copy the master, apply the approved edits, save. With `filename` the file is saved under that exact name
+    ("Jalen Artiles (Acme) Resume.docx") in its own folder, so versions for the same company never collide."""
     out_dir = settings.data_dir / "resumes" / "versions"
+    if filename:
+        out_dir = out_dir / slugify(out_name)
     out_dir.mkdir(parents=True, exist_ok=True)
-    out = out_dir / f"{slugify(out_name)}.docx"
+    out = out_dir / f"{filename or slugify(out_name)}.docx"
     shutil.copy(master_path, out)
     d = docx.Document(str(out))
     paras = list(d.paragraphs)

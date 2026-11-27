@@ -99,7 +99,7 @@ def apply(jid: int, fresh: bool = False, db: Session = Depends(get_db)):
     approved = " ".join(e.get("text") or e.get("after") or "" for e in v.edits if e["status"] == "approved")
     ats = dict(v.analysis["ats"])
     ats["after"] = K.coverage(ats["terms"], resume_text + " " + approved)
-    out_path = R.render(res.path, v.edits, f"{v.label}-v{v.id}")
+    out_path = R.render(res.path, v.edits, f"{v.label}-v{v.id}", filename=R.version_label(db, v))
     v.output_path, v.status, v.rendered_at = str(out_path), "rendered", now()
     db.commit()
     ctx = prep._ctx(db, job)

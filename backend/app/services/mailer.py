@@ -33,8 +33,13 @@ def configured() -> bool:
     return bool(settings.gmail_address and settings.gmail_app_password)
 
 
+def resume_file():
+    """Where the resume attached to outreach emails lives (a PDF dropped in data/resume-imports/ replaces it)."""
+    return settings.data_dir / "outreach-imports" / "resume" / "Jalen_Artiles_Resume.pdf"
+
+
 def resume_path():
-    p = settings.data_dir / "outreach-imports" / "resume" / "Jalen_Artiles_Resume.pdf"
+    p = resume_file()
     return p if p.exists() else None
 
 
@@ -72,7 +77,7 @@ def build(p: Prospect) -> EmailMessage:
     m.set_content(p.email_body or "")
     r = resume_path()
     if r and "attached" in (p.email_body or "").lower():
-        m.add_attachment(r.read_bytes(), maintype="application", subtype="pdf", filename=r.name)
+        m.add_attachment(r.read_bytes(), maintype="application", subtype="pdf", filename=r.stem.replace("_", " ") + r.suffix)
     return m
 
 

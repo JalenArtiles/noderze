@@ -1,0 +1,140 @@
+"""The master resume can be swapped by dropping a file, and tailored files are named "<Name> (<Company>) Resume"."""
+from email.message import EmailMessage
+
+import pytest
+from fastapi.testclient import TestClient
+
+
+@pytest.fixture(scope="module")
+def client():
+    from app.db import Base, SessionLocal, engine
+    Base.metadata.drop_all(engine)
+    Base.metadata.create_all(engine)
+    import scripts.seed_db as seed_db
+    db = SessionLocal()
+    seed_db.seed(db)
+    db.close()
+    from app.main import app
+    with TestClient(app) as c:
+        c.headers["X-Agent-Token"] = "test-token"
+        yield c
+
+
+def _resume_docx(path, role="Technical Sales Engineer Intern | Example Co"):
+    import docx
+    d = docx.Document()
+    d.add_paragraph().add_run("TEST PERSON").bold = True
+    d.add_paragraph("Tempe, AZ 85281  |  555-555-0100  |  test@example.com")
+    d.add_paragraph().add_run("EXPERIENCE").bold = True
+    p = d.add_paragraph()
+    p.add_run(role).bold = True
+    p.add_run("\tFeb 2026 – Jun 2026").italic = True
+    d.add_paragraph("Tempe, AZ")
+    d.add_paragraph("Led discovery with university stakeholders", style="List Bullet")
+    d.save(str(path))
+
+
+def test_file_label():
+    from app.services.resume import file_label
+    assert file_label("Jalen Artiles", "GuidePoint Security", "Resume") == "Jalen Artiles (GuidePoint Security) Resume"
+    assert file_label("Jalen Artiles", "Acme", "Cover Letter") == "Jalen Artiles (Acme) Cover Letter"
+    assert file_label("Jalen Artiles", "AT&T / Mobility: Inc.", "Resume") == "Jalen Artiles (AT&T Mobility Inc.) Resume"
+    assert file_label("Jalen Artiles", None, "Resume") == "Jalen Artiles Resume"
+    assert file_label("", "Acme", "Resume") == "(Acme) Resume"
+
+
+def test_disposition_keeps_the_name():
+    from app.services.resume import disposition
+    h = disposition("Jalen Artiles (Société Générale) Resume.docx")
+    assert 'filename="Jalen Artiles (Socit Gnrale) Resume.docx"' in h
+    assert "filename*=UTF-8''Jalen%20Artiles%20%28Soci%C3%A9t%C3%A9%20G%C3%A9n%C3%A9rale%29%20Resume.docx" in h
+
+
+def test_dropped_docx_becomes_master_and_pdf_becomes_attachment(client, tmp_path, monkeypatch):
+    from app.config import settings
+    from app.db import SessionLocal
+    from app.services import mailer
+    from app.services import resume as R
+    from app.services.profile import master_resume
+    monkeypatch.setattr(settings, "data_dir", tmp_path)
+    drop = R.imports_folder()
+    drop.mkdir()
+    _resume_docx(drop / "Test Person Resume.docx")
+    (drop / "Test Person Resume.pdf").write_bytes(b"%PDF-1.4 test")
+    (drop / "~$st Person Resume.docx").write_bytes(b"lock file")
+    (drop / "broken.docx").write_bytes(b"not a zip")
+    db = SessionLocal()
+    try:
+        assert R.import_dropped(db) == 2
+        m = master_resume(db)
+        assert m.filename == "Test Person Resume.docx" and m.path.startswith(str(tmp_path / "resumes" / "master-"))
+        roles = [it for s in m.parsed["sections"] if s["key"] == "experience" for it in s["items"] if it["kind"] == "role"]
+        assert roles[0]["title"] == "Technical Sales Engineer Intern" and roles[0]["org"] == "Example Co"
+        assert roles[0]["dates"] == "Feb 2026 – Jun 2026" and roles[0]["location"] == "Tempe, AZ"
+        assert mailer.resume_file().read_bytes() == b"%PDF-1.4 test"
+        assert sorted(p.name for p in (drop / "done").iterdir()) == ["Test Person Resume.docx", "Test Person Resume.pdf"]
+        assert [p.name for p in (drop / "failed").iterdir()] == ["broken.docx"]
+        assert (drop / "~$st Person Resume.docx").exists()
+        assert R.import_dropped(db) == 0
+    finally:
+        db.close()
+
+
+def test_attachment_name_has_spaces(tmp_path, monkeypatch):
+    from app.config import settings
+    from app.models import Prospect
+    from app.services import mailer
+    monkeypatch.setattr(settings, "data_dir", tmp_path)
+    monkeypatch.setattr(settings, "gmail_address", "me@example.com")
+    mailer.resume_file().parent.mkdir(parents=True)
+    mailer.resume_file().write_bytes(b"%PDF-1.4")
+    m: EmailMessage = mailer.build(Prospect(email="r@example.com", subject="Hi", email_body="My resume is attached."))
+    names = [part.get_filename() for part in m.iter_attachments()]
+    assert names == ["Jalen Artiles Resume.pdf"]
+
+
+def test_tailored_resume_and_cover_letter_names(client, tmp_path, monkeypatch):
+    from app.config import settings
+    from app.db import SessionLocal
+    from app.models import GeneratedDoc, Job, ResumeVersion
+    from app.services import resume as R
+    from app.services.profile import master_resume
+    monkeypatch.setattr(settings, "data_dir", tmp_path)
+    db = SessionLocal()
+    try:
+        if master_resume(db) is None:
+            (tmp_path / "resumes").mkdir()
+            _resume_docx(tmp_path / "resumes" / "master.docx")
+            R.ingest_master(db, str(tmp_path / "resumes" / "master.docx"), "master.docx")
+        res = master_resume(db)
+        job = db.query(Job).first()
+        company = job.company.name
+        person = R.person_name(db)
+        v = ResumeVersion(resume_id=res.id, job_id=job.id, label=f"{company} - {job.title}", analysis={}, edits=[])
+        doc = GeneratedDoc(kind="cover_letter", job_id=job.id, title=f"Cover letter - {company}",
+                           content="Jalen Artiles\nTempe, AZ\n\nDear Hiring Team,\n\nThank you.")
+        db.add_all([v, doc])
+        db.commit()
+        vid, did = v.id, doc.id
+    finally:
+        db.close()
+
+    r = client.post(f"/api/resume/versions/{vid}/render")
+    assert r.status_code == 200
+    expected = R.file_label(person, company, "Resume")
+    assert expected.endswith(f"({company}) Resume")
+    db = SessionLocal()
+    try:
+        out = db.get(ResumeVersion, vid).output_path
+    finally:
+        db.close()
+    assert out.endswith(f"{expected}.docx") and (tmp_path / "resumes" / "versions") in __import__("pathlib").Path(out).parents
+
+    d = client.get(f"/api/resume/versions/{vid}/download")
+    assert d.status_code == 200 and f"{expected}.docx".replace(" ", "%20").replace("(", "%28").replace(")", "%29") in \
+        d.headers["content-disposition"] or f'filename="{expected}.docx"' in d.headers["content-disposition"]
+
+    c = client.get(f"/api/docs/{did}/docx")
+    assert c.status_code == 200
+    assert f'filename="{R.file_label(person, company, "Cover Letter")}.docx"' in c.headers["content-disposition"] \
+        or not company.isascii()
