@@ -149,8 +149,14 @@ def watch_list(db: Session) -> list[dict]:
         for d in (domain_of(c.website), domain_of(c.careers_url)):
             if d and not any(d.endswith(s) for s in ATS_SENDERS):
                 w["domains"].add(d)
-    return [{"company_id": cid, "company": w["company"], "domains": sorted(w["domains"]), "terms": w["terms"],
-             "applied": any(s not in PRE_APPLY for s in w["stages"])} for cid, w in out.items()]
+    listed = [{"company_id": cid, "company": w["company"], "domains": sorted(w["domains"]), "terms": w["terms"],
+               "applied": any(s not in PRE_APPLY for s in w["stages"])} for cid, w in out.items()]
+    # Companies you emailed or messaged about an internship: their answers count as replies too.
+    from . import outreach
+    for w in outreach.watch(db):
+        if w["company_id"] not in out:
+            listed.append(w)
+    return listed
 
 
 def write_watch(db: Session) -> Path:
@@ -378,6 +384,8 @@ def import_items(db: Session, items: list[dict], account: str | None = None) -> 
         db.add(r)
         db.flush()
         added.append(r)
+        from . import outreach
+        outreach.mark_replied(db, r)
     return added
 
 

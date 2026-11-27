@@ -13,10 +13,10 @@ import threading
 from . import migrations, scheduler, selfupdate
 from .config import settings
 from .db import init_db
-from .routers import apply, core, focus, interns, replies
+from .routers import apply, core, focus, interns, prospects, replies
 from .workflows import mark_interrupted_runs
 
-VERSION = "3.8.0"
+VERSION = "3.9.0"
 
 
 @asynccontextmanager
@@ -49,6 +49,7 @@ app.include_router(apply.router)
 app.include_router(focus.router)
 app.include_router(interns.router)
 app.include_router(replies.router)
+app.include_router(prospects.router)
 
 
 @app.get("/health")

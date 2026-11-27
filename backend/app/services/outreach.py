@@ -1,0 +1,241 @@
+"""Internship outreach: people to ask about a spring internship, whether or not their company has a posting.
+
+A weekday Claude task (scheduled in Claude, outside Noderze) finds companies near Phoenix or remote with data,
+security or network teams, finds a public contact for each (a campus recruiting or HR address, or a recruiter's
+public LinkedIn profile), saves each email as a draft in your Gmail, writes the LinkedIn notes, and drops the batch
+in data/outreach-imports/. Noderze lists them so you send each one yourself:
+
+- Emails: open the draft in Gmail, read it, click Send.
+- LinkedIn: one click copies the note and opens the profile; you paste and send.
+
+Noderze never sends anything and never touches LinkedIn. data/outreach-imports/state.json tells the task who is
+already on the list, so nobody is contacted twice.
+"""
+from __future__ import annotations
+
+import json
+import logging
+import re
+from datetime import datetime
+from pathlib import Path
+
+from sqlalchemy import select
+from sqlalchemy.orm import Session
+
+from ..config import settings
+from ..models import Company, EmailReply, Prospect
+from ..util import now, slugify
+
+log = logging.getLogger(__name__)
+
+STATUSES = ("ready", "drafted", "sent", "connected", "replied", "skipped", "bounced")
+OPEN = ("drafted", "sent", "connected")  # waiting on them: replies from these companies are tracked
+NOTE_LIMIT = 200  # LinkedIn connection notes on a free account
+FREE_MAIL = ("gmail.com", "googlemail.com", "yahoo.com", "outlook.com", "hotmail.com", "live.com", "icloud.com",
+             "aol.com")
+
+
+def folder() -> Path:
+    return settings.data_dir / "outreach-imports"
+
+
+def _li(url: str | None) -> str | None:
+    """linkedin.com/in/<handle> without tracking bits, so the same person is one row."""
+    if not url:
+        return None
+    m = re.search(r"linkedin\.com/in/([^/?#]+)", url, re.I)
+    return f"https://www.linkedin.com/in/{m.group(1).lower()}" if m else url.strip()
+
+
+def _domain(email: str | None) -> str:
+    return (email or "").split("@")[-1].lower() if email and "@" in email else ""
+
+
+def _company(db: Session, name: str, email: str | None) -> Company:
+    c = db.scalar(select(Company).where(Company.slug == slugify(name)))
+    if c is None:
+        c = Company(name=name, slug=slugify(name), watch_note="Added for internship outreach.")
+        db.add(c)
+        db.flush()
+    d = _domain(email)
+    if d and not c.website and d not in FREE_MAIL and not (c.data or {}).get("logo_domain"):
+        from .logos import matches
+        if matches(name, d):
+            c.data = dict(c.data or {}) | {"logo_domain": d}
+    return c
+
+
+def _parse_time(v) -> datetime | None:
+    if not v:
+        return None
+    try:
+        return datetime.fromisoformat(str(v).replace("Z", "+00:00")).replace(tzinfo=None)
+    except ValueError:
+        return None
+
+
+def find(db: Session, email: str | None = None, linkedin_url: str | None = None, draft_id: str | None = None,
+         company: str | None = None, name: str | None = None) -> Prospect | None:
+    if draft_id:
+        p = db.scalar(select(Prospect).where(Prospect.draft_id == draft_id))
+        if p:
+            return p
+    if email:
+        p = db.scalar(select(Prospect).where(Prospect.email == email.strip().lower()))
+        if p:
+            return p
+    li = _li(linkedin_url)
+    if li:
+        p = db.scalar(select(Prospect).where(Prospect.linkedin_url == li))
+        if p:
+            return p
+    if company and name:
+        for p in db.scalars(select(Prospect).where(Prospect.name == name.strip())):
+            if slugify(p.company_name) == slugify(company):
+                return p
+    return None
+
+
+def import_items(db: Session, items: list[dict], batch: str | None = None) -> list[Prospect]:
+    """Add the contacts in a batch. Someone already on the list is never added twice."""
+    added = []
+    for it in items:
+        company = (it.get("company") or "").strip()
+        email = (it.get("email") or "").strip().lower() or None
+        li = _li(it.get("linkedin_url"))
+        if not company or not (email or li):
+            continue
+        if find(db, email, li, it.get("draft_id"), company, it.get("name")):
+            continue
+        c = _company(db, company, email)
+        channel = "email" if email else "linkedin"
+        note = (it.get("note") or "").strip() or None
+        if note and len(note) > NOTE_LIMIT:
+            note = note[:NOTE_LIMIT - 3].rsplit(" ", 1)[0] + "..."
+        p = Prospect(campaign=it.get("campaign") or "spring_2027", company_id=c.id, company_name=company,
+                     name=(it.get("name") or "").strip() or None, title=(it.get("title") or "").strip() or None,
+                     email=email, linkedin_url=li, location=it.get("location"), channel=channel,
+                     track=it.get("track"), why=it.get("why"), source_url=it.get("source_url"),
+                     subject=it.get("subject"), email_body=it.get("body"), draft_id=it.get("draft_id"),
+                     draft_url=it.get("draft_url"), note=note, followup=it.get("followup"), batch=batch,
+                     status="drafted" if channel == "email" and it.get("draft_id") else "ready")
+        db.add(p)
+        db.flush()
+        added.append(p)
+    return added
+
+
+def apply_updates(db: Session, updates: list[dict]) -> int:
+    """What the task saw in Gmail since last time: drafts you sent, emails that bounced."""
+    n = 0
+    for u in updates:
+        p = find(db, u.get("email"), u.get("linkedin_url"), u.get("draft_id"))
+        st = u.get("status")
+        if not p or st not in STATUSES or p.status == st:
+            continue
+        if st == "sent" and p.status in ("replied", "connected"):
+            continue  # don't step back
+        p.status = st
+        if st == "sent":
+            p.sent_at = _parse_time(u.get("at")) or now()
+        n += 1
+    return n
+
+
+def import_dropped(db: Session, path_folder: Path | None = None) -> int:
+    """Read data/outreach-imports/*.json (except state.json), add the contacts, move each file to done/."""
+    f = path_folder or folder()
+    if not f.exists():
+        return 0
+    n = 0
+    for path in sorted(f.glob("*.json")):
+        if path.name == "state.json":
+            continue
+        try:
+            raw = json.loads(path.read_text(encoding="utf-8"))
+        except ValueError:
+            raw = {}
+        raw = raw if isinstance(raw, dict) else {"prospects": raw if isinstance(raw, list) else []}
+        try:
+            added = import_items(db, raw.get("prospects") or [], batch=raw.get("batch"))
+            changed = apply_updates(db, raw.get("updates") or [])
+            db.commit()
+        except Exception:
+            db.rollback()
+            log.exception("outreach import failed for %s", path.name)
+            added, changed = [], 0
+        n += len(added) + changed
+        done = f / "done"
+        done.mkdir(exist_ok=True)
+        (done / path.name).write_text(json.dumps({"added": [f"{p.company_name}: {p.name or p.email}" for p in added],
+                                                  "updated": changed, "at": now().isoformat(timespec="seconds")},
+                                                 indent=1), encoding="utf-8")
+        path.unlink()
+    if n:
+        write_state(db)
+    return n
+
+
+def write_state(db: Session) -> Path:
+    """data/outreach-imports/state.json: everyone already on the list, read by the weekday task."""
+    f = folder()
+    f.mkdir(parents=True, exist_ok=True)
+    path = f / "state.json"
+    rows = list(db.scalars(select(Prospect).order_by(Prospect.id)))
+    data = {"updated": now().isoformat(timespec="seconds"),
+            "contacts": [{"company": p.company_name, "name": p.name, "email": p.email, "linkedin_url": p.linkedin_url,
+                          "status": p.status, "draft_id": p.draft_id, "subject": p.subject, "channel": p.channel,
+                          "batch": p.batch} for p in rows],
+            "companies": sorted({p.company_name for p in rows})}
+    text = json.dumps(data, indent=1)
+    if not path.exists() or path.read_text(encoding="utf-8") != text:
+        path.write_text(text, encoding="utf-8")
+    return path
+
+
+def watch(db: Session) -> list[dict]:
+    """Companies you reached out to, for the replies check: their email domains and names."""
+    from .replies import _name_terms
+    out: dict[int, dict] = {}
+    for p in db.scalars(select(Prospect).where(Prospect.status.in_(OPEN + ("replied",)), Prospect.company_id.is_not(None))):
+        w = out.setdefault(p.company_id, {"company": p.company_name, "domains": set(), "terms": _name_terms(p.company_name),
+                                          "emails": set()})
+        d = _domain(p.email)
+        if d and d not in FREE_MAIL:
+            w["domains"].add(d)
+        if p.email:
+            w["emails"].add(p.email)
+    return [{"company_id": cid, "company": w["company"], "domains": sorted(w["domains"]), "terms": w["terms"],
+             "applied": True, "prospect": True, "emails": sorted(w["emails"])} for cid, w in out.items()]
+
+
+def mark_replied(db: Session, r: EmailReply) -> Prospect | None:
+    """A reply from someone you reached out to: from their address, or from their company's domain."""
+    sender = (r.from_email or "").lower()
+    rows = [p for p in db.scalars(select(Prospect).where(Prospect.status.in_(OPEN)))
+            if (p.email and p.email == sender) or (p.company_id and p.company_id == r.company_id)]
+    best = next((p for p in rows if p.email == sender), rows[0] if rows else None)
+    if best:
+        best.status, best.replied_at, best.reply_id = "replied", r.received_at or now(), r.id
+    return best
+
+
+def prospect_dict(p: Prospect) -> dict:
+    from .logos import site
+    c = p.company
+    return {"id": p.id, "company": p.company_name, "company_id": p.company_id, "company_website": site(c),
+            "name": p.name, "title": p.title, "email": p.email, "linkedin_url": p.linkedin_url, "location": p.location,
+            "channel": p.channel, "track": p.track, "why": p.why, "source_url": p.source_url, "subject": p.subject,
+            "body": p.email_body, "draft_url": p.draft_url, "note": p.note, "followup": p.followup, "status": p.status,
+            "batch": p.batch, "sent_at": p.sent_at.isoformat() if p.sent_at else None,
+            "replied_at": p.replied_at.isoformat() if p.replied_at else None, "reply_id": p.reply_id,
+            "created_at": p.created_at.isoformat() if p.created_at else None}
+
+
+def counts(db: Session) -> dict:
+    out = {s: 0 for s in STATUSES}
+    for st in db.scalars(select(Prospect.status)):
+        out[st] = out.get(st, 0) + 1
+    out["to_send"] = out["ready"] + out["drafted"]
+    out["reached"] = out["sent"] + out["connected"] + out["replied"]
+    return out

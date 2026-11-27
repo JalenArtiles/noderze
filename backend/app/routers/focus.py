@@ -159,6 +159,7 @@ def updates(since: str | None = None, db: Session = Depends(get_db)):
             "unseen": max(0, (db.scalar(select(func.count(Alert.id)).where(Alert.seen.is_(False))) or 0) - intern_new),
             "unseen_interns": intern_new,
             "unseen_replies": len(replies.unseen(db)),
+            "outreach_to_send": _outreach_to_send(db),
             "alerts": [{"id": a.id, "message": a.message, "job_id": a.job_id} for a in alerts],
             "last_run": {"kind": last.kind, "finished_at": last.finished_at.isoformat() if last.finished_at else None,
                          "status": last.status} if last else None}
@@ -180,3 +181,8 @@ def company_links(cid: int, db: Session = Depends(get_db)):
 
 def _404():
     raise HTTPException(404, "Not found")
+
+
+def _outreach_to_send(db) -> int:
+    from ..services import outreach
+    return outreach.counts(db)["to_send"]

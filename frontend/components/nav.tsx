@@ -2,11 +2,11 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Backpack, Building2, Compass, FileText, GraduationCap, House, Mail, Settings, ShieldCheck, SquareKanban, TrendingUp, Users } from "lucide-react";
+import { Backpack, Building2, Compass, FileText, GraduationCap, House, Mail, Send, Settings, ShieldCheck, SquareKanban, TrendingUp, Users } from "lucide-react";
 
 const GROUPS: [string, [string, string, any][]][] = [
   ["Discover", [["/", "Home", House], ["/companies", "Companies", Building2], ["/opportunities", "All roles", Compass], ["/programs", "ASE and SE programs", GraduationCap], ["/internships", "Spring internships", Backpack]]],
-  ["Apply", [["/applications", "Applications", SquareKanban], ["/replies", "Replies", Mail], ["/resume", "Resume", FileText], ["/contacts", "Contacts", Users], ["/approvals", "Approvals", ShieldCheck]]],
+  ["Apply", [["/applications", "Applications", SquareKanban], ["/replies", "Replies", Mail], ["/outreach", "Outreach", Send], ["/resume", "Resume", FileText], ["/contacts", "Contacts", Users], ["/approvals", "Approvals", ShieldCheck]]],
   ["Grow", [["/skills", "Skills roadmap", TrendingUp], ["/settings", "Settings", Settings]]],
 ];
 
@@ -19,7 +19,7 @@ export default function Nav() {
     window.addEventListener("noderze:counts", on);
     return () => window.removeEventListener("noderze:counts", on);
   }, []);
-  const badge: Record<string, number> = { "/replies": counts.replies || 0 };
+  const badge: Record<string, number> = { "/replies": counts.replies || 0, "/outreach": counts.outreach || 0 };
   return (
     <nav className="nav" aria-label="Main">
       <Link href="/" className="brand"><img src="/icon-192.png" alt="" /><div><b>Noderze</b><span>Your route to Sales Engineering</span></div></Link>

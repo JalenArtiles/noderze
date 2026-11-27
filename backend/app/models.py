@@ -436,3 +436,38 @@ class EmailReply(Base):
     seen: Mapped[bool] = mapped_column(Boolean, default=False)
     dismissed: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=now)
+
+
+class Prospect(Base):
+    """Someone to ask about an internship, whether or not their company has a posting: a campus recruiting or HR
+    address to email, or a recruiter to reach on LinkedIn. Found in public sources; Noderze never sends anything.
+    Emails are saved as Gmail drafts for you to send; LinkedIn notes are copied for you to paste."""
+
+    __tablename__ = "prospects"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    campaign: Mapped[str] = mapped_column(String(60), default="spring_2027", index=True)
+    company_id: Mapped[int | None] = mapped_column(ForeignKey("companies.id"), index=True)
+    company_name: Mapped[str] = mapped_column(String(300))
+    name: Mapped[str | None] = mapped_column(String(200))  # empty for a team inbox
+    title: Mapped[str | None] = mapped_column(String(400))
+    email: Mapped[str | None] = mapped_column(String(300), index=True)
+    linkedin_url: Mapped[str | None] = mapped_column(String(500), index=True)
+    location: Mapped[str | None] = mapped_column(String(200))
+    channel: Mapped[str] = mapped_column(String(20), default="email")  # email | linkedin
+    track: Mapped[str | None] = mapped_column(String(40))  # data | cyber | network | it
+    why: Mapped[str | None] = mapped_column(Text)  # why this company, one line
+    source_url: Mapped[str | None] = mapped_column(String(800))  # where the contact was found
+    subject: Mapped[str | None] = mapped_column(String(400))
+    email_body: Mapped[str | None] = mapped_column(Text)
+    draft_id: Mapped[str | None] = mapped_column(String(200))
+    draft_url: Mapped[str | None] = mapped_column(String(800))
+    note: Mapped[str | None] = mapped_column(Text)  # LinkedIn connection note, 200 characters or fewer
+    followup: Mapped[str | None] = mapped_column(Text)  # LinkedIn message once they accept
+    status: Mapped[str] = mapped_column(String(20), default="ready")  # ready | drafted | sent | connected | replied | skipped | bounced
+    batch: Mapped[str | None] = mapped_column(String(20))
+    sent_at: Mapped[datetime | None] = mapped_column(DateTime)
+    replied_at: Mapped[datetime | None] = mapped_column(DateTime)
+    reply_id: Mapped[int | None] = mapped_column(ForeignKey("email_replies.id"))
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=now)
+
+    company: Mapped[Company | None] = relationship()

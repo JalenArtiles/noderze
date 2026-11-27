@@ -23,7 +23,7 @@ export default function LiveBar() {
       lastRun.current = finished;
       setU(d);
       setBusy(d.running > 0);
-      window.dispatchEvent(new CustomEvent("noderze:counts", { detail: { replies: d.unseen_replies || 0 } }));
+      window.dispatchEvent(new CustomEvent("noderze:counts", { detail: { replies: d.unseen_replies || 0, outreach: d.outreach_to_send || 0 } }));
       const b = d.app_update?.build_id || null;
       if (b && !firstBuild.current) firstBuild.current = b;
       // A new version of the interface was just swapped in: load it.
