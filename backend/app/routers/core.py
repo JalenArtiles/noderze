@@ -292,7 +292,8 @@ def delete_path(pid: int, db: Session = Depends(get_db)):
 
 # ----------------------------------------------------------------------------- jobs
 
-def _job_matches(j: Job, state: str | None, remote: bool, industry: str | None, q: str | None, fits: bool) -> bool:
+def _job_matches(j: Job, state: str | None, remote: bool, industry: str | None, q: str | None, fits: bool,
+                 work: str | None = None) -> bool:
     if fits and j.grad_status in ("too_early", "too_late"):
         return False
     if industry and (j.company.category if j.company else None) != industry:
@@ -302,6 +303,8 @@ def _job_matches(j: Job, state: str | None, remote: bool, industry: str | None, 
     states = {l.get("state") for l in (j.locations or [])}
     if remote and j.remote_type != "remote":
         return False
+    if work and j.remote_type not in work.split(","):
+        return False  # remote, hybrid or onsite
     if state:
         wanted = set(state.upper().split(","))
         if "SOCAL" in wanted:
@@ -316,7 +319,8 @@ def _job_matches(j: Job, state: str | None, remote: bool, industry: str | None, 
 def list_jobs(category: str | None = None, company_id: int | None = None, min_score: float = 0,
               include_inactive: bool = False, include_hidden: bool = False, new: bool = False,
               state: str | None = None, remote: bool = False, industry: str | None = None, q: str | None = None,
-              fits: bool = False, limit: int = 300, lite: bool = False, db: Session = Depends(get_db)):
+              fits: bool = False, limit: int = 300, lite: bool = False, work: str | None = None,
+              db: Session = Depends(get_db)):
     """`lite` leaves out the score breakdown and fit analysis, for lists that show hundreds of roles."""
     query = select(Job).where(Job.score_total >= min_score).order_by(Job.score_total.desc())
     if category:
@@ -335,7 +339,7 @@ def list_jobs(category: str | None = None, company_id: int | None = None, min_sc
     heavy = ("score_breakdown", "analysis", "comp_note")
     out = []
     for j in db.scalars(query):
-        if not _job_matches(j, state, remote, industry, q, fits):
+        if not _job_matches(j, state, remote, industry, q, fits, work):
             continue
         b = research.job_brief(j) | {"application_stage": apps.get(j.id), "company_website": logo_site(j.company)}
         out.append({k: v for k, v in b.items() if k not in heavy} if lite else b)

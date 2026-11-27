@@ -1,36 +1,39 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
-import { Globe, MapPin, Search, Sun } from "lucide-react";
+import { Building2, Globe, MapPin, Search, Shuffle, Sun } from "lucide-react";
 import { Empty, Err, JobList, Loading, PageHeader, Tabs } from "@/components/ui";
 import { api, useApi } from "@/lib/api";
 
-const WHERE: [string, string, any][] = [["", "Anywhere", null], ["AZ", "Arizona", Sun], ["remote", "Remote", Globe], ["SOCAL", "Southern California", MapPin]];
+const WHERE: [string, string, any][] = [["", "Anywhere", null], ["AZ", "Arizona", Sun], ["SOCAL", "Southern California", MapPin]];
+const WORK: [string, string, any][] = [["", "Any setup", null], ["remote", "Remote", Globe], ["hybrid", "Hybrid", Shuffle], ["onsite", "On-site", Building2]];
 const TYPES: [string, string][] = [["entry_sales", "Entry sales, cyber"], ["program", "ASE and SE programs"], ["other_sales", "Entry sales, other tech"],
   ["goal_se", "SE roles"], ["technical_entry", "Technical entry"], ["long_shot", "Long shots"], ["", "All"]];
 const INDUSTRY: [string, string][] = [["", "All industries"], ["cybersecurity", "Cybersecurity"], ["software", "Software"], ["cloud_networking", "Cloud and networking"], ["ai", "AI"], ["it_solutions", "IT solutions"], ["public_safety", "Public safety"]];
 
 export default function Opportunities() {
-  const [f, setF] = useState({ where: "", category: "entry_sales", industry: "", q: "", fits: true, fresh: false });
+  const [f, setF] = useState({ where: "", work: "", category: "entry_sales", industry: "", q: "", fits: true, fresh: false });
   const [ready, setReady] = useState(false);
   useEffect(() => {
     const p = new URLSearchParams(window.location.search);
-    setF({ where: p.get("remote") ? "remote" : p.get("state") || "", category: p.has("category") ? p.get("category") || "" : (p.get("new") === "1" ? "" : "entry_sales"),
+    setF({ where: p.get("state") || "", work: p.get("work") || (p.get("remote") ? "remote" : ""), category: p.has("category") ? p.get("category") || "" : (p.get("new") === "1" ? "" : "entry_sales"),
       industry: p.get("industry") || "", q: p.get("q") || "", fits: p.get("fits") !== "0", fresh: p.get("new") === "1" });
     setReady(true);
   }, []);
   // Category is filtered here so every tab can show its count; the rest is filtered by the server.
   const query = useMemo(() => {
     const p = new URLSearchParams({ limit: "1500", lite: "true" });
-    if (f.where === "remote") p.set("remote", "true"); else if (f.where) p.set("state", f.where);
+    if (f.where) p.set("state", f.where);
+    if (f.work) p.set("work", f.work);
     if (f.industry) p.set("industry", f.industry);
     if (f.fits) p.set("fits", "true");
     if (f.fresh) p.set("new", "true");
     return p.toString();
-  }, [f.where, f.industry, f.fits, f.fresh]);
+  }, [f.where, f.work, f.industry, f.fits, f.fresh]);
   useEffect(() => {
     if (!ready) return;
     const p = new URLSearchParams();
-    if (f.where === "remote") p.set("remote", "1"); else if (f.where) p.set("state", f.where);
+    if (f.where) p.set("state", f.where);
+    if (f.work) p.set("work", f.work);
     if (f.category !== "entry_sales") p.set("category", f.category);
     if (f.industry) p.set("industry", f.industry);
     if (!f.fits) p.set("fits", "0");
@@ -48,6 +51,7 @@ export default function Opportunities() {
       <PageHeader title="All roles" lede="Every role Noderze found, scored for how well it fits you and how directly it leads to sales engineering." />
       <div className="toolbar">
         <div className="chips">{WHERE.map(([v, l, Icon]) => <button key={l} className={`chip ${f.where === v ? "on" : ""}`} onClick={() => set("where", v)}>{Icon && <Icon />}{l}</button>)}</div>
+        <div className="chips" role="group" aria-label="Work setup">{WORK.map(([v, l, Icon]) => <button key={l} className={`chip ${f.work === v ? "on" : ""}`} onClick={() => set("work", v)}>{Icon && <Icon />}{l}</button>)}</div>
         <select value={f.industry} onChange={(e) => set("industry", e.target.value)} aria-label="Industry">{INDUSTRY.map(([v, l]) => <option key={l} value={v}>{l}</option>)}</select>
         <label className="search"><Search /><input placeholder="Company, title or city" value={f.q} onChange={(e) => set("q", e.target.value)} aria-label="Search roles" /></label>
       </div>
@@ -58,7 +62,7 @@ export default function Opportunities() {
       <Tabs value={f.category} onChange={(v) => set("category", v)} tabs={TYPES.map(([k, l]) => [k, l, data ? counts[k] || 0 : null] as [string, string, number | null])} />
       <Err msg={error} />
       {!data ? <Loading what="Loading roles" /> : <JobList jobs={shown} page={25} onChange={reload}
-        empty={<Empty title="Nothing matches these filters">Try Anywhere, another type, or turn off the graduation filter.</Empty>} />}
+        empty={<Empty title="Nothing matches these filters">Try Anywhere, Any setup, another type, or turn off the graduation filter.</Empty>} />}
       <AddJob onAdded={reload} />
     </>
   );

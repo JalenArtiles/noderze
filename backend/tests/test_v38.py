@@ -311,3 +311,12 @@ def test_no_platform_specific_date_formats():
     app = pathlib.Path(__file__).resolve().parent.parent / "app"
     bad = [str(f) for f in app.rglob("*.py") if re.search(r"%-[dmIHMSj]", f.read_text(encoding="utf-8"))]
     assert bad == []
+
+
+def test_all_roles_work_setup_filter(client):
+    jobs = client.get("/api/jobs?limit=2000&lite=true").json()
+    hybrid = client.get("/api/jobs?limit=2000&lite=true&work=hybrid").json()
+    assert all(j["remote_type"] == "hybrid" for j in hybrid)
+    assert len(hybrid) == sum(1 for j in jobs if j["remote_type"] == "hybrid")
+    both = client.get("/api/jobs?limit=2000&lite=true&work=remote,hybrid").json()
+    assert {j["remote_type"] for j in both} <= {"remote", "hybrid"}
