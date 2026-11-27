@@ -123,10 +123,12 @@ def test_acted_on_internships_leave_the_list(client):
     client.patch(f"/api/jobs/{removed['id']}", json={"hidden": True})
     client.post("/api/applications", json={"job_id": saved["id"]})  # saved, not applied: stays
     listed = _listed(client)
-    assert not {started["id"], applied["id"], rejected["id"], removed["id"]} & listed
-    assert saved["id"] in listed
+    assert not {applied["id"], rejected["id"], removed["id"]} & listed
+    # Opening the company's application (Started) keeps it on the list until you mark it applied or remove it
+    assert {saved["id"], started["id"]} <= listed
     data = client.get("/api/internships").json()
-    assert data["moved"]["applied"] >= 1 and data["moved"]["started"] >= 1 and data["moved"]["closed_out"] >= 1
+    assert next(i for i in data["items"] if i["id"] == started["id"])["application_stage"] == "started"
+    assert data["moved"]["applied"] >= 1 and data["moved"]["closed_out"] >= 1
     assert data["counts"]["total_ok"] == sum(1 for i in data["items"] if i["intern"]["status"] != "out")
     assert client.get("/api/home").json()["internships"]["total_ok"] == data["counts"]["total_ok"]
 

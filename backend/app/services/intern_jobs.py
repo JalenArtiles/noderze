@@ -244,8 +244,9 @@ def _rank(j: Job, stage: str | None) -> tuple:
 def board(db: Session) -> tuple[list[Job], dict]:
     """The Spring internships list: open postings you haven't acted on, one per real posting.
 
-    Left out: anything you removed (Not for me), anything you opened the application for, applied to, heard back
-    from or were turned down for (those live on the Applications board), and postings that closed. Duplicates of
+    Left out: anything you removed (Not for me), marked as applied, heard back from or were turned down for (those
+    live on the Applications board), and postings that closed. Opening the company's application doesn't move a
+    posting: it stays here, tagged Started, until you click I applied or Not for me. Duplicates of
     the same posting (from two lists, or under two spellings of the company) show once."""
     from ..models import PRE_APPLY
     stages = dict(db.execute(select(Application.job_id, Application.stage)).all())
@@ -269,7 +270,7 @@ def board(db: Session) -> tuple[list[Job], dict]:
     shown: list[Job] = []
     moved = {"started": 0, "applied": 0, "closed_out": 0, "removed": 0, "closed": 0}
     for members in groups.values():
-        acted = [stages[j.id] for j in members if j.id in stages and stages[j.id] not in PRE_APPLY]
+        acted = [stages[j.id] for j in members if j.id in stages and stages[j.id] not in PRE_APPLY + ("started",)]
         if acted:
             st = acted[0]
             moved["started" if st == "started" else "closed_out" if st in ("rejected", "withdrawn") else "applied"] += 1

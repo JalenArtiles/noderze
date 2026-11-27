@@ -101,7 +101,7 @@ export default function Internships() {
           </div>
           <Tabs value={tab} onChange={setTab} tabs={[["ok", "Qualify", uniq(ok)], ["out", "Filtered out", uniq(out)]]} />
           {data?.moved && (data.moved.applied + data.moved.started + data.moved.closed_out) > 0 && <p className="small muted" style={{ margin: "-.3rem 0 .8rem" }}>
-            Internships you started, applied to or heard back from aren't listed here. <Link href="/applications?kind=internship">See them on Applications ({data.moved.applied + data.moved.started + data.moved.closed_out})</Link>.</p>}
+            Internships you marked as applied or heard back from aren't listed here. Ones you only opened stay, tagged Started. <Link href="/applications?kind=internship">See them on Applications ({data.moved.applied + data.moved.started + data.moved.closed_out})</Link>.</p>}
           {tab === "out" && out.length > 0 && <p className="small muted" style={{ margin: "-.3rem 0 .8rem" }}>These missed one of your rules. If a recruiter tells you one is paid, or your coordinator says an IT internship counts, you can bring it back.</p>}
           <div className="list">
             {shown.length ? grouped.map(({ job, count, ids }) => <InternRow key={job.id} job={job} count={count} ids={ids} onChange={reload} />) :
