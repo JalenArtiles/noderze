@@ -138,3 +138,40 @@ def test_tailored_resume_and_cover_letter_names(client, tmp_path, monkeypatch):
     assert c.status_code == 200
     assert f'filename="{R.file_label(person, company, "Cover Letter")}.docx"' in c.headers["content-disposition"] \
         or not company.isascii()
+
+
+def test_rewrites_reach_unsent_messages_only(client):
+    from datetime import datetime
+
+    from app.db import SessionLocal
+    from app.models import Prospect
+    from app.services import outreach as O
+    db = SessionLocal()
+    try:
+        search = "https://www.linkedin.com/search/results/people/?keywords=Rewrite+Co+recruiter"
+        O.import_items(db, [
+            {"company": "Rewrite Co", "channel": "linkedin", "linkedin_url": search, "note": "old note", "followup": "old"},
+            {"company": "Rewrite Co", "channel": "email", "email": "Team@RewriteCo.com", "subject": "Old", "body": "Old body"},
+            {"company": "Sent Co", "channel": "email", "email": "hr@sentco.com", "subject": "Old", "body": "Old body"},
+        ], batch="t")
+        db.commit()
+        approved = O.find(db, "team@rewriteco.com")
+        approved.status, approved.send_at, approved.approved_at = "scheduled", datetime(2026, 11, 30, 16), datetime(2026, 11, 27)
+        O.find(db, "hr@sentco.com").status = "sent"
+        db.commit()
+        n = O.apply_updates(db, [
+            {"linkedin_url": search, "set": {"name": "Pat Example", "title": "University Recruiter",
+                                             "linkedin_url": "https://www.linkedin.com/in/Pat-Example/?trk=x",
+                                             "note": "x" * 250, "followup": "New follow-up"}},
+            {"email": "team@rewriteco.com", "set": {"subject": "New", "body": "New body"}},
+            {"email": "hr@sentco.com", "set": {"subject": "New", "body": "New body"}},
+        ])
+        db.commit()
+        assert n == 2
+        li = O.find(db, linkedin_url="https://www.linkedin.com/in/pat-example")
+        assert li.name == "Pat Example" and li.followup == "New follow-up" and len(li.note) <= O.NOTE_LIMIT
+        em = O.find(db, "team@rewriteco.com")
+        assert (em.subject, em.email_body, em.status, em.send_at) == ("New", "New body", "ready", None)
+        assert O.find(db, "hr@sentco.com").email_body == "Old body"
+    finally:
+        db.close()

@@ -132,11 +132,43 @@ def import_items(db: Session, items: list[dict], batch: str | None = None) -> li
     return added
 
 
+EDITABLE = {"name": "name", "title": "title", "subject": "subject", "body": "email_body", "email_body": "email_body",
+            "note": "note", "followup": "followup", "why": "why", "source_url": "source_url", "linkedin_url": "linkedin_url",
+            "email": "email", "draft_id": "draft_id", "draft_url": "draft_url"}
+
+
+def _rewrite(p: Prospect, fields: dict) -> bool:
+    """New wording or a named person for a message you haven't sent yet. An approved one goes back to waiting for
+    your approval, since what you approved changed."""
+    if p.status not in ("ready", "drafted", "scheduled"):
+        return False
+    changed = False
+    for key, attr in EDITABLE.items():
+        if key not in fields or fields[key] is None:
+            continue
+        v = fields[key].strip() if isinstance(fields[key], str) else fields[key]
+        if attr == "linkedin_url":
+            v = _li(v)
+        elif attr == "email":
+            v = v.lower()
+        elif attr == "note" and v and len(v) > NOTE_LIMIT:
+            v = v[:NOTE_LIMIT - 3].rsplit(" ", 1)[0] + "..."
+        if getattr(p, attr) != v:
+            setattr(p, attr, v)
+            changed = True
+    if changed and p.status == "scheduled":
+        p.status, p.send_at, p.approved_at = ("drafted" if p.draft_id else "ready"), None, None
+    return changed
+
+
 def apply_updates(db: Session, updates: list[dict]) -> int:
-    """What the task saw in Gmail since last time: drafts you sent, emails that bounced."""
+    """What the task saw in Gmail since last time (drafts you sent, emails that bounced), plus rewrites of messages
+    not sent yet: {"email" | "linkedin_url" | "draft_id" to find it, "set": {"subject", "body", "note", ...}}."""
     n = 0
     for u in updates:
-        p = find(db, u.get("email"), u.get("linkedin_url"), u.get("draft_id"))
+        p = find(db, u.get("email"), u.get("linkedin_url"), u.get("draft_id"), u.get("company"), u.get("name"))
+        if p and isinstance(u.get("set"), dict) and _rewrite(p, u["set"]):
+            n += 1
         st = u.get("status")
         if not p or st not in STATUSES or p.status == st:
             continue
