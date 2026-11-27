@@ -469,5 +469,13 @@ class Prospect(Base):
     replied_at: Mapped[datetime | None] = mapped_column(DateTime)
     reply_id: Mapped[int | None] = mapped_column(ForeignKey("email_replies.id"))
     created_at: Mapped[datetime] = mapped_column(DateTime, default=now)
+    # v3.10: follow-ups on internships you applied to, and approved batches Noderze sends for you
+    kind: Mapped[str | None] = mapped_column(String(20), default="cold")  # cold | applied
+    application_id: Mapped[int | None] = mapped_column(ForeignKey("applications.id"))
+    job_title: Mapped[str | None] = mapped_column(String(400))
+    send_at: Mapped[datetime | None] = mapped_column(DateTime)  # UTC, set when you approve the batch
+    approved_at: Mapped[datetime | None] = mapped_column(DateTime)
+    send_error: Mapped[str | None] = mapped_column(Text)
+    message_id: Mapped[str | None] = mapped_column(String(300))
 
     company: Mapped[Company | None] = relationship()

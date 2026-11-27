@@ -42,3 +42,23 @@ def init_db() -> None:
     from . import models  # noqa: F401  (register tables)
 
     Base.metadata.create_all(engine)
+    add_missing_columns()
+
+
+def add_missing_columns() -> list[str]:
+    """New nullable columns on tables that already exist (create_all only makes new tables). Runs before anything
+    reads the tables, so an update never meets a 'no such column' error."""
+    from sqlalchemy import inspect, text
+    added = []
+    insp = inspect(engine)
+    with engine.begin() as conn:
+        for table in Base.metadata.tables.values():
+            if not insp.has_table(table.name):
+                continue
+            have = {c["name"] for c in insp.get_columns(table.name)}
+            for col in table.columns:
+                if col.name in have or not col.nullable or col.primary_key:
+                    continue
+                conn.execute(text(f'ALTER TABLE {table.name} ADD COLUMN "{col.name}" {col.type.compile(engine.dialect)}'))
+                added.append(f"{table.name}.{col.name}")
+    return added

@@ -43,6 +43,11 @@ class Settings(BaseSettings):
     expected_graduation: date = date(2027, 5, 15)
     timezone: str = "America/Phoenix"
 
+    # Sending outreach emails you approved, from your own Gmail (an app password, never your real password).
+    gmail_address: str | None = None
+    gmail_app_password: str | None = None
+    outreach_send_hour: int = 9  # local time (timezone above) an approved batch goes out, on the next weekday
+
     # Scheduler
     enable_scheduler: bool = True
 

@@ -23,13 +23,14 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ..config import settings
-from ..models import Company, EmailReply, Prospect
-from ..util import now, slugify
+from ..models import Application, Company, EmailReply, Job, Prospect
+from ..util import now, slugify, today
 
 log = logging.getLogger(__name__)
 
-STATUSES = ("ready", "drafted", "sent", "connected", "replied", "skipped", "bounced")
-OPEN = ("drafted", "sent", "connected")  # waiting on them: replies from these companies are tracked
+STATUSES = ("ready", "drafted", "scheduled", "sent", "connected", "replied", "skipped", "bounced")
+OPEN = ("drafted", "scheduled", "sent", "connected")  # waiting on them: replies from these companies are tracked
+FOLLOW_UP_AFTER_DAYS = 3  # a follow-up on an internship you applied to is prepared this long after applying
 NOTE_LIMIT = 200  # LinkedIn connection notes on a free account
 FREE_MAIL = ("gmail.com", "googlemail.com", "yahoo.com", "outlook.com", "hotmail.com", "live.com", "icloud.com",
              "aol.com")
@@ -105,8 +106,12 @@ def import_items(db: Session, items: list[dict], batch: str | None = None) -> li
         li = _li(it.get("linkedin_url"))
         if not company or not (email or li):
             continue
+        app_id = it.get("application_id")
         if find(db, email, li, it.get("draft_id"), company, it.get("name")):
             continue
+        if app_id and db.scalar(select(Prospect.id).where(Prospect.application_id == app_id,
+                                                           Prospect.channel == ("email" if email else "linkedin"))):
+            continue  # one follow-up per application and channel
         c = _company(db, company, email)
         channel = "email" if email else "linkedin"
         note = (it.get("note") or "").strip() or None
@@ -118,7 +123,9 @@ def import_items(db: Session, items: list[dict], batch: str | None = None) -> li
                      track=it.get("track"), why=it.get("why"), source_url=it.get("source_url"),
                      subject=it.get("subject"), email_body=it.get("body"), draft_id=it.get("draft_id"),
                      draft_url=it.get("draft_url"), note=note, followup=it.get("followup"), batch=batch,
-                     status="drafted" if channel == "email" and it.get("draft_id") else "ready")
+                     status="drafted" if channel == "email" and it.get("draft_id") else "ready",
+                     kind="applied" if app_id else "cold", application_id=app_id if app_id and db.get(Application, app_id) else None,
+                     job_title=it.get("job_title"))
         db.add(p)
         db.flush()
         added.append(p)
@@ -186,11 +193,65 @@ def write_state(db: Session) -> Path:
             "contacts": [{"company": p.company_name, "name": p.name, "email": p.email, "linkedin_url": p.linkedin_url,
                           "status": p.status, "draft_id": p.draft_id, "subject": p.subject, "channel": p.channel,
                           "batch": p.batch} for p in rows],
-            "companies": sorted({p.company_name for p in rows})}
+            "companies": sorted({p.company_name for p in rows}),
+            # Internships you applied to: the task prepares a follow-up for each one marked due.
+            "applications": applications(db, rows),
+            # When Noderze can send approved emails itself, the task writes the emails here instead of Gmail drafts.
+            "noderze_sends": _sends()}
     text = json.dumps(data, indent=1)
     if not path.exists() or path.read_text(encoding="utf-8") != text:
         path.write_text(text, encoding="utf-8")
     return path
+
+
+def _sends() -> bool:
+    from .mailer import configured
+    return configured()
+
+
+def applications(db: Session, rows: list[Prospect] | None = None) -> list[dict]:
+    """Applications you submitted, with whether a follow-up is due (a few days after applying, none prepared yet)."""
+    rows = rows if rows is not None else list(db.scalars(select(Prospect)))
+    done = {p.application_id for p in rows if p.application_id}
+    out = []
+    for a in db.scalars(select(Application).where(Application.stage == "applied")):
+        j: Job = db.get(Job, a.job_id)
+        if j is None or j.company is None:
+            continue
+        applied = a.date_applied or (a.updated_at.date() if a.updated_at else None)
+        due = bool(applied and (today() - applied).days >= FOLLOW_UP_AFTER_DAYS and a.id not in done)
+        out.append({"application_id": a.id, "company": j.company.name, "title": j.title, "url": j.url,
+                    "location": j.location_text, "internship": j.family == "internship",
+                    "applied": applied.isoformat() if applied else None, "followed_up": a.id in done, "due": due})
+    return out
+
+
+def approve(db: Session, ids: list[int] | None = None) -> tuple[int, datetime]:
+    """Approve the waiting emails (all of them, or the ones listed): each goes out at the next send time."""
+    from .mailer import next_send_time
+    at = next_send_time()
+    q = select(Prospect).where(Prospect.channel == "email", Prospect.status.in_(("ready", "drafted")),
+                               Prospect.email.is_not(None))
+    if ids:
+        q = q.where(Prospect.id.in_(ids))
+    n = 0
+    for p in db.scalars(q):
+        if not (p.subject and p.email_body):
+            continue
+        p.status, p.send_at, p.approved_at, p.send_error = "scheduled", at, now(), None
+        n += 1
+    return n, at
+
+
+def unschedule(db: Session, ids: list[int] | None = None) -> int:
+    q = select(Prospect).where(Prospect.status == "scheduled")
+    if ids:
+        q = q.where(Prospect.id.in_(ids))
+    n = 0
+    for p in db.scalars(q):
+        p.status, p.send_at, p.approved_at = ("drafted" if p.draft_id else "ready"), None, None
+        n += 1
+    return n
 
 
 def watch(db: Session) -> list[dict]:
@@ -229,7 +290,9 @@ def prospect_dict(p: Prospect) -> dict:
             "body": p.email_body, "draft_url": p.draft_url, "note": p.note, "followup": p.followup, "status": p.status,
             "batch": p.batch, "sent_at": p.sent_at.isoformat() if p.sent_at else None,
             "replied_at": p.replied_at.isoformat() if p.replied_at else None, "reply_id": p.reply_id,
-            "created_at": p.created_at.isoformat() if p.created_at else None}
+            "created_at": p.created_at.isoformat() if p.created_at else None, "kind": p.kind or "cold",
+            "application_id": p.application_id, "job_title": p.job_title,
+            "send_at": p.send_at.isoformat() if p.send_at else None, "send_error": p.send_error}
 
 
 def counts(db: Session) -> dict:
@@ -237,5 +300,7 @@ def counts(db: Session) -> dict:
     for st in db.scalars(select(Prospect.status)):
         out[st] = out.get(st, 0) + 1
     out["to_send"] = out["ready"] + out["drafted"]
+    out["waiting_approval"] = len(list(db.scalars(select(Prospect.id).where(
+        Prospect.channel == "email", Prospect.status.in_(("ready", "drafted")), Prospect.email.is_not(None)))))
     out["reached"] = out["sent"] + out["connected"] + out["replied"]
     return out

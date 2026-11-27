@@ -85,8 +85,9 @@ def _run_rule(alert_rule: int, wf: str, name: str, **kwargs) -> None:
 def drop_folders() -> None:
     """Every minute: internships dropped in data/intern-imports/ and emails dropped in data/reply-imports/ are added,
     and data/reply-imports/watch.json is kept current for the scheduled Gmail check."""
-    from .services import intern_jobs, outreach, replies
+    from .services import intern_jobs, mailer, outreach, replies
     for name, fn in (("intern imports", intern_jobs.import_dropped), ("outreach imports", outreach.import_dropped),
+                     ("approved outreach emails", mailer.send_due),
                      ("outreach state", outreach.write_state), ("reply imports", replies.import_dropped),
                      ("reply watch list", replies.write_watch)):
         db = SessionLocal()

@@ -65,6 +65,7 @@ export default function Settings() {
           <SectionHead title="Connections" />
           <div className="list">
             <AnthropicKey connected={!!m?.llm} onChange={meta.reload} />
+            <GmailSend />
             <div className="li" style={{ alignItems: "flex-start" }}>
               {replies.data?.last_check ? <CheckCircle2 style={{ color: "var(--green)" }} /> : <CircleDashed style={{ color: "var(--faint)" }} />}
               <div className="grow"><div className="title">Email replies {replies.data?.last_check ? `checked ${day(replies.data.last_check)}` : "waiting for the first check"}</div>
@@ -121,6 +122,39 @@ export default function Settings() {
 }
 
 /** Paste your Anthropic key once: Noderze checks it, saves it to backend/.env on this computer and uses it right away. */
+/** Gmail sending for outreach batches you approve: an app password, checked with Gmail, kept on this computer. */
+function GmailSend() {
+  const { data, reload } = useApi<any>("/api/prospects");
+  const s = data?.sending;
+  const [address, setAddress] = useState("jalenartiles09@gmail.com");
+  const [pw, setPw] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+  async function save(value: string) {
+    setBusy(true); setErr(null); setMsg(null);
+    try { const r = await api("/api/settings/gmail-send", { body: { address, app_password: value } }); setPw(""); setMsg(r.ready ? `Connected. Approved outreach emails go out from ${r.address}.` : "Disconnected."); reload(); }
+    catch (e: any) { setErr(e.message); }
+    setBusy(false);
+  }
+  return (
+    <div className="li" id="gmail" style={{ alignItems: "flex-start" }}>
+      {s?.ready ? <CheckCircle2 style={{ color: "var(--green)" }} /> : <CircleDashed style={{ color: "var(--faint)" }} />}
+      <div className="grow stack" style={{ gap: ".5rem" }}>
+        <div><div className="title">Gmail sending {s?.ready ? `connected (${s.address})` : "not set"}</div>
+          <div className="sub">Sends only the <Link href="/outreach">outreach</Link> emails you approve, at the time shown on that page. Use a Gmail <b>app password</b>, not your real password: Google Account, Security, turn on 2-Step Verification, then search "App passwords", create one named Noderze and paste the 16 letters here. It stays on this computer.</div></div>
+        {!s?.ready && <input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="you@gmail.com" style={{ maxWidth: 420 }} aria-label="Gmail address" />}
+        <div className="row" style={{ flexWrap: "nowrap" }}>
+          <input type="password" autoComplete="off" value={pw} onChange={(e) => setPw(e.target.value)} placeholder={s?.ready ? "Paste a new app password to replace it" : "16-letter app password"} style={{ flex: 1, maxWidth: 420 }} aria-label="Gmail app password" />
+          <button className="btn sm primary" onClick={() => save(pw.trim())} disabled={busy || !pw.trim()}>{busy ? "Checking" : "Connect"}</button>
+          {s?.ready && <button className="btn sm quiet" onClick={() => save("")} disabled={busy}>Disconnect</button>}
+        </div>
+        <Err msg={err} />{msg && <span className="small muted">{msg}</span>}
+      </div>
+    </div>
+  );
+}
+
 function AnthropicKey({ connected, onChange }: { connected: boolean; onChange: () => void }) {
   const [key, setKey] = useState("");
   const [busy, setBusy] = useState(false);
