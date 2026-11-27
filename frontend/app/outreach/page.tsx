@@ -77,7 +77,7 @@ export default function Outreach() {
         </section>
         <Tabs value={tab} onChange={setTab} tabs={TABS.map(([k, l]) => [k, l, of(k).length])} />
         {tab === "todo" && shown.length > 0 && <p className="small muted" style={{ margin: "-.2rem 0 .8rem", maxWidth: "80ch" }}>
-          <b>Emails:</b> approve the batch above, or open a draft and click Send yourself. <b>LinkedIn:</b> the button copies the note and opens a search; pick a recruiter in Arizona, click Connect, then Add a note and paste. Out of free notes this month? Connect without one and send the follow-up message once they accept.</p>}
+          <b>Emails:</b> approve the batch above, or open a draft and click Send yourself. <b>LinkedIn:</b> the button copies the note and opens that company's campus recruiters; connect with the first one whose headline says university, campus or early careers recruiter there, then Add a note and paste. Out of free notes this month? Connect without one and send the follow-up message once they accept.</p>}
         <div className="list outreach">
           {shown.length ? shown.map((p) => (
             <div key={p.id} className="li" style={{ alignItems: "flex-start" }}>
@@ -122,6 +122,8 @@ export default function Outreach() {
                     {p.status === "ready" && p.linkedin_url && <button className="btn sm primary" onClick={() => { copy(p.id, p.note || ""); window.open(p.linkedin_url, "_blank", "noopener"); }}>
                       <Copy />{copied === p.id ? "Copied. Paste it in the note" : p.linkedin_url.includes("/search/") ? "Copy the note and find a recruiter" : "Copy the note and open the profile"}</button>}
                     {p.status === "ready" && <button className="btn sm" onClick={() => set(p.id, "sent")}><Check />I sent the request</button>}
+                    {p.status === "ready" && p.searches?.length > 1 && <span className="tiny muted" style={{ alignSelf: "center" }}>
+                      Nobody right? Try {p.searches.slice(1).map((s: any, i: number) => <span key={s.label}>{i ? " or " : ""}<a href={s.url} target="_blank" rel="noreferrer" onClick={() => copy(p.id, p.note || "")}>{s.label.toLowerCase()}</a></span>)}</span>}
                     {["sent", "connected"].includes(p.status) && p.followup && <button className="btn sm" onClick={() => { copy(p.id, p.followup); if (p.linkedin_url) window.open(p.linkedin_url, "_blank", "noopener"); }}>
                       <Copy />{copied === p.id ? "Copied" : "They accepted: copy the message"}</button>}
                     {p.status === "sent" && <button className="btn sm quiet" onClick={() => set(p.id, "connected")}>Mark as connected</button>}

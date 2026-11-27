@@ -340,11 +340,38 @@ def mark_replied(db: Session, r: EmailReply) -> Prospect | None:
     return best
 
 
+PEOPLE_SEARCH = "https://www.linkedin.com/search/results/people/"
+CAMPUS = '(university OR campus OR "early careers" OR "early talent" OR intern)'
+
+
+def _people(company: str, keywords: str, title: str | None = None) -> str:
+    """A LinkedIn people search. The title and company filters narrow it to people whose CURRENT job matches; both
+    spellings LinkedIn has used are sent (it ignores the one it doesn't know), and the keywords alone still find
+    the right people if the filters are ever dropped."""
+    from urllib.parse import quote, urlencode
+    params = {"keywords": keywords, "origin": "FACETED_SEARCH"}
+    if title:
+        params |= {"title": title, "titleFreeText": title, "company": company, "companyFreeText": company}
+    return PEOPLE_SEARCH + "?" + urlencode(params, quote_via=quote)
+
+
+def recruiter_searches(company: str) -> list[dict]:
+    """Where to find the person to connect with, best first: campus recruiters there now, then any recruiter there in
+    Arizona, then anyone in talent acquisition. LinkedIn orders the people within each search, usually putting
+    people you share a connection or school with first."""
+    c = (company or "").strip()
+    return [{"label": "Campus recruiters", "url": _people(c, f"{c} {CAMPUS} recruiter", "recruiter")},
+            {"label": "Any recruiter in Arizona", "url": _people(c, f"{c} recruiter Arizona", "recruiter")},
+            {"label": "Talent acquisition", "url": _people(c, f'{c} ("talent acquisition" OR recruiting)')}]
+
+
 def prospect_dict(p: Prospect) -> dict:
     from .logos import site
     c = p.company
+    searches = recruiter_searches(p.company_name) if p.linkedin_url and "/search/results/people" in p.linkedin_url else []
     return {"id": p.id, "company": p.company_name, "company_id": p.company_id, "company_website": site(c),
-            "name": p.name, "title": p.title, "email": p.email, "linkedin_url": p.linkedin_url, "location": p.location,
+            "name": p.name, "title": p.title, "email": p.email, "location": p.location,
+            "linkedin_url": searches[0]["url"] if searches else p.linkedin_url, "searches": searches,
             "channel": p.channel, "track": p.track, "why": p.why, "source_url": p.source_url, "subject": p.subject,
             "body": p.email_body, "draft_url": p.draft_url, "note": p.note, "followup": p.followup, "status": p.status,
             "batch": p.batch, "sent_at": p.sent_at.isoformat() if p.sent_at else None,

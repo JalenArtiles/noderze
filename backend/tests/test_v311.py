@@ -240,3 +240,20 @@ def test_structured_call_falls_back_when_forced_tools_are_refused(monkeypatch):
     assert m.structured("sys", "prompt", {"type": "object"}) == {"ok": True}
     assert ["tool_choice" in c for c in calls] == [True, False, False]  # remembered after the first refusal
     assert calls[1]["system"].endswith("Answer only by calling the record tool.")
+
+
+def test_linkedin_cards_open_campus_recruiters_first():
+    from urllib.parse import parse_qs, urlparse
+
+    from app.models import Prospect
+    from app.services import outreach as O
+    p = Prospect(company_name="Axon", channel="linkedin", status="ready",
+                 linkedin_url="https://www.linkedin.com/search/results/people/?keywords=Axon+recruiter+Arizona")
+    d = O.prospect_dict(p)
+    assert [s["label"] for s in d["searches"]] == ["Campus recruiters", "Any recruiter in Arizona", "Talent acquisition"]
+    q = parse_qs(urlparse(d["linkedin_url"]).query)
+    assert q["titleFreeText"] == ["recruiter"] and q["company"] == ["Axon"] and "early careers" in q["keywords"][0]
+    assert "%20" in d["linkedin_url"] and "+" not in d["linkedin_url"]
+    named = O.prospect_dict(Prospect(company_name="Axon", channel="linkedin", status="ready",
+                                     linkedin_url="https://www.linkedin.com/in/pat-example"))
+    assert named["searches"] == [] and named["linkedin_url"] == "https://www.linkedin.com/in/pat-example"
