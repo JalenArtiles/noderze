@@ -400,11 +400,20 @@ def counts(db: Session) -> dict:
 # ----------------------------------------------------------------------------- a new version of a LinkedIn note
 
 NOTE_STYLE = """You write LinkedIn connection notes for Jalen Artiles, a senior at Arizona State University studying
-Applied Computing (Cybersecurity), looking for a paid, part-time spring 2027 internship in data, security or IT.
+Applied Computing (Cybersecurity), looking for a paid, part-time spring 2027 internship in data, security or IT. The
+notes go to recruiters, so be direct about what he wants.
 Rules: 200 characters or fewer. Start with "Hi!". Casual and natural, like a real person typed it. No em dashes, no
-buzzwords, no stiff intros such as "ASU cybersecurity senior here". Mention ASU only if it fits naturally (for example
-"I'm studying cybersecurity at ASU"). Never invent facts about the company, the person or Jalen. If he applied, keep it
-simple and direct: say he applied and ask if there is anything else he can do on his end. Reply with the note only."""
+buzzwords, no stiff intros such as "ASU cybersecurity senior here". Never invent facts about the company, the person
+or Jalen.
+- Cold note: say he's studying cybersecurity (or applied computing, for data roles) at ASU and looking for a part-time
+  spring internship, then ask plainly whether the company brings on spring interns (name the Arizona city if you know
+  it), and end with "Would love to connect either way." Don't ask about the team's day-to-day work; that belongs in the
+  follow-up message.
+- He applied: say he recently applied to the role and wanted to say hello, then ask if there's anything else he can do
+  on his end.
+- The listing is closed: say he came across the posting, that he's looking for a spring internship, and ask whether
+  more spots might open up. Never imply the listing is open.
+Reply with the note only."""
 
 
 def _note_variants(p: Prospect) -> list[str]:
@@ -415,11 +424,15 @@ def _note_variants(p: Prospect) -> list[str]:
                 f"Hi! I just applied to the {job} role at {c}. If there's anything more I can do on my end, I'd love to know. Thanks!",
                 f"Hi! I applied to the {job} role at {c} and I'm really excited about it. Anything else I should do on my end? Would love to connect.",
                 f"Hi! I applied to {c}'s {job} role and wanted to reach out. Is there anything else that would help my application?"]
-    area = {"data": "data", "cyber": "security", "network": "network", "it": "IT"}.get(p.track or "", "tech")
-    return [f"Hi! I'm studying cybersecurity at ASU and I'd love to learn more about the {area} teams at {c}. Would love to connect.",
-            f"Hi! I've been looking into the {area} side of {c} and would love to hear how the team works. I'm at ASU and would love to connect.",
-            f"Hi! I'm an ASU student interested in {area} work, and {c} keeps coming up. Would love to connect and hear about your team.",
-            f"Hi! I'd love to learn how {c}'s {area} teams bring on interns. I'm studying cybersecurity at ASU and would love to connect."]
+    study = "applied computing" if p.track == "data" else "cybersecurity"
+    area = {"data": "data", "cyber": "security", "network": "networking", "it": "IT"}.get(p.track or "", "data, security or IT")
+    if p.posting_closed:
+        return [f"Hi! I came across an internship posting at {c}. I'm studying {study} at ASU and looking for a spring internship. Any chance more spots open up?",
+                f"Hi! I saw {c} was hiring interns recently. I'm studying {study} at ASU and hoping to find a spring internship. Any more openings coming up?"]
+    return [f"Hi! I'm studying {study} at ASU and looking for a part-time spring internship. Does {c} ever bring on spring interns? Would love to connect either way.",
+            f"Hi! I'm an ASU student looking for a part-time spring internship in {area}. Does {c} take spring interns? Would love to connect.",
+            f"Hi! I'm studying {study} at ASU and {c} is high on my list for a spring internship. Do any teams take part-time interns? Would love to connect.",
+            f"Hi! I'm looking for a part-time spring internship in {area} while I finish at ASU. Is {c} bringing on any spring interns? Would love to connect either way."]
 
 
 def _clean_note(text: str | None) -> str | None:
@@ -444,7 +457,8 @@ def new_note(p: Prospect, hint: str | None = None) -> str:
             t = _clean_note(llm.text(NOTE_STYLE, facts + "\nWrite one new note.", fast=True, max_tokens=200))
             if t and t != p.note:
                 return t
-    options = _note_variants(p)
+    options = [o for o in _note_variants(p) if len(o) <= NOTE_LIMIT] or [
+        f"Hi! I'm studying cybersecurity at ASU and looking for a part-time spring internship. Would love to connect."]
     if p.note in options:
         return options[(options.index(p.note) + 1) % len(options)]
     return options[0]

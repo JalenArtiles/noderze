@@ -321,3 +321,19 @@ def test_new_note_rotates_without_claude_and_follows_a_hint_with_it(client, monk
     monkeypatch.setattr(llm, "text", lambda *a, **k: "Hello " + "x" * 300)
     assert len(client.post(f"/api/prospects/{pid}/new-note", json={}).json()["note"]) <= 200
     assert client.post("/api/prospects/999999/new-note", json={}).status_code == 404
+
+
+def test_cold_notes_are_direct_about_the_internship():
+    from types import SimpleNamespace
+
+    from app.services import outreach as O
+    for kw in (dict(kind="cold", track="cyber", posting_closed=False), dict(kind="cold", track="data", posting_closed=True)):
+        p = SimpleNamespace(company_name="General Dynamics Mission Systems", channel="linkedin", note="Hi! old", job_title=None,
+                            why=None, **kw)
+        seen = set()
+        for _ in range(4):
+            p.note = O.new_note(p)
+            seen.add(p.note)
+            assert len(p.note) <= O.NOTE_LIMIT and "spring" in p.note and "—" not in p.note
+        assert len(seen) >= 2
+    assert "Would love to connect either way" in O.NOTE_STYLE and "day-to-day" in O.NOTE_STYLE
