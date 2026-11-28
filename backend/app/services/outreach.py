@@ -333,6 +333,51 @@ def watch(db: Session) -> list[dict]:
              "applied": True, "prospect": True, "emails": sorted(w["emails"])} for cid, w in out.items()]
 
 
+def _bare_subject(s: str | None) -> str:
+    return re.sub(r"^(?:(?:re|fwd?|aw)\s*:\s*)+", "", (s or "").strip(), flags=re.I).strip().lower()
+
+
+def prospect_for_reply(db: Session, sender: str, subject: str) -> Prospect | None:
+    """The outreach email this message answers: from the address you wrote to, or from that organization's own domain
+    answering your subject."""
+    sender = (sender or "").lower()
+    if not sender:
+        return None
+    rows = list(db.scalars(select(Prospect).where(Prospect.channel == "email", Prospect.status.in_(OPEN + ("replied",)))))
+    exact = next((p for p in rows if p.email == sender), None)
+    if exact:
+        return exact
+    d, bare = _domain(sender), _bare_subject(subject)
+    if not d or d in FREE_MAIL or not bare:
+        return None
+    return next((p for p in rows if _domain(p.email) == d and _bare_subject(p.subject) == bare), None)
+
+
+def mark_prospect_replied(p: Prospect, r: EmailReply) -> None:
+    if p.status != "replied":
+        p.status, p.replied_at, p.reply_id = "replied", r.received_at or now(), r.id
+
+
+def linkedin_prospect(db: Session, person: str, text: str) -> Prospect | None:
+    """The LinkedIn card a notification is about: by the person's name if you saved it, else by their company named
+    in the email (LinkedIn shows the sender's headline, like "University Recruiter at Axon"). Only when it's clear."""
+    from .replies import _name_terms
+    rows = list(db.scalars(select(Prospect).where(Prospect.channel == "linkedin",
+                                                  Prospect.status.in_(("sent", "connected", "replied")))))
+    who = (person or "").strip().lower()
+    named = [p for p in rows if p.name and p.name.strip().lower() == who]
+    if len(named) == 1:
+        return named[0]
+    low = (text or "").lower()
+    hits = []
+    for p in rows:
+        if p.name:
+            continue  # already tied to someone else
+        if any(re.search(rf"(?<![a-z0-9]){re.escape(t)}(?![a-z0-9])", low) for t in _name_terms(p.company_name)):
+            hits.append(p)
+    return hits[0] if len({p.company_name for p in hits}) == 1 else None
+
+
 def mark_replied(db: Session, r: EmailReply) -> Prospect | None:
     """A reply from someone you reached out to: from their address, or from their company's domain."""
     sender = (r.from_email or "").lower()

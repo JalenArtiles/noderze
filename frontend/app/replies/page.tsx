@@ -6,9 +6,11 @@ import { Callout, Empty, Err, Loading, PageHeader, SectionHead, stageLabel } fro
 import { CompanyLogo } from "@/components/visual";
 import { api, day, useApi } from "@/lib/api";
 
-const FILTERS: [string, string][] = [["needs", "Needs you"], ["all", "All"], ["interview", "Interviews"], ["assessment", "Assessments"],
-  ["rejection", "Not moving forward"], ["confirmation", "Application received"]];
-const TONE: Record<string, string> = { interview: "good", assessment: "good", offer: "good", rejection: "bad", confirmation: "", other: "info" };
+const FILTERS: [string, string][] = [["needs", "Needs you"], ["all", "All"], ["outreach", "Outreach and LinkedIn"], ["interview", "Interviews"],
+  ["assessment", "Assessments"], ["rejection", "Not moving forward"], ["confirmation", "Application received"]];
+const TONE: Record<string, string> = { interview: "good", assessment: "good", offer: "good", rejection: "bad", confirmation: "", other: "info",
+  outreach: "good", linkedin: "good" };
+const fits = (r: any, f: string) => f === "all" || (f === "needs" ? r.needs_you : f === "outreach" ? r.outreach : r.kind === f);
 
 function ago(iso?: string | null) {
   if (!iso) return null;
@@ -32,12 +34,12 @@ export default function Replies() {
   }, [data]);
   async function act(path: string, body?: any, method = "POST") { try { await api(path, { method, body: body || {} }); reload(); } catch {} }
   const items: any[] = data?.items || [];
-  const shown = items.filter((r) => filter === "all" || (filter === "needs" ? r.needs_you : r.kind === filter));
-  const count = (f: string) => items.filter((r) => f === "all" || (f === "needs" ? r.needs_you : r.kind === f)).length;
+  const shown = items.filter((r) => fits(r, filter));
+  const count = (f: string) => items.filter((r) => fits(r, f)).length;
   return (
     <>
       <PageHeader title="Replies"
-        lede={<>Emails from companies you applied to: interview requests, assessments, rejections and confirmations. Everything else in your inbox is ignored.</>}
+        lede={<>Emails from companies you applied to or reached out to, and LinkedIn messages from recruiters: interview requests, assessments, rejections, confirmations and answers to your outreach. Everything else in your inbox is ignored.</>}
         actions={data?.last_check ? <span className="small muted">Last checked {ago(data.last_check)}</span> : undefined} />
       <Err msg={error} />
       {!data ? <Loading what="Loading replies" /> : <>
@@ -59,9 +61,11 @@ export default function Replies() {
                 </div>
                 {r.snippet && <div className="snippet">{r.snippet}</div>}
                 <div className="row" style={{ marginTop: ".55rem" }}>
+                  {r.kind === "linkedin" && <a className="btn sm primary" href="https://www.linkedin.com/messaging/" target="_blank" rel="noreferrer"><ExternalLink />Reply on LinkedIn</a>}
                   {r.url && <a className="btn sm" href={r.url} target="_blank" rel="noreferrer"><ExternalLink />Open in Gmail</a>}
                   {r.suggest && <button className="btn sm primary" onClick={() => act(`/api/replies/${r.id}/apply`)}><MailCheck />{r.suggest.label}</button>}
                   {r.application_id && <Link className="btn sm quiet" href={`/applications/${r.application_id}`}>Open the application</Link>}
+                  {r.prospect_id && <Link className="btn sm quiet" href="/outreach">See it in Outreach</Link>}
                   {r.untracked && <button className="btn sm primary" onClick={() => act(`/api/replies/${r.id}/track`, { company: r.guess_company, title: r.guess_title })}>Track {r.guess_company || "it"}</button>}
                   <button className="btn sm quiet" title="Hide it and every email from this sender" onClick={() => act(`/api/replies/${r.id}`, { not_job: true }, "PATCH")}>Not about a job</button>
                   <button className="btn sm quiet icon" title="Dismiss" aria-label="Dismiss" onClick={() => act(`/api/replies/${r.id}`, { dismissed: true }, "PATCH")}><X /></button>

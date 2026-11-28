@@ -154,6 +154,7 @@ export default function Outreach() {
                     {["sent", "connected"].includes(p.status) && p.followup && <button className="btn sm" onClick={() => { copy(p.id, p.followup); if (p.linkedin_url) window.open(p.linkedin_url, "_blank", "noopener"); }}>
                       <Copy />{copied === p.id ? "Copied" : "They accepted: copy the message"}</button>}
                     {p.status === "sent" && <button className="btn sm quiet" onClick={() => set(p.id, "connected")}>Mark as connected</button>}
+                    {["sent", "connected"].includes(p.status) && <button className="btn sm quiet" onClick={() => set(p.id, "replied")}>They replied</button>}
                   </div>
                 </>}
                 <div className="tiny faint" style={{ marginTop: ".4rem" }}>

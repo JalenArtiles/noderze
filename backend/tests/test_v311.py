@@ -337,3 +337,63 @@ def test_cold_notes_are_direct_about_the_internship():
             assert len(p.note) <= O.NOTE_LIMIT and "spring" in p.note and "—" not in p.note
         assert len(seen) >= 2
     assert "Would love to connect either way" in O.NOTE_STYLE and "day-to-day" in O.NOTE_STYLE
+
+
+def test_outreach_and_linkedin_replies_reach_the_replies_page(client):
+    from app.db import SessionLocal
+    from app.models import EmailReply
+    from app.services import outreach as O
+    from app.services import replies as R
+    assert R.linkedin_notice("Pat Example sent you a new message") == ("message", "Pat Example")
+    assert R.linkedin_notice("Pat Example just messaged you") == ("message", "Pat Example")
+    assert R.linkedin_notice("New message from Pat Example") == ("message", "Pat Example")
+    assert R.linkedin_notice("Pat Example accepted your invitation") == ("accepted", "Pat Example")
+    assert R.linkedin_notice("Data Analyst Intern at Axon and 9 more jobs") is None
+    db = SessionLocal()
+    try:
+        O.import_items(db, [
+            {"company": "Desert Court", "email": "itjobs@desertcourt.gov", "subject": "Spring IT intern question", "body": "B"},
+            {"company": "Saguaro Systems", "channel": "linkedin", "note": "Hi!",
+             "linkedin_url": "https://www.linkedin.com/search/results/people/?keywords=Saguaro+Systems"},
+            {"company": "Mesa Grid", "channel": "linkedin", "note": "Hi!",
+             "linkedin_url": "https://www.linkedin.com/search/results/people/?keywords=Mesa+Grid"},
+        ], batch="r")
+        for e in ("itjobs@desertcourt.gov",):
+            O.find(db, e).status = "sent"
+        for k in ("Saguaro+Systems", "Mesa+Grid"):
+            O.find(db, linkedin_url=f"https://www.linkedin.com/search/results/people/?keywords={k}").status = "sent"
+        db.commit()
+        added = R.import_items(db, [
+            # A colleague at the court answers the outreach email (no hiring words at all)
+            {"id": "o1", "from": "Lee Park <lpark@desertcourt.gov>", "subject": "RE: Spring IT intern question",
+             "snippet": "Thanks for reaching out, let's set up a quick call next week.", "date": "2026-11-28T16:00:00Z"},
+            # The Saguaro recruiter accepts, then messages
+            {"id": "l1", "from": "LinkedIn <invitations@linkedin.com>", "subject": "Pat Example accepted your invitation",
+             "snippet": "Pat Example, University Recruiter at Saguaro Systems", "date": "2026-11-28T17:00:00Z"},
+            {"id": "l2", "from": "LinkedIn <messages-noreply@linkedin.com>", "subject": "Pat Example sent you a new message",
+             "snippet": "Pat Example University Recruiter at Saguaro Systems: Hi Jalen, happy to chat about spring!",
+             "date": "2026-11-28T18:00:00Z"},
+            # A friend's message and a job alert are ignored
+            {"id": "l3", "from": "LinkedIn <messages-noreply@linkedin.com>", "subject": "Sam Friend sent you a new message",
+             "snippet": "yo are you going to the game", "date": "2026-11-28T18:00:00Z"},
+            {"id": "l4", "from": "LinkedIn Job Alerts <jobalerts-noreply@linkedin.com>", "subject": "Data Analyst Intern at Axon",
+             "snippet": "New jobs for you", "date": "2026-11-28T18:00:00Z"},
+        ])
+        db.commit()
+        kinds = sorted(r.kind for r in added)
+        assert kinds == ["linkedin", "outreach"]
+        court = O.find(db, "itjobs@desertcourt.gov")
+        assert court.status == "replied"
+        sag = O.find(db, linkedin_url="https://www.linkedin.com/search/results/people/?keywords=Saguaro+Systems")
+        assert sag.status == "replied" and sag.name == "Pat Example"
+        assert O.find(db, linkedin_url="https://www.linkedin.com/search/results/people/?keywords=Mesa+Grid").status == "sent"
+        # A later refilter keeps them
+        R.refilter(db)
+        db.commit()
+        assert db.query(EmailReply).filter(EmailReply.message_id.in_(["o1", "l2"])).count() == 2
+    finally:
+        db.close()
+    data = client.get("/api/replies").json()
+    mine = [i for i in data["items"] if i["kind"] in ("outreach", "linkedin")]
+    assert len(mine) == 2 and all(i["needs_you"] and i["outreach"] and not i["untracked"] for i in mine)
+    assert {i["kind_label"] for i in mine} == {"Reply to your outreach", "LinkedIn message"}

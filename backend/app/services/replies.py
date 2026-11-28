@@ -62,7 +62,9 @@ SOFT_INTERVIEW = r"next steps|speak with you|chat with you"
 KINDS = [("offer", OFFER), ("rejection", REJECTION), ("assessment", ASSESSMENT), ("interview", INTERVIEW),
          ("confirmation", CONFIRMATION), ("interview", SOFT_INTERVIEW)]
 KIND_LABEL = {"offer": "Offer", "rejection": "Not moving forward", "assessment": "Assessment", "interview": "Interview",
-              "confirmation": "Application received", "other": "Reply"}
+              "confirmation": "Application received", "other": "Reply", "outreach": "Reply to your outreach",
+              "linkedin": "LinkedIn message"}
+OUTREACH_KINDS = ("outreach", "linkedin")
 # A company's newsletters, promotions and campus mail aren't replies: an email must be about hiring.
 RECRUITING = re.compile(r"\bapplica|\bappl(y|ied|ying)\b|interview|candida|position|\brole\b|recruit|hiring|\boffer\b|"
                         r"assessment|internship|\bjob\b|requisition|onboarding|next steps|your resume|talent", re.I)
@@ -277,7 +279,11 @@ def refilter(db: Session) -> int:
     rest. Returns how many were removed."""
     load_blocked(db)
     removed = 0
+    from ..models import Prospect
+    answered = set(db.scalars(select(Prospect.reply_id).where(Prospect.reply_id.is_not(None))))
     for r in list(db.scalars(select(EmailReply))):
+        if r.kind in OUTREACH_KINDS or r.id in answered:
+            continue  # answers to your outreach stay, whatever they say
         ok, kind = keep(r.subject, r.snippet, r.from_name or "", r.from_email or "", matched=r.company_id is not None)
         if not ok:
             db.delete(r)
@@ -361,6 +367,24 @@ def import_items(db: Session, items: list[dict], account: str | None = None) -> 
             continue
         subject, snippet = (it.get("subject") or "").strip(), (it.get("snippet") or "").strip()
         name, addr = _parse_from(it.get("from"))
+        from . import outreach
+        if addr.endswith("linkedin.com"):
+            r = _linkedin_notice(db, it, mid, account, subject, snippet, addr, watch)
+            if r:
+                added.append(r)
+            continue
+        p = None if blocked(addr) else outreach.prospect_for_reply(db, addr, subject)
+        if p:  # an answer to an email you sent from Outreach: always kept, whatever it says
+            kind = classify(subject, snippet)
+            r = EmailReply(message_id=mid, thread_id=it.get("thread_id"), account=it.get("account") or account,
+                           from_name=name or None, from_email=addr or None, subject=subject[:2000],
+                           snippet=snippet[:2000], url=it.get("url"), received_at=_parse_date(it.get("date")),
+                           company_id=p.company_id, kind="outreach" if kind in ("other", "confirmation") else kind)
+            db.add(r)
+            db.flush()
+            outreach.mark_prospect_replied(p, r)
+            added.append(r)
+            continue
         w = None if not_hiring(name, addr, subject) else match(it, watch)
         ok, kind = keep(subject, snippet, name, addr, matched=w is not None)
         if not ok:
@@ -384,9 +408,60 @@ def import_items(db: Session, items: list[dict], account: str | None = None) -> 
         db.add(r)
         db.flush()
         added.append(r)
-        from . import outreach
         outreach.mark_replied(db, r)
     return added
+
+
+# LinkedIn emails you when someone messages you or accepts your invitation. Noderze never opens LinkedIn; it reads
+# those notification emails from your inbox, like any other reply.
+LI_MESSAGE = [re.compile(p, re.I) for p in (
+    r"^(?P<name>[^,:!?]{2,80}?) (?:just )?(?:sent you a (?:new )?message|messaged you|sent you an inmail|replied to you)",
+    r"^(?:you have a )?new message from (?P<name>[^,:!?]{2,80})",
+    r"^(?:inmail|message) from (?P<name>[^,:!?]{2,80})")]
+LI_ACCEPTED = re.compile(r"^(?P<name>[^,:!?]{2,80}?) (?:has )?accepted your invitation", re.I)
+
+
+def linkedin_notice(subject: str) -> tuple[str, str] | None:
+    """('message' | 'accepted', the person's name) for a LinkedIn notification email, else None."""
+    s = re.sub(r"^(?:re|fwd?):\s*", "", (subject or "").strip(), flags=re.I)
+    m = LI_ACCEPTED.match(s)
+    if m:
+        return "accepted", m.group("name").strip()
+    for rx in LI_MESSAGE:
+        m = rx.match(s)
+        if m:
+            return "message", m.group("name").strip()
+    return None
+
+
+def _linkedin_notice(db: Session, it: dict, mid: str, account: str | None, subject: str, snippet: str, addr: str,
+                     watch: list[dict]) -> EmailReply | None:
+    from . import outreach
+    notice = linkedin_notice(subject)
+    if not notice:
+        return None  # job alerts, "people you may know", digests
+    what, person = notice
+    p = outreach.linkedin_prospect(db, person, f"{subject} {snippet}")
+    if what == "accepted":
+        if p and p.status == "sent":
+            p.status = "connected"
+            p.name = p.name or person
+        return None
+    company_id = p.company_id if p else None
+    if p is None:  # someone you didn't reach out to: kept only when the message is about a job
+        if not RECRUITING.search(snippet):
+            return None  # a friend's message
+        w = match({"from": person, "subject": f"{person} {subject}", "snippet": snippet}, watch)
+        company_id = w["company_id"] if w else None
+    r = EmailReply(message_id=mid, thread_id=it.get("thread_id"), account=it.get("account") or account,
+                   from_name=person, from_email=addr, subject=subject[:2000], snippet=snippet[:2000], url=it.get("url"),
+                   received_at=_parse_date(it.get("date")), company_id=company_id, kind="linkedin")
+    db.add(r)
+    db.flush()
+    if p:
+        p.name = p.name or person
+        outreach.mark_prospect_replied(p, r)
+    return r
 
 
 CONFIRM_PATTERNS = [
@@ -568,6 +643,14 @@ def track(db: Session, r: EmailReply, company: str | None = None, title: str | N
 def reply_dict(db: Session, r: EmailReply) -> dict:
     c = db.get(Company, r.company_id) if r.company_id else None
     a = db.get(Application, r.application_id) if r.application_id else None
+    from ..models import Prospect
+    p = db.scalar(select(Prospect).where(Prospect.reply_id == r.id).limit(1))
+    if c is None and r.kind in OUTREACH_KINDS:  # a LinkedIn message about a job, from someone not on your lists
+        return {"id": r.id, "untracked": False, "company": None, "company_id": None, "application_id": None,
+                "from_name": r.from_name, "from_email": r.from_email, "subject": r.subject, "snippet": r.snippet,
+                "url": r.url, "account": r.account, "kind": r.kind, "kind_label": KIND_LABEL[r.kind],
+                "received_at": r.received_at.isoformat() if r.received_at else None, "seen": r.seen, "suggest": None,
+                "outreach": False, "prospect_id": None}
     if c is None:  # an application you made outside Noderze
         guess = parse_confirmation(r.subject, r.from_name or "", r.from_email or "") or {}
         return {"id": r.id, "untracked": True, "guess_company": guess.get("company"), "guess_title": guess.get("title"),
@@ -582,7 +665,9 @@ def reply_dict(db: Session, r: EmailReply) -> dict:
             "from_name": r.from_name, "from_email": r.from_email, "subject": r.subject, "snippet": r.snippet,
             "url": r.url, "account": r.account, "kind": r.kind, "kind_label": KIND_LABEL.get(r.kind, "Reply"),
             "received_at": r.received_at.isoformat() if r.received_at else None, "seen": r.seen,
-            "suggest": _suggest(r.kind, a.stage if a else None)}
+            "suggest": _suggest(r.kind, a.stage if a else None),
+            "outreach": bool(p) or r.kind in OUTREACH_KINDS, "prospect_id": p.id if p else None,
+            "channel": p.channel if p else ("linkedin" if r.kind == "linkedin" else None)}
 
 
 def _suggest(kind: str, stage: str | None) -> dict | None:
@@ -604,6 +689,8 @@ def _suggest(kind: str, stage: str | None) -> dict | None:
 def needs_you(db: Session, r: EmailReply) -> bool:
     """A reply worth a notification: anything but a plain 'we got your application', unless Noderze doesn't know yet
     that you applied. Applications made outside Noderze are listed separately, without a notification."""
+    if r.kind in OUTREACH_KINDS:
+        return True
     if r.company_id is None:
         return r.kind in ("interview", "assessment", "offer")
     if r.kind != "confirmation":
