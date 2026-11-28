@@ -397,3 +397,18 @@ def test_outreach_and_linkedin_replies_reach_the_replies_page(client):
     mine = [i for i in data["items"] if i["kind"] in ("outreach", "linkedin")]
     assert len(mine) == 2 and all(i["needs_you"] and i["outreach"] and not i["untracked"] for i in mine)
     assert {i["kind_label"] for i in mine} == {"Reply to your outreach", "LinkedIn message"}
+
+
+def test_watch_file_lists_outreach_addresses(client):
+    import json
+
+    from app.db import SessionLocal
+    from app.services import replies as R
+    db = SessionLocal()
+    try:
+        data = json.loads(R.write_watch(db).read_text(encoding="utf-8"))
+    finally:
+        db.close()
+    emails = {e for c in data["companies"] for e in c["emails"]}
+    assert "itjobs@desertcourt.gov" in emails or "team@rewriteco.com" in emails
+    assert all("emails" in c for c in data["companies"])

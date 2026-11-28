@@ -155,8 +155,13 @@ def watch_list(db: Session) -> list[dict]:
                "applied": any(s not in PRE_APPLY for s in w["stages"])} for cid, w in out.items()]
     # Companies you emailed or messaged about an internship: their answers count as replies too.
     from . import outreach
+    by_id = {w["company_id"]: w for w in listed}
     for w in outreach.watch(db):
-        if w["company_id"] not in out:
+        if w["company_id"] in by_id:  # applied there and emailed someone: watch their address too
+            have = by_id[w["company_id"]]
+            have["emails"] = sorted(set(have.get("emails", [])) | set(w["emails"]))
+            have["domains"] = sorted(set(have["domains"]) | set(w["domains"]))
+        else:
             listed.append(w)
     return listed
 
@@ -167,7 +172,8 @@ def write_watch(db: Session) -> Path:
     f.mkdir(parents=True, exist_ok=True)
     path = f / "watch.json"
     data = {"updated": now().isoformat(timespec="seconds"), "ats_senders": list(ATS_SENDERS),
-            "companies": [{k: w[k] for k in ("company", "domains", "terms", "applied")} for w in watch_list(db)]}
+            "companies": [{k: w[k] for k in ("company", "domains", "terms", "applied")} | {"emails": w.get("emails", [])}
+                          for w in watch_list(db)]}
     text = json.dumps(data, indent=1)
     if not path.exists() or path.read_text(encoding="utf-8") != text:
         path.write_text(text, encoding="utf-8")
