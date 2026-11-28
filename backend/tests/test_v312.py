@@ -23,6 +23,10 @@ SPRING = ("Spring 2027 internship, January through May 2027. Part-time, 20 hours
     ("Point of Sale Support Intern", "other"),
     ("Cybersecurity Intern", "cyber"),
     ("Data Analyst Intern, Sales Operations", "data"),
+    ("Sales Data Analytics Intern", "data"),
+    ("Cybersecurity Sales Intern", "sales"),
+    ("Account Development Representative Intern - Phoenix", "sales"),
+    ("Sales Intern - ASU", "sales"),
 ])
 def test_sales_titles(title, track):
     assert track_of(title).track == track

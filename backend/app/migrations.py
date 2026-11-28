@@ -163,6 +163,12 @@ def _sales_track(db) -> None:
         start("find_internships", "Spring internship search", WORKFLOWS["find_internships"])
 
 
+def _sales_track_v2(db) -> None:
+    """"Sales Data Analytics Intern" and the like are analytics work: back to Applied Computing Spring Internships.
+    Searches again too (the first search was cut short by the update)."""
+    _sales_track(db)
+
+
 # rescore_v3_2: enterprise/strategic AE roles, foreign postings and state-limited remote roles left the entry list.
 STEPS = [("alerts_baseline_v1", _baseline_alerts), ("available_start_v1", _start_month), ("rescore_v3_1", _rescore),
          ("rescore_v3_2", _rescore), ("generic_notes_v1", _clear_generic_notes),
@@ -170,7 +176,8 @@ STEPS = [("alerts_baseline_v1", _baseline_alerts), ("available_start_v1", _start
          ("rescore_interns_v1", _rescore),  # internship checks after the first live search
          ("cover_letters_v2", _rewrite_cover_letters), ("next_action_v2", _next_action_v2),
          ("replies_refilter_v1", _refilter_replies), ("intern_verify_v1", _intern_details),
-         ("logos_v1", _logos), ("intern_verify_v2", _verify_again), ("sales_track_v1", _sales_track)]
+         ("logos_v1", _logos), ("intern_verify_v2", _verify_again), ("sales_track_v1", _sales_track),
+         ("sales_track_v2", _sales_track_v2)]
 
 
 def apply_profile_updates(db) -> int:

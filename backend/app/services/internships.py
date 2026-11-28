@@ -191,13 +191,26 @@ class Track:
         return TRACK_LABELS.get(self.track, self.track)
 
 
+_SALES_HEAD = re.compile(r"\bsales (?:development|engineer\w*|intern\w*|rep\w*|associate|executive|specialist)\b|"
+                         r"\bpre-?sales\b|\bsdrs?\b|\bbdrs?\b|business development|account (?:executive|development)|"
+                         r"inside sales|\bsolutions? (?:engineer|consult|architect)", re.I)
+
+
+def _sales_role(part: str) -> bool:
+    """A sales job, not data work about sales: "Sales Data Analytics Intern" is analytics, "Cybersecurity Sales
+    Intern" and "Sales Development Intern" are sales."""
+    if not is_sales_title(part):
+        return False
+    return _title_track(part)[0] != "data" or bool(_SALES_HEAD.search(part))
+
+
 def track_of(title: str, description: str = "") -> Track:
     """Field of an internship. The role part of the title ("Data Engineer Intern" in "Data Engineer Intern -
     Enterprise Security") decides first; the team part and then the posting text fill in for vague titles."""
     t = title or ""
     parts = re.split(r"\s+[-–—|:]\s+|,\s+|\s*\(", t, maxsplit=1)
     role, rest = parts[0], (parts[1] if len(parts) > 1 else "")
-    if is_sales_title(role) or (is_sales_title(t) and not _title_track(role)[0]):
+    if _sales_role(role) or (is_sales_title(t) and not _title_track(role)[0]):
         return Track("sales", "strong", "A sales internship (sales, SDR/BDR, account executive or sales engineering).")
     tr, strength = _title_track(role)
     if tr and tr != "it":
