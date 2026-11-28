@@ -19,7 +19,7 @@ export function shortFacts(it: any) {
   const st = (k: string) => (it.checks || []).find((c: any) => c.key === k)?.state || "pass";
   const payText = st("pay") === "pass" && it.overrides?.paid && pay.status !== "amount" ? "Paid (you confirmed)"
     : pay.status === "amount" ? pay.label.replace(" an hour", "/hr").replace(" a year (annualized)", "/yr")
-    : pay.status === "stated" ? "Paid, rate not listed" : pay.status === "unpaid" ? "Unpaid"
+    : pay.status === "stated" ? "Paid, rate not listed" : pay.status === "unpaid" ? "Unpaid" : pay.status === "commission" ? "Commission only"
     : st("pay") === "warn" ? "Pay not read yet" : "No pay listed";
   const hoursText = hours.status === "ok" ? hours.label.replace(" hours a week", " hrs/wk").replace(/^up to/, "Up to").replace(/^at least/, "At least")
     : hours.status === "part_time" ? "Part-time" : hours.status === "unknown" ? "Hours not listed" : hours.label?.split(";")[0].split(",")[0].replace(" hours a week", " hrs/wk");

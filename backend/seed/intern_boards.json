@@ -1,5 +1,5 @@
 {
- "_about": "Phoenix-area employers the spring internship search scans. Built from the public SimplifyJobs intern and new-grad lists (companies that have posted roles in the Phoenix area, with their real job-board links), plus Arizona public employers whose career sites allow automated reading. Add a board here to scan it.",
+ "_about": "Phoenix-area employers the spring internship search scans. Built from the public SimplifyJobs intern and new-grad lists (companies that have posted roles in the Phoenix area, with their real job-board links), plus Arizona public employers whose career sites allow automated reading. Tech companies (cybersecurity and software first) are here for the Spring Sales Internships list. Add a board here to scan it.",
  "boards": [
   {
    "name": "SRP",
@@ -384,6 +384,209 @@
    "ats_type": "workday",
    "host": "asu.wd1.myworkdayjobs.com",
    "site": "ASUStaffCareers"
+  },
+  {
+   "name": "Uplinq",
+   "ats_type": "rippling",
+   "token": "uplinq",
+   "category": "ai",
+   "note": "AI bookkeeping and tax software for small businesses, Old Town Scottsdale. Posts semester internships for ASU students, including sales."
+  },
+  {
+   "name": "Samsara",
+   "ats_type": "greenhouse",
+   "token": "samsara",
+   "category": "software",
+   "note": "IoT and fleet operations software. Its Phoenix sales office hires Account Development Representative interns."
+  },
+  {
+   "name": "KnowBe4",
+   "ats_type": "greenhouse",
+   "token": "knowbe4",
+   "category": "cybersecurity",
+   "note": "Security awareness training. Hires sales development interns."
+  },
+  {
+   "name": "Tanium",
+   "ats_type": "greenhouse",
+   "token": "tanium",
+   "category": "cybersecurity",
+   "note": "Endpoint security and management. Hires sales interns."
+  },
+  {
+   "name": "Rubrik",
+   "ats_type": "greenhouse",
+   "token": "rubrik",
+   "category": "cybersecurity",
+   "note": "Data security. Hires sales engineering interns."
+  },
+  {
+   "name": "Zscaler",
+   "ats_type": "greenhouse",
+   "token": "zscaler",
+   "category": "cybersecurity",
+   "note": "Scanned for the Spring Sales Internships list."
+  },
+  {
+   "name": "Okta",
+   "ats_type": "greenhouse",
+   "token": "okta",
+   "category": "cybersecurity",
+   "note": "Scanned for the Spring Sales Internships list."
+  },
+  {
+   "name": "Cloudflare",
+   "ats_type": "greenhouse",
+   "token": "cloudflare",
+   "category": "cloud_networking",
+   "note": "Scanned for the Spring Sales Internships list."
+  },
+  {
+   "name": "Netskope",
+   "ats_type": "greenhouse",
+   "token": "netskope",
+   "category": "cybersecurity",
+   "note": "Scanned for the Spring Sales Internships list."
+  },
+  {
+   "name": "SentinelOne",
+   "ats_type": "greenhouse",
+   "token": "sentinellabs",
+   "category": "cybersecurity",
+   "note": "Scanned for the Spring Sales Internships list."
+  },
+  {
+   "name": "Huntress",
+   "ats_type": "greenhouse",
+   "token": "huntress",
+   "category": "cybersecurity",
+   "note": "Scanned for the Spring Sales Internships list."
+  },
+  {
+   "name": "Expel",
+   "ats_type": "greenhouse",
+   "token": "expel",
+   "category": "cybersecurity",
+   "note": "Scanned for the Spring Sales Internships list."
+  },
+  {
+   "name": "Coalition",
+   "ats_type": "greenhouse",
+   "token": "coalition",
+   "category": "cybersecurity",
+   "note": "Scanned for the Spring Sales Internships list."
+  },
+  {
+   "name": "Abnormal Security",
+   "ats_type": "greenhouse",
+   "token": "abnormalsecurity",
+   "category": "cybersecurity",
+   "note": "Scanned for the Spring Sales Internships list."
+  },
+  {
+   "name": "Axonius",
+   "ats_type": "greenhouse",
+   "token": "axonius",
+   "category": "cybersecurity",
+   "note": "Scanned for the Spring Sales Internships list."
+  },
+  {
+   "name": "BeyondTrust",
+   "ats_type": "greenhouse",
+   "token": "beyondtrust",
+   "category": "cybersecurity",
+   "note": "Scanned for the Spring Sales Internships list."
+  },
+  {
+   "name": "Keeper Security",
+   "ats_type": "greenhouse",
+   "token": "keepersecurity",
+   "category": "cybersecurity",
+   "note": "Scanned for the Spring Sales Internships list."
+  },
+  {
+   "name": "Verkada",
+   "ats_type": "greenhouse",
+   "token": "verkada",
+   "category": "software",
+   "note": "Cloud-managed physical security. Hires sales development interns."
+  },
+  {
+   "name": "NinjaOne",
+   "ats_type": "greenhouse",
+   "token": "ninjaone",
+   "category": "software",
+   "note": "Scanned for the Spring Sales Internships list."
+  },
+  {
+   "name": "ConnectWise",
+   "ats_type": "greenhouse",
+   "token": "connectwise",
+   "category": "software",
+   "note": "Scanned for the Spring Sales Internships list."
+  },
+  {
+   "name": "Kaseya",
+   "ats_type": "greenhouse",
+   "token": "kaseya",
+   "category": "software",
+   "note": "Scanned for the Spring Sales Internships list."
+  },
+  {
+   "name": "ZipRecruiter",
+   "ats_type": "greenhouse",
+   "token": "ziprecruiter",
+   "category": "software",
+   "note": "Tempe office."
+  },
+  {
+   "name": "Nextiva",
+   "ats_type": "greenhouse",
+   "token": "nextiva",
+   "category": "software",
+   "note": "Cloud communications, Scottsdale."
+  },
+  {
+   "name": "SmartRent",
+   "ats_type": "greenhouse",
+   "token": "smartrent",
+   "category": "software",
+   "note": "Smart home software, Scottsdale."
+  },
+  {
+   "name": "Gusto",
+   "ats_type": "greenhouse",
+   "token": "gusto",
+   "category": "software",
+   "note": "Payroll and HR software. Phoenix office."
+  },
+  {
+   "name": "HubSpot",
+   "ats_type": "greenhouse",
+   "token": "hubspotjobs",
+   "category": "software",
+   "note": "Scanned for the Spring Sales Internships list."
+  },
+  {
+   "name": "ZoomInfo",
+   "ats_type": "greenhouse",
+   "token": "zoominfo",
+   "category": "software",
+   "note": "Scanned for the Spring Sales Internships list."
+  },
+  {
+   "name": "Datadog",
+   "ats_type": "greenhouse",
+   "token": "datadog",
+   "category": "software",
+   "note": "Scanned for the Spring Sales Internships list."
+  },
+  {
+   "name": "MongoDB",
+   "ats_type": "greenhouse",
+   "token": "mongodb",
+   "category": "software",
+   "note": "Scanned for the Spring Sales Internships list."
   }
  ]
 }

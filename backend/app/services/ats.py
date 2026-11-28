@@ -6,6 +6,7 @@ Original company postings are preferred over aggregators. Parsers are pure funct
 from __future__ import annotations
 
 import html
+import json
 import re
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
@@ -216,6 +217,63 @@ def parse_jobvite_html(html_text: str, token: str) -> list[RawPosting]:
     return out
 
 
+def _next_data(page_html: str) -> dict:
+    m = re.search(r'<script id="__NEXT_DATA__"[^>]*>(.*?)</script>', page_html or "", re.S)
+    try:
+        return json.loads(m.group(1)) if m else {}
+    except ValueError:
+        return {}
+
+
+def parse_rippling_board(page_html: str) -> tuple[list[dict], int]:
+    """Rippling job boards (ats.rippling.com/<slug>/jobs) are server-rendered; the list is in the page's Next.js
+    data. Returns (jobs, total pages). Raises ValueError when the page has no job list, so a changed page never reads
+    as an empty board (which would close every posting)."""
+    pp = (_next_data(page_html).get("props") or {}).get("pageProps") or {}
+    for q in (pp.get("dehydratedState") or {}).get("queries") or []:
+        key = q.get("queryKey") or []
+        if len(key) >= 3 and key[0] == "board" and key[2] == "job-posts":
+            data = (q.get("state") or {}).get("data") or {}
+            jobs = []
+            for it in data.get("items") or []:
+                locs = it.get("locations") or []
+                kinds = {(l.get("workplaceType") or "").upper() for l in locs}
+                jobs.append({"id": it.get("id"), "title": (it.get("name") or "").strip(), "url": it.get("url"),
+                             "locations": "; ".join(l.get("name") or "" for l in locs if l.get("name")),
+                             "workplace": "remote" if kinds == {"REMOTE"} else "hybrid" if "HYBRID" in kinds
+                             else "onsite" if "ON_SITE" in kinds else None,
+                             "department": ((it.get("department") or {}).get("name"))})
+            return jobs, int(data.get("totalPages") or 1)
+    raise ValueError("no job list on the Rippling board page")
+
+
+def parse_rippling_job(page_html: str, url: str) -> RawPosting | None:
+    """One Rippling posting. A link to a job that's gone shows the board instead, so no job data means closed."""
+    api = ((_next_data(page_html).get("props") or {}).get("pageProps") or {}).get("apiData") or {}
+    post = api.get("jobPost") or {}
+    if not post.get("name"):
+        return None
+    desc = post.get("description") or {}
+    parts = [html_to_text(v) for v in (desc.values() if isinstance(desc, dict) else [desc]) if isinstance(v, str)]
+    cmin = cmax = period = None
+    for pay in api.get("payRangeDetails") or []:
+        if pay.get("rangeStart") is not None:
+            cmin, cmax = pay.get("rangeStart"), pay.get("rangeEnd")
+            period = "hour" if (pay.get("frequency") or "").upper().startswith("HOUR") else "year"
+            break
+    locs = api.get("workLocations") or []
+    return RawPosting(title=post["name"].strip(), url=url, ats_job_id=str(post.get("uuid") or ""),
+                      location_text="; ".join(x for x in locs if isinstance(x, str)),
+                      description="\n\n".join(x for x in parts if x).strip(), posted_at=_ts(post.get("createdOn")),
+                      comp_min=cmin, comp_max=cmax, comp_period=period, apply_url=url, source="rippling",
+                      extra={"department": ((api.get("department") or {}).get("name"))})
+
+
+def rippling_job(f: PoliteFetcher, token: str, job_id: str) -> RawPosting | None:
+    url = f"https://ats.rippling.com/{token}/jobs/{job_id}"
+    return parse_rippling_job(f.get_text(url), url)
+
+
 # ----------------------------------------------------------------------------- fetchers
 
 WORKDAY_QUERIES = ["sales engineer", "solutions engineer", "solutions consultant", "presales", "solutions architect",
@@ -270,6 +328,21 @@ def fetch_postings(f: PoliteFetcher, ats_type: str, token: str | None, host: str
         return list(out.values())
     if ats_type == "jobvite":
         return parse_jobvite_html(f.get_text(f"https://jobs.jobvite.com/{token}/jobs"), token)
+    if ats_type == "rippling":
+        items, pages = parse_rippling_board(f.get_text(f"https://ats.rippling.com/{token}/jobs"))
+        for page in range(1, min(pages, 5)):
+            more, _ = parse_rippling_board(f.get_text(f"https://ats.rippling.com/{token}/jobs?page={page}"))
+            items += [m for m in more if m["id"] not in {i["id"] for i in items}]
+        out = []
+        for it in items[:60]:
+            p = rippling_job(f, token, it["id"]) if it.get("id") else None
+            if p is None:
+                p = RawPosting(title=it["title"], url=it["url"], ats_job_id=str(it["id"]), source="rippling")
+            p.ats_job_id = str(it["id"])
+            p.location_text = p.location_text or it["locations"]
+            p.workplace = p.workplace or it["workplace"]
+            out.append(p)
+        return out
     raise ValueError(f"Unsupported ATS type {ats_type}")
 
 
@@ -358,6 +431,11 @@ def parse_ats_url(url: str) -> tuple[str, str, str | None] | None:
         return "workday", host, f"{parts[1]}/{parts[2]}"
     if host == "jobs.smartrecruiters.com" and parts:
         return "smartrecruiters", parts[0], parts[1] if len(parts) > 1 else None
+    if host == "ats.rippling.com" and parts:
+        if re.fullmatch(r"[a-z]{2}-[A-Za-z]{2}", parts[0]):
+            parts = parts[1:]
+        if parts:
+            return "rippling", parts[0], parts[2] if len(parts) > 2 and parts[1] == "jobs" else None
     return None
 
 
@@ -371,6 +449,8 @@ def fetch_single(f: PoliteFetcher, ats_type: str, token: str, job_id: str) -> Ra
         for p in fetch_postings(f, "ashby", token):
             if p.ats_job_id == job_id or job_id in p.url:
                 return p
+    if ats_type == "rippling":
+        return rippling_job(f, token, job_id)
     return None
 
 

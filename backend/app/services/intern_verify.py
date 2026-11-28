@@ -107,6 +107,19 @@ def check_workday(f: PoliteFetcher, host: str, site: str, path: str) -> Result:
     return Result("open", "Open on the employer's Workday site", p, True)
 
 
+def check_rippling(f: PoliteFetcher, token: str, jid: str) -> Result:
+    from .ats import rippling_job
+    try:
+        p = rippling_job(f, token, jid)
+    except httpx.HTTPStatusError as e:
+        if _status(e) in (404, 410):
+            return Result("closed", "The employer's Rippling job board no longer lists it")
+        raise
+    if p is None:
+        return Result("closed", "The employer's Rippling job board no longer lists it")
+    return Result("open", "Open on the employer's Rippling job board", p, True)
+
+
 def check_lever(f: PoliteFetcher, token: str, jid: str) -> Result:
     try:
         data = f.get_json(f"https://api.lever.co/v0/postings/{token}/{jid}?mode=json")
@@ -201,7 +214,7 @@ def _on_company_board(f: PoliteFetcher, job: Job) -> Result | None:
                 if norm(hit["title"]) == norm(job.title):
                     return check_workday(f, c.ats_host, c.ats_site, hit["path"])
             return None
-        if c.ats_type in ("greenhouse", "lever", "ashby", "smartrecruiters") and c.ats_token:
+        if c.ats_type in ("greenhouse", "lever", "ashby", "smartrecruiters", "rippling") and c.ats_token:
             for p in fetch_postings(f, c.ats_type, c.ats_token):
                 if norm(p.title) == norm(job.title):
                     return Result("open", "Open on the employer's own job board", p, True)
@@ -248,6 +261,8 @@ def check(f: PoliteFetcher, job: Job, twins: list[Job] | None = None) -> Result:
             return check_ashby(f, parsed[1], parsed[2], job.title)
         if parsed and parsed[0] == "smartrecruiters" and parsed[2]:
             return check_smartrecruiters(f, parsed[1], parsed[2], job)
+        if parsed and parsed[0] == "rippling" and parsed[2]:
+            return check_rippling(f, parsed[1], parsed[2])
         if "themuse.com" in host:
             found = _on_company_board(f, job)
             return found or check_muse(f, job)
@@ -372,6 +387,8 @@ def run(db: Session, log, only_listed: bool = True) -> dict:
     prof.data = data
     db.commit()
     c = counts(db)
+    from .intern_jobs import write_report
+    write_report(db)
     log.done(f"{c['total_ok']} qualify after the check")
     return {"checked": len(jobs), **tally, "counts": c,
             "highlights": [{"label": "Still open", "value": tally["open"], "href": "/internships"},

@@ -50,12 +50,13 @@ def evaluate_job(db: Session, job: Job, prof_data: dict | None = None, ledger: l
         workplace=(d.hints or {}).get("workplace"), comp_min=job.comp_min, comp_max=job.comp_max,
         comp_period=job.comp_period, hints=dict(d.hints or {}), is_active=job.is_active, readable=bool(d.readable),
         company_category=company.category if company else None, company_watch=company.watch_status if company else None,
-        source_is_original=job.source_is_original, overrides=dict(d.overrides or {}))
+        company_name=company.name if company else "", source_is_original=job.source_is_original,
+        overrides=dict(d.overrides or {}))
     r = evaluate(x, prof.get("internship") or {})
     d.track, d.status, d.checks = r["track"], r["status"], r["checks"]
     d.pay, d.hours, d.term = r["pay"], r["hours"], r["term"]
     d.where = r["where"] | {"note": r["note"], "reasons_out": r["reasons_out"], "track_reason": r["track_reason"],
-                            "track_strength": r["track_strength"]}
+                            "track_strength": r["track_strength"], "tech_tier": r["tech_tier"]}
     d.evaluated_at = now()
     job.family = FAMILY
     job.category = QUALIFY if r["status"] != "out" else OUT
@@ -82,6 +83,15 @@ def is_intern(job: Job | None) -> bool:
     return bool(job) and job.family == FAMILY
 
 
+PROGRAMS = {"applied": "Applied Computing Spring Internships", "sales": "Spring Sales Internships"}
+
+
+def program_of(job: Job) -> str:
+    """Which list an internship belongs on: sales roles on Spring Sales Internships, everything else (data,
+    cybersecurity, networking, and the ones filtered out of it) on Applied Computing Spring Internships."""
+    return "sales" if job.intern and job.intern.track == "sales" else "applied"
+
+
 def intern_summary(job: Job) -> dict | None:
     """The internship fields shown on cards and the job page."""
     d = job.intern
@@ -92,7 +102,8 @@ def intern_summary(job: Job) -> dict | None:
             "checks": d.checks or [], "pay": d.pay or {}, "hours": d.hours or {}, "term": d.term or {},
             "where": {k: w.get(k) for k in ("status", "label", "city", "tier")}, "note": w.get("note"),
             "reasons_out": w.get("reasons_out") or [], "track_reason": w.get("track_reason"),
-            "track_strength": w.get("track_strength"), "sources": d.sources or [], "overrides": d.overrides or {},
+            "track_strength": w.get("track_strength"), "tech_tier": w.get("tech_tier"), "program": program_of(job),
+            "sources": d.sources or [], "overrides": d.overrides or {},
             "readable": d.readable, "evaluated_at": d.evaluated_at.isoformat() if d.evaluated_at else None,
             "verify": (d.hints or {}).get("verify"), "gist": (sections(job.description_text).get("do") or [None])[0]}
 
@@ -205,7 +216,8 @@ def set_override(db: Session, job: Job, key: str, value: bool) -> InternDetail:
 def alert_new(db: Session, job: Job) -> None:
     if job.category == QUALIFY and not db.scalar(select(Alert.id).where(Alert.job_id == job.id)):
         pay = (job.intern.pay or {}).get("label") if job.intern else ""
-        db.add(Alert(job_id=job.id, message=f"Spring internship: {job.company.name}, {job.title}"
+        kind = "Spring sales internship" if program_of(job) == "sales" else "Spring internship"
+        db.add(Alert(job_id=job.id, message=f"{kind}: {job.company.name}, {job.title}"
                                             + (f" ({pay})" if pay and "$" in pay else "")))
 
 
@@ -241,7 +253,7 @@ def _rank(j: Job, stage: str | None) -> tuple:
     return (stage is not None, bool(j.source_is_original), len(j.description_text or "") >= 250, j.score_total or 0)
 
 
-def board(db: Session) -> tuple[list[Job], dict]:
+def board(db: Session, program: str | None = None) -> tuple[list[Job], dict]:
     """The Spring internships list: open postings you haven't acted on, one per real posting.
 
     Left out: anything you removed (Not for me), marked as applied, heard back from or were turned down for (those
@@ -255,6 +267,8 @@ def board(db: Session) -> tuple[list[Job], dict]:
     originals: dict[tuple[str, str], list[Job]] = {}
     norm = lambda t: re.sub(r"[^a-z0-9]", "", (t or "").lower())
     for j in db.scalars(select(Job).where(Job.family == FAMILY)):
+        if program and program_of(j) != program:
+            continue
         groups.setdefault(posting_key(j), []).append(j)
         if j.source_is_original:
             originals.setdefault((norm(j.company.name if j.company else ""), norm(j.title)), []).append(j)
@@ -267,6 +281,18 @@ def board(db: Session) -> tuple[list[Job], dict]:
         if twin:
             groups.pop(key)
             groups[posting_key(twin[0])] = list(dict.fromkeys(groups.get(posting_key(twin[0]), []) + members))
+    # The same internship posted several times on one board (Samsara lists its Phoenix ADR internship four times):
+    # one card. Acting on any copy moves them all.
+    same: dict[tuple[str, str, str], str] = {}
+    for key, members in list(groups.items()):
+        j0 = next((j for j in members if j.source_is_original), None)
+        if j0 is None:
+            continue
+        k = (norm(j0.company.name if j0.company else ""), norm(j0.title), norm(j0.location_text))
+        if k in same and same[k] in groups:
+            groups[same[k]] = list(dict.fromkeys(groups[same[k]] + groups.pop(key)))
+        else:
+            same[k] = key
     shown: list[Job] = []
     moved = {"started": 0, "applied": 0, "closed_out": 0, "removed": 0, "closed": 0}
     for members in groups.values():
@@ -279,7 +305,8 @@ def board(db: Session) -> tuple[list[Job], dict]:
             moved["removed"] += 1
             continue
         # A posting the employer's own site says is gone takes its copies on other lists with it.
-        if any(not j.is_active and j.source_is_original for j in members):
+        own = [j for j in members if j.source_is_original]
+        if own and not any(j.is_active for j in own):
             moved["closed"] += 1 if any(j.is_active for j in members) else 0
             continue
         live = [j for j in members if j.is_active]
@@ -290,9 +317,9 @@ def board(db: Session) -> tuple[list[Job], dict]:
     return shown, moved
 
 
-def counts(db: Session) -> dict:
+def counts(db: Session, program: str | None = None) -> dict:
     from ..models import PRE_APPLY
-    jobs, moved = board(db)
+    jobs, moved = board(db, program)
     stages = dict(db.execute(select(Application.job_id, Application.stage)).all())
     out = {"qualifies": 0, "check": 0, "out": 0, "saved": sum(1 for j in jobs if j.id in stages),
            "applied": moved["applied"] + moved["started"], "closed_out": moved["closed_out"]}
@@ -397,3 +424,28 @@ def import_dropped(db: Session, folder=None) -> int:
         path.unlink()
         log.info("imported %s from %s", len(results), path.name)
     return added
+
+
+def write_report(db: Session) -> None:
+    """data/reports/internships.json: both lists as they stand, with each posting's link and last live check. Read by
+    the scheduled tasks (and by Claude when it double-checks a listing)."""
+    import json
+
+    from ..config import settings
+    out = {"updated": now().isoformat(timespec="seconds"), "lists": {}}
+    for prog, label in PROGRAMS.items():
+        jobs, _ = board(db, prog)
+        out["lists"][prog] = {"label": label, "items": [
+            {"job_id": j.id, "company": j.company.name if j.company else None, "title": j.title,
+             "url": j.url or j.apply_url, "status": j.intern.status if j.intern else None,
+             "track": j.intern.track if j.intern else None,
+             "tech_tier": ((j.intern.where or {}).get("tech_tier") if j.intern else None),
+             "pay": ((j.intern.pay or {}).get("label") if j.intern else None),
+             "hours": ((j.intern.hours or {}).get("label") if j.intern else None),
+             "term": ((j.intern.term or {}).get("label") if j.intern else None),
+             "where": ((j.intern.where or {}).get("label") if j.intern else None),
+             "verify": ((j.intern.hints or {}).get("verify") if j.intern else None),
+             "original": j.source_is_original, "score": j.score_total} for j in jobs]}
+    f = settings.data_dir / "reports"
+    f.mkdir(parents=True, exist_ok=True)
+    (f / "internships.json").write_text(json.dumps(out, indent=1, default=str), encoding="utf-8")

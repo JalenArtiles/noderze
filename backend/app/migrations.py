@@ -3,10 +3,10 @@ from __future__ import annotations
 
 import logging
 
-from sqlalchemy import update
+from sqlalchemy import select, update
 
 from .db import SessionLocal
-from .models import Alert, Company
+from .models import Alert, Company, Job
 from .services.jobs_engine import rescore_all
 from .services.profile import get_profile, load_seed_profile
 
@@ -148,6 +148,21 @@ def _logos(db) -> None:
     log.info("found logos for %s companies", logos.fill(db))
 
 
+def _sales_track(db) -> None:
+    """Spring Sales Internships: re-check every stored internship under the new rules (sales titles get their own list),
+    then search once so the new list fills in without waiting for tomorrow morning."""
+    from .config import settings
+    from .services.intern_jobs import FAMILY, evaluate_job, write_report
+    data = get_profile(db).data or {}
+    for job in list(db.scalars(select(Job).where(Job.family == FAMILY))):
+        evaluate_job(db, job, prof_data=data)
+    db.commit()
+    write_report(db)
+    if settings.enable_scheduler:
+        from .workflows import WORKFLOWS, start
+        start("find_internships", "Spring internship search", WORKFLOWS["find_internships"])
+
+
 # rescore_v3_2: enterprise/strategic AE roles, foreign postings and state-limited remote roles left the entry list.
 STEPS = [("alerts_baseline_v1", _baseline_alerts), ("available_start_v1", _start_month), ("rescore_v3_1", _rescore),
          ("rescore_v3_2", _rescore), ("generic_notes_v1", _clear_generic_notes),
@@ -155,7 +170,7 @@ STEPS = [("alerts_baseline_v1", _baseline_alerts), ("available_start_v1", _start
          ("rescore_interns_v1", _rescore),  # internship checks after the first live search
          ("cover_letters_v2", _rewrite_cover_letters), ("next_action_v2", _next_action_v2),
          ("replies_refilter_v1", _refilter_replies), ("intern_verify_v1", _intern_details),
-         ("logos_v1", _logos), ("intern_verify_v2", _verify_again)]
+         ("logos_v1", _logos), ("intern_verify_v2", _verify_again), ("sales_track_v1", _sales_track)]
 
 
 def apply_profile_updates(db) -> int:
@@ -207,11 +222,14 @@ def run() -> None:
     db = SessionLocal()
     try:
         for name, fn in STEPS:
+            db.expire_all()  # this runs beside the app: always read the profile fresh so a change made meanwhile stays
             prof = get_profile(db)
             done = set((prof.data or {}).get("migrations", []))
             if name in done:
                 continue
             fn(db)
+            db.commit()
+            db.expire_all()
             prof = get_profile(db)
             data = dict(prof.data or {})
             data["migrations"] = sorted(done | {name})

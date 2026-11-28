@@ -356,7 +356,7 @@ def home(db: Session = Depends(get_db)):
                                              Job.family.is_distinct_from("internship")).order_by(Job.score_total.desc())))
     ok = [j for j in jobs if j.grad_status not in ("too_early", "too_late")]
     from ..services.intern_jobs import counts as intern_counts
-    ic = intern_counts(db)
+    ic = intern_counts(db, "applied")
     states = lambda j: {l.get("state") for l in (j.locations or [])}
     entry = [j for j in ok if j.category == "entry_sales"]
     best = entry[0] if entry else next((j for j in ok if j.category not in ("long_shot", "goal_se")), None)
@@ -365,7 +365,7 @@ def home(db: Session = Depends(get_db)):
                                                               Company.watch_status != "not_relevant"))]
     with_se = sum(1 for c in cyber_cos if ((c.data or {}).get("se_team") or {}).get("open_se_roles") or c.programs)
     tiles = [
-        {"key": "interns", "label": "Spring internships", "hint": "Paid, part-time, January to May", "count": ic["total_ok"],
+        {"key": "interns", "label": "Applied Computing internships", "hint": "Paid, part-time, January to May", "count": ic["total_ok"],
          "href": "/internships", "tone": "green"},
         {"key": "az", "label": "Entry sales in Arizona", "hint": "SDR, BDR, ADR and AE roles near you", "count": sum(1 for j in entry if "AZ" in states(j)), "href": "/opportunities?category=entry_sales&state=AZ", "tone": "maroon"},
         {"key": "remote", "label": "Remote entry sales", "hint": "Work from Arizona", "count": sum(1 for j in entry if j.remote_type == "remote"), "href": "/opportunities?category=entry_sales&remote=1", "tone": "gold"},

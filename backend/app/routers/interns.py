@@ -45,11 +45,25 @@ FIXED_LINKS = [
      "url": "https://students.asu.edu/employment/search"},
 ]
 TRACK_QUERY = {"cyber": "cybersecurity intern", "data": "data analyst intern", "network": "network intern"}
+SALES_QUERY = {"sales": ("Sales", "sales intern"), "sdr": ("SDR / BDR", "sales development intern"),
+               "se": ("Sales engineering", "sales engineer intern")}
+SALES_FIXED_LINKS = [
+    {"label": "ASU Career Services, Handshake employers", "why": "Many local software and IT companies post part-time "
+     "sales internships only on Handshake. Filter by Internship and Part-time.",
+     "url": "https://app.joinhandshake.com/stu/postings?query=sales%20intern"},
+]
 
 
-def search_links() -> list[dict]:
+def search_links(program: str = "applied") -> list[dict]:
     out = []
     for label, why, url in SEARCH_SITES:
+        if program == "sales":
+            if label == "USAJOBS":
+                continue
+            out.append({"label": label, "why": why,
+                        "searches": [{"track": t, "label": lab, "url": url.format(q=quote(q))}
+                                     for t, (lab, q) in SALES_QUERY.items()]})
+            continue
         out.append({"label": label, "why": why,
                     "searches": [{"track": t, "label": TRACK_LABELS[t], "url": url.format(q=quote(q))}
                                  for t, q in TRACK_QUERY.items()]})
@@ -57,8 +71,9 @@ def search_links() -> list[dict]:
 
 
 @router.get("/internships")
-def internships(db: Session = Depends(get_db)):
-    jobs, moved = IJ.board(db)
+def internships(program: str = "applied", db: Session = Depends(get_db)):
+    program = program if program in IJ.PROGRAMS else "applied"
+    jobs, moved = IJ.board(db, program)
     apps = dict(db.execute(select(Application.job_id, Application.stage)).all())
     unseen = set(db.scalars(select(Alert.job_id).where(Alert.seen.is_(False), Alert.job_id.is_not(None))))
     prof = get_profile(db).data or {}
@@ -66,13 +81,14 @@ def internships(db: Session = Depends(get_db)):
                     .limit(1))
     return {
         "items": [_item(j, apps, unseen) for j in jobs],
-        "counts": IJ.counts(db),
+        "counts": IJ.counts(db, program),
+        "program": program, "title": IJ.PROGRAMS[program],
         "moved": moved,  # on the Applications board now, or removed, so not listed here
         "last_verify": prof.get("intern_last_verify"),
         "prefs": prefs(prof),
         "last_scan": prof.get("intern_last_scan"),
         "running": bool(run and run.status == "running"),
-        "links": search_links(), "fixed_links": FIXED_LINKS,
+        "links": search_links(program), "fixed_links": SALES_FIXED_LINKS if program == "sales" else FIXED_LINKS,
     }
 
 

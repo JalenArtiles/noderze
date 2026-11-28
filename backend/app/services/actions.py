@@ -70,10 +70,11 @@ def today_actions(db: Session, limit: int = 8) -> list[dict]:
     unseen = db.scalar(select(func.count(Alert.id)).where(Alert.seen.is_(False))) or 0
     if unseen:
         add(70, f"Review {unseen} new job alert(s)", "From your scheduled scans.", "/opportunities?new=1")
+    from .intern_jobs import program_of  # Applied Computing ones first; sales internships are the backup plan
     interns = [j for j in db.scalars(select(Job).where(Job.family == "internship", Job.is_active.is_(True),
                                                         Job.hidden.is_(False), Job.category == "spring_intern")
-                                     .order_by(Job.score_total.desc()).limit(10))
-               if not db.scalar(select(Application.id).where(Application.job_id == j.id))]
+                                     .order_by(Job.score_total.desc()).limit(40))
+               if program_of(j) == "applied" and not db.scalar(select(Application.id).where(Application.job_id == j.id))][:10]
     if interns:
         j = interns[0]
         due = f" Due {j.deadline:%b %d}." if j.deadline else ""

@@ -389,7 +389,7 @@ details.more-info[open] > summary { margin-bottom: .8rem; }
 .tag.ifact.bad { background: var(--red-tint); border-color: transparent; color: var(--red); }
 .tag.track { font-weight: 650; }
 .tag.track.cyber { background: var(--violet-tint); color: var(--violet); } .tag.track.data { background: var(--blue-tint); color: var(--blue); }
-.tag.track.network { background: var(--teal-tint); color: var(--teal); } .tag.track.it, .tag.track.other { background: var(--line-soft); color: var(--muted); }
+.tag.track.network { background: var(--teal-tint); color: var(--teal); } .tag.track.sales { background: var(--gold-tint); color: var(--gold-ink); } .tag.track.it, .tag.track.other { background: var(--line-soft); color: var(--muted); }
 .irow { align-items: flex-start; } .irow .end { padding-top: .15rem; }
 .irow.out .title { color: var(--muted); }
 .why-out { font-size: .82rem; color: var(--muted); margin-top: .4rem; max-width: 70ch; }

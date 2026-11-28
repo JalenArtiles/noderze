@@ -22,7 +22,8 @@ from .classify import _dates_in, parse_comp, parse_location
 
 DEFAULT_PREFS = {"hours_min": 10, "hours_max": 30, "term": "Spring 2027", "start": "2027-01-01", "end": "2027-05-31"}
 TRACK_LABELS = {"cyber": "Cybersecurity", "data": "Data analytics", "network": "Networking", "it": "General IT",
-                "other": "Other"}
+                "sales": "Sales", "other": "Other"}
+APPLIED_TRACKS = ("cyber", "data", "network")
 STATUS_LABELS = {"qualifies": "Qualifies", "check": "Qualifies, one thing to confirm", "out": "Filtered out"}
 
 
@@ -109,6 +110,46 @@ _IT = re.compile(r"\bIT\b|\bI\.T\.|information technology|help ?desk|service des
 _IT_CI = re.compile(r"information technology|help ?desk|service desk|desktop support|technical support|"
                     r"systems? administrat\w*|sysadmin|end[- ]user|workstation|technology intern|tech intern", re.I)
 
+# Sales internships (the Spring Sales Internships list): sales, SDR/BDR, account executive, sales engineering and
+# solutions roles. "Salesforce Developer" is not sales; "Point of Sale" isn't either.
+_SALES = re.compile(r"\bsales\b(?!\s*force)|\bpre-?sales\b|\bsdrs?\b|\bbdrs?\b|sales development|"
+                    r"business development rep(?:resentative)?s?\b|\baccount (?:executive|development)\b|"
+                    r"\binside sales\b|\bsolutions? (?:engineer\w*|consult\w*|architect\w*)\b", re.I)
+_NOT_SALES = re.compile(r"point of sale|sales tax|\bsalesforce\b|sales (?:and|&) use tax|wholesale|for sale\b", re.I)
+
+
+def is_sales_title(title: str | None) -> bool:
+    t = title or ""
+    return bool(_SALES.search(t)) and not _NOT_SALES.search(t)
+
+
+# How "tech" a company is, for sales internships: 1 = cybersecurity, software or security tech (listed first),
+# 2 = other tech (hardware, chips, IT services, telecom), 0 = can't tell from what Noderze has.
+TECH1_CATEGORIES = {"cybersecurity", "software", "ai", "cloud_networking", "public_safety"}
+TECH2_CATEGORIES = {"it_solutions", "hardware", "semiconductor", "telecom"}
+_TECH1 = re.compile(r"cyber\s?security|information security|security (?:platform|software|company|solutions)|"
+                    r"\bsaas\b|software[- ]as[- ]a[- ]service|\bsoftware (?:company|platform|solutions|products?)\b|"
+                    r"\bcloud(?:-based)? (?:platform|software|security|solutions|services)\b|\bB2B software\b|"
+                    r"\bAI[- ](?:powered|native|platform|company)\b|artificial intelligence|video security|"
+                    r"physical security|identity (?:security|management)|endpoint|threat (?:detection|intelligence)|"
+                    r"data platform|developer platform|enterprise software", re.I)
+_TECH2 = re.compile(r"semiconductor|\bchips?\b|hardware|electronics|IT (?:solutions|services|provider)|"
+                    r"managed (?:IT )?services|\bMSP\b|technology (?:company|solutions|provider|services)|"
+                    r"\btech(?:nology)? company\b|telecommunications|\btelecom\b|wireless|networking (?:equipment|"
+                    r"hardware|solutions)|data cent(?:er|re)s?|\bIoT\b|connected (?:devices|operations)", re.I)
+
+
+def tech_tier(category: str | None, text: str = "") -> tuple[int, str]:
+    if category in TECH1_CATEGORIES:
+        return 1, "A cybersecurity, software or security tech company."
+    blob = (text or "")[:8000]
+    if _TECH1.search(blob):
+        return 1, "A cybersecurity, software or security tech company."
+    if category in TECH2_CATEGORIES or _TECH2.search(blob):
+        return 2, "A tech company (hardware, IT services or similar)."
+    return 0, "Noderze couldn't tell from the posting whether it's a tech company."
+
+
 DESC_TERMS = {
     "cyber": ["cybersecurity", "cyber security", "information security", "vulnerability", "siem", "splunk", "soc",
               "incident response", "threat", "phishing", "firewall", "nist", "risk assessment", "penetration",
@@ -156,6 +197,8 @@ def track_of(title: str, description: str = "") -> Track:
     t = title or ""
     parts = re.split(r"\s+[-–—|:]\s+|,\s+|\s*\(", t, maxsplit=1)
     role, rest = parts[0], (parts[1] if len(parts) > 1 else "")
+    if is_sales_title(role) or (is_sales_title(t) and not _title_track(role)[0]):
+        return Track("sales", "strong", "A sales internship (sales, SDR/BDR, account executive or sales engineering).")
     tr, strength = _title_track(role)
     if tr and tr != "it":
         return Track(tr, strength, f"The title names {TRACK_LABELS[tr].lower()} work.")
@@ -194,6 +237,12 @@ _PAID = re.compile(r"\bpaid (?:intern(?:ship)?s?|position|role|opportunity|progr
                    r"\bhourly (?:rate|wage|pay|range|compensation)\b|\bper hour\b|\bpay (?:rate|range|scale)\b|"
                    r"\bstipend\b|\bwages?\b|\bsalary range\b|\bcompensation (?:range|for this|is|will be)\b|"
                    r"\bcompetitive (?:hourly )?(?:pay|wages?|compensation)\b|\bcompensated\b|\bbase pay\b", re.I)
+_COMMISSION_ONLY = re.compile(r"commission[- ]only|100\s?% commission|straight commission|no base (?:pay|salary)|"
+                              r"(?:paid|compensat\w*|pay|earnings?) (?:is |are )?(?:entirely |solely |strictly |purely )?"
+                              r"(?:on|through|by|via|from) commissions?\b|commission[- ]based\b|"
+                              r"based (?:\w+ )?on commissions?\b", re.I)
+_BASE_PAY = re.compile(r"\bbase (?:pay|salary|wage|rate)\b|\bhourly (?:rate|wage|pay)\b|\bper hour\b|\$\s?\d+(?:\.\d+)?"
+                       r"\s*(?:/|an|per)\s*(?:hr|hour)|plus commission|\+ commission|and commission", re.I)
 _STIPEND = re.compile(r"(?:stipend of|stipend:?)\s*\$\s?([\d,]+(?:\.\d+)?)|\$\s?([\d,]+(?:\.\d+)?)\s*(?:\w+\s){0,2}stipend",
                       re.I)
 
@@ -210,7 +259,7 @@ def _sentence_around(text: str, start: int, end: int, width: int = 140) -> str:
 
 @dataclass
 class Pay:
-    status: str  # amount | stated | none | unpaid
+    status: str  # amount | stated | none | unpaid | commission
     label: str
     hourly: float | None = None
     evidence: str | None = None
@@ -225,6 +274,10 @@ def pay_of(text: str, comp_min: float | None = None, comp_max: float | None = No
     m = _UNPAID.search(body)
     if m:
         return Pay("unpaid", "Unpaid", evidence=_sentence_around(body, m.start(), m.end()))
+    m = _COMMISSION_ONLY.search(body)
+    if m and not _BASE_PAY.search(body):
+        return Pay("commission", "Commission only, no hourly or salary pay",
+                   evidence=_sentence_around(body, m.start(), m.end()))
     lo, hi, period = comp_min, comp_max, comp_period
     if lo is None:
         c = parse_comp(body)
@@ -620,6 +673,7 @@ class InternInput:
     readable: bool = True
     company_category: str | None = None
     company_watch: str | None = None
+    company_name: str = ""
     source_is_original: bool = False
     overrides: dict = field(default_factory=dict)
 
@@ -641,8 +695,15 @@ def evaluate(x: InternInput, pref: dict | None = None) -> dict:
     unread = not x.readable
 
     checks = []
+    tier, tier_reason = tech_tier(x.company_category, f"{x.company_name} {text}") if tr.track == "sales" else (0, "")
     # Field
-    if tr.track in ("cyber", "data", "network"):
+    if tr.track == "sales":
+        if tier:
+            checks.append(_check("field", "Sales at a tech company", "pass", f"{tr.reason} {tier_reason}"))
+        else:
+            checks.append(_check("field", "Sales at a tech company", "warn",
+                                 f"{tr.reason} {tier_reason} Check what {x.company_name or 'the company'} sells."))
+    elif tr.track in ("cyber", "data", "network"):
         checks.append(_check("field", "Field", "pass", f"{tr.label}. {tr.reason}"))
     elif tr.track == "it":
         checks.append(_check("field", "Field", "fail", tr.reason + " Ask your internship coordinator if it counts."))
@@ -655,6 +716,8 @@ def evaluate(x: InternInput, pref: dict | None = None) -> dict:
         checks.append(_check("pay", "Paid", "pass", pay.label, pay.evidence))
     elif pay.status == "unpaid":
         checks.append(_check("pay", "Paid", "fail", "The posting says it's unpaid.", pay.evidence))
+    elif pay.status == "commission":
+        checks.append(_check("pay", "Paid", "fail", "Commission only. You asked for hourly or salary pay.", pay.evidence))
     elif unread:
         checks.append(_check("pay", "Paid", "warn", "Noderze couldn't read the full posting. Open it and look for pay."))
     else:
@@ -703,27 +766,35 @@ def evaluate(x: InternInput, pref: dict | None = None) -> dict:
         status = "out" if fails else "check" if warns or unread else "qualifies"
         note = None
 
-    breakdown = _score(x, tr, pay, hrs, term, where, ov, checks)
+    breakdown = _score(x, tr, pay, hrs, term, where, ov, checks, tier)
     total = round(sum(b["score"] for b in breakdown.values()), 1)
     if status == "out":
         total = min(total, 49.0)
     flags = [f"{c['key']}_{c['state']}" for c in checks if c["state"] != "pass"]
     return {"track": tr.track, "track_label": tr.label, "track_strength": tr.strength, "track_reason": tr.reason,
+            "tech_tier": tier,
             "status": status, "status_label": STATUS_LABELS[status], "note": note, "checks": checks,
             "pay": pay.as_dict(), "hours": hrs.as_dict(), "term": term.as_dict(), "where": where.as_dict(),
             "score": total, "breakdown": breakdown, "flags": flags,
             "reasons_out": [c["detail"] for c in fails]}
 
 
-def _score(x: InternInput, tr: Track, pay: Pay, hrs: Hours, term: Term, where: Where, ov: dict, checks) -> dict:
+def _score(x: InternInput, tr: Track, pay: Pay, hrs: Hours, term: Term, where: Where, ov: dict, checks,
+           tier: int = 0) -> dict:
     out = {}
 
     def put(key, label, score, mx, reasons):
         out[key] = {"label": label, "score": round(score, 1), "max": mx, "reasons": reasons}
 
-    field_pts = {"strong": 30, "adjacent": 22, "description": 20}.get(tr.strength, 0) if tr.track in (
-        "cyber", "data", "network") else (12 if ov.get("include") else 0)
-    put("field", "Field fit", field_pts, 30, [tr.reason])
+    if tr.track == "sales":  # cybersecurity, software and security tech first, then other tech
+        field_pts = {1: 30, 2: 20}.get(tier, 12)
+        put("field", "Company fit", field_pts, 30, [{1: "Cybersecurity, software or security tech, your first choice.",
+                                                     2: "Other tech (hardware, IT services or similar).",
+                                                     }.get(tier, "Couldn't tell what the company sells.")])
+    else:
+        field_pts = {"strong": 30, "adjacent": 22, "description": 20}.get(tr.strength, 0) if tr.track in (
+            "cyber", "data", "network") else (12 if ov.get("include") else 0)
+        put("field", "Field fit", field_pts, 30, [tr.reason])
 
     if ov.get("paid"):
         pts, why = 13, "You confirmed it's paid."

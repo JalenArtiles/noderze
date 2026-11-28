@@ -57,7 +57,7 @@ def candidate(title: str, location_text: str = "", phoenix_only_generic: bool = 
     w = where_of(location_text, "", title)
     if w.status in ("outside", "tucson"):
         return False
-    if tr.track in ("cyber", "data", "network"):
+    if tr.track in ("cyber", "data", "network", "sales"):
         return True
     if tr.track != "it" and not is_generic_intern(title):
         return False
@@ -78,13 +78,16 @@ def _company(db: Session, name: str, entry: dict | None = None, postings_text: l
         c = db.scalar(select(Company).where(Company.ats_token == entry["token"]))
     if c is None:
         from .discovery import infer_category
-        c = Company(name=name, slug=slugify(name), watch_note="Found by the spring internship search.",
+        c = Company(name=name, slug=slugify(name), watch_note=entry.get("note") or "Found by the spring internship search.",
                     ats_type=entry.get("ats_type") if entry.get("ats_type") in ("greenhouse", "lever", "ashby",
-                                                                                 "smartrecruiters", "workday") else None,
+                                                                                 "smartrecruiters", "workday",
+                                                                                 "rippling") else None,
                     ats_token=entry.get("token"), ats_host=entry.get("host"), ats_site=entry.get("site"),
-                    category=infer_category(postings_text or []))
+                    category=entry.get("category") or infer_category(postings_text or []))
         db.add(c)
         db.flush()
+    elif entry.get("category") and not c.category:
+        c.category = entry["category"]
     return c
 
 
@@ -317,7 +320,7 @@ def scan_watched(db: Session, f: PoliteFetcher, log, stats: dict) -> int:
             except Exception:
                 stats["errors"] = stats.get("errors", 0) + 1
             continue
-        if c.ats_type not in ("greenhouse", "lever", "ashby", "smartrecruiters") or not c.ats_token:
+        if c.ats_type not in ("greenhouse", "lever", "ashby", "smartrecruiters", "rippling") or not c.ats_token:
             continue
         try:
             postings = fetch_postings(f, c.ats_type, c.ats_token)
@@ -353,7 +356,7 @@ def resolve(f: PoliteFetcher, url: str, title: str, location_text: str) -> tuple
     """Read the employer's own posting behind a list link. Returns (posting, is_original)."""
     parsed = parse_ats_url(url)
     try:
-        if parsed and parsed[0] in ("greenhouse", "lever", "ashby") and parsed[2]:
+        if parsed and parsed[0] in ("greenhouse", "lever", "ashby", "rippling") and parsed[2]:
             p = fetch_single(f, parsed[0], parsed[1], parsed[2])
             if p:
                 return p, True
@@ -436,8 +439,26 @@ def import_job_sites(db: Session, log, stats: dict) -> int:
                         n += 1
             if page + 1 >= int(data.get("page_count") or 1):
                 break
+    # Sales internships anywhere remote (the location pages above already cover Phoenix).
+    for page in range(5):
+        try:
+            r = httpx.get(f"https://www.themuse.com/api/public/jobs?page={page}&level=Internship&category=Sales"
+                          f"&location={quote('Flexible / Remote')}", timeout=30,
+                          headers={"User-Agent": settings.http_user_agent})
+            if r.status_code != 200:
+                break
+            data = r.json()
+        except Exception:
+            break
+        for name, p in parse_muse(data):
+            if name and candidate(p.title, p.location_text):
+                if _store(db, _company(db, name), p, "The Muse", stats, original=False):
+                    n += 1
+        if page + 1 >= int(data.get("page_count") or 1):
+            break
     if settings.adzuna_app_id and settings.adzuna_app_key:
-        for what in ("cybersecurity intern", "data analyst intern", "network intern", "security intern part time"):
+        for what in ("cybersecurity intern", "data analyst intern", "network intern", "security intern part time",
+                     "sales intern", "sales development intern"):
             for where in ("Phoenix", "Arizona"):
                 try:
                     r = httpx.get("https://api.adzuna.com/v1/api/jobs/us/search/1", timeout=30, params={
@@ -459,8 +480,9 @@ def import_job_sites(db: Session, log, stats: dict) -> int:
 def run(db: Session, log) -> dict:
     from .intern_jobs import board, counts, evaluate_job
     from .profile import get_profile
-    log.plan(["Read the internship lists", "Scan Phoenix-area employers", "Check Arizona public employers",
-              "Scan your target companies", "Check pay, hours, dates and location", "Check each posting is still open"])
+    log.plan(["Read the internship lists", "Scan Phoenix-area employers and tech companies",
+              "Check Arizona public employers", "Scan your target companies", "Check pay, hours, dates and location",
+              "Check each posting is still open"])
     stats: dict = {}
     f = PoliteFetcher(min_interval=1.0)
     boards = load_boards()
@@ -477,7 +499,7 @@ def run(db: Session, log) -> dict:
             n += scan_board(db, f, e, log, stats)
             if (i + 1) % 15 == 0:
                 log(f"{i + 1} of {len(company_boards)} employers scanned")
-        log.done(f"{len(company_boards)} employers scanned, {n} internships in your fields")
+        log.done(f"{len(company_boards)} employers scanned, {n} internships in your fields or in sales")
 
         log.step(2)
         m = 0
@@ -523,10 +545,14 @@ def run(db: Session, log) -> dict:
     data["intern_last_verify"] = now().isoformat(timespec="seconds")
     prof.data = data
     db.commit()
-    c = counts(db)
-    log.done(f"{c['qualifies']} qualify, {c['check']} qualify with one thing to confirm, {c['out']} filtered out. "
+    c = counts(db, "applied")
+    cs = counts(db, "sales")
+    from .intern_jobs import write_report
+    write_report(db)
+    log.done(f"Applied Computing: {c['qualifies']} qualify, {c['check']} with one thing to confirm, {c['out']} filtered "
+             f"out. Sales: {cs['qualifies']} qualify, {cs['check']} with one thing to confirm. "
              f"{tally['closed']} closed since the last check.")
-    return {"counts": c, "stats": stats, "first_scan": first,
-            "highlights": [{"label": "Qualify", "value": c["qualifies"] + c["check"], "href": "/internships"},
-                           {"label": "New this scan", "value": stats.get("new", 0), "href": "/internships?new=1"},
-                           {"label": "Filtered out", "value": c["out"], "href": "/internships?tab=out"}]}
+    return {"counts": c, "sales_counts": cs, "stats": stats, "first_scan": first,
+            "highlights": [{"label": "Applied Computing", "value": c["qualifies"] + c["check"], "href": "/internships"},
+                           {"label": "Sales", "value": cs["qualifies"] + cs["check"], "href": "/sales-internships"},
+                           {"label": "New this scan", "value": stats.get("new", 0), "href": "/internships?new=1"}]}

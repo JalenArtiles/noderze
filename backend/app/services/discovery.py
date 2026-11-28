@@ -139,7 +139,7 @@ def record_se_team(db: Session, company: Company, postings: list[RawPosting], bo
 
 BOARD_URL = {"greenhouse": "https://job-boards.greenhouse.io/{t}", "lever": "https://jobs.lever.co/{t}",
              "ashby": "https://jobs.ashbyhq.com/{t}", "smartrecruiters": "https://jobs.smartrecruiters.com/{t}",
-             "jobvite": "https://jobs.jobvite.com/{t}/jobs"}
+             "jobvite": "https://jobs.jobvite.com/{t}/jobs", "rippling": "https://ats.rippling.com/{t}/jobs"}
 
 
 def ensure_ats(db: Session, f: PoliteFetcher, company: Company, log) -> bool:
