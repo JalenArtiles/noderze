@@ -395,3 +395,56 @@ def counts(db: Session) -> dict:
         Prospect.channel == "email", Prospect.status.in_(("ready", "drafted")), Prospect.email.is_not(None)))))
     out["reached"] = out["sent"] + out["connected"] + out["replied"]
     return out
+
+
+# ----------------------------------------------------------------------------- a new version of a LinkedIn note
+
+NOTE_STYLE = """You write LinkedIn connection notes for Jalen Artiles, a senior at Arizona State University studying
+Applied Computing (Cybersecurity), looking for a paid, part-time spring 2027 internship in data, security or IT.
+Rules: 200 characters or fewer. Start with "Hi!". Casual and natural, like a real person typed it. No em dashes, no
+buzzwords, no stiff intros such as "ASU cybersecurity senior here". Mention ASU only if it fits naturally (for example
+"I'm studying cybersecurity at ASU"). Never invent facts about the company, the person or Jalen. If he applied, keep it
+simple and direct: say he applied and ask if there is anything else he can do on his end. Reply with the note only."""
+
+
+def _note_variants(p: Prospect) -> list[str]:
+    """Plain versions to rotate through when Claude isn't connected."""
+    c, job = p.company_name, (p.job_title or "").split(",")[0].strip()
+    if p.kind == "applied" and job:
+        return [f"Hi! I recently applied to the {job} role at {c} and wanted to say hello. Is there anything else I can do on my end? Would love to connect.",
+                f"Hi! I just applied to the {job} role at {c}. If there's anything more I can do on my end, I'd love to know. Thanks!",
+                f"Hi! I applied to the {job} role at {c} and I'm really excited about it. Anything else I should do on my end? Would love to connect.",
+                f"Hi! I applied to {c}'s {job} role and wanted to reach out. Is there anything else that would help my application?"]
+    area = {"data": "data", "cyber": "security", "network": "network", "it": "IT"}.get(p.track or "", "tech")
+    return [f"Hi! I'm studying cybersecurity at ASU and I'd love to learn more about the {area} teams at {c}. Would love to connect.",
+            f"Hi! I've been looking into the {area} side of {c} and would love to hear how the team works. I'm at ASU and would love to connect.",
+            f"Hi! I'm an ASU student interested in {area} work, and {c} keeps coming up. Would love to connect and hear about your team.",
+            f"Hi! I'd love to learn how {c}'s {area} teams bring on interns. I'm studying cybersecurity at ASU and would love to connect."]
+
+
+def _clean_note(text: str | None) -> str | None:
+    if not text:
+        return None
+    t = text.strip().strip('"').strip()
+    t = t.replace("—", ", ").replace("–", "-")
+    return t if t.startswith("Hi") and len(t) <= NOTE_LIMIT else None
+
+
+def new_note(p: Prospect, hint: str | None = None) -> str:
+    """A different note for this card: written by Claude (following your hint if you gave one) or, without Claude,
+    the next plain version."""
+    from .llm import llm
+    hint = (hint or "").strip()
+    if llm.available:
+        facts = (f"Company: {p.company_name}\nWhy this company: {p.why or 'n/a'}\n"
+                 f"He applied to: {p.job_title + ' (yes, he applied)' if p.kind == 'applied' and p.job_title else 'no'}\n"
+                 f"Current note (write something different): {p.note or 'none'}\n"
+                 + (f"What Jalen wants this time: {hint}\n" if hint else ""))
+        for _ in range(2):
+            t = _clean_note(llm.text(NOTE_STYLE, facts + "\nWrite one new note.", fast=True, max_tokens=200))
+            if t and t != p.note:
+                return t
+    options = _note_variants(p)
+    if p.note in options:
+        return options[(options.index(p.note) + 1) % len(options)]
+    return options[0]

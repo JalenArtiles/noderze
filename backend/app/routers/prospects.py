@@ -99,6 +99,19 @@ def set_gmail_send(body: GmailIn):
     return {"ready": True, "address": address}
 
 
+@router.post("/prospects/{pid}/new-note")
+def new_note(pid: int, body: dict | None = None, db: Session = Depends(get_db)):
+    """A fresh LinkedIn note for this card, optionally steered by what you'd rather say. Saved right away; you can
+    still edit it or ask again."""
+    p = db.get(Prospect, pid)
+    if not p or p.channel != "linkedin":
+        raise HTTPException(404, "Not found")
+    p.note = O.new_note(p, (body or {}).get("hint"))
+    db.commit()
+    O.write_state(db)
+    return O.prospect_dict(p)
+
+
 @router.patch("/prospects/{pid}")
 def patch_prospect(pid: int, body: dict, db: Session = Depends(get_db)):
     p = db.get(Prospect, pid)

@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import Link from "next/link";
-import { CalendarClock, Check, Copy, ExternalLink, Mail, Pencil, Search, Send, UserRound, X } from "lucide-react";
+import { CalendarClock, Check, Copy, ExternalLink, Mail, Pencil, RefreshCw, Search, Send, UserRound, X } from "lucide-react";
 import { Callout, Empty, Err, Loading, PageHeader, Tabs } from "@/components/ui";
 import { CompanyLogo } from "@/components/visual";
 import { api, day, useApi } from "@/lib/api";
@@ -25,6 +25,16 @@ export default function Outreach() {
   const [edit, setEdit] = useState<{ id: number; subject: string; body: string } | null>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [note, setNote] = useState<{ id: number; text: string; hint: string; mode: "edit" | "ask" | "busy" } | null>(null);
+  async function newNote(id: number, hint?: string) {
+    setNote({ id, text: "", hint: hint || "", mode: "busy" });
+    try { await api(`/api/prospects/${id}/new-note`, { body: { hint: hint || null } }); reload(); } catch (e: any) { setErr(e.message); }
+    setNote(null);
+  }
+  async function saveNote() {
+    if (!note) return;
+    try { await api(`/api/prospects/${note.id}`, { method: "PATCH", body: { note: note.text } }); setNote(null); reload(); } catch (e: any) { setErr(e.message); }
+  }
   async function set(id: number, status: string) { try { await api(`/api/prospects/${id}`, { method: "PATCH", body: { status } }); reload(); } catch {} }
   async function saveEdit() {
     if (!edit) return;
@@ -116,7 +126,22 @@ export default function Outreach() {
                 </>}
 
                 {p.channel === "linkedin" && p.status !== "replied" && <>
-                  {p.note && ["ready"].includes(p.status) && <div className="msg" style={{ marginTop: ".45rem" }}>{p.note}<div className="tiny muted" style={{ marginTop: ".3rem" }}>{p.note.length} of 200 characters</div></div>}
+                  {p.note && p.status === "ready" && !(note?.id === p.id && note.mode === "edit") && <div className="msg" style={{ marginTop: ".45rem", opacity: note?.id === p.id && note.mode === "busy" ? .5 : 1 }}>{p.note}<div className="tiny muted" style={{ marginTop: ".3rem" }}>{p.note.length} of 200 characters</div></div>}
+                  {p.status === "ready" && note?.id === p.id && note.mode === "edit" && <div className="form" style={{ marginTop: ".4rem", maxWidth: 680 }}>
+                    <label className="field">Note<textarea style={{ minHeight: 90 }} maxLength={200} value={note.text} onChange={(e) => setNote({ ...note, text: e.target.value })} /></label>
+                    <div className="row"><span className="tiny muted">{note.text.length} of 200</span><button className="btn sm primary" onClick={saveNote}>Save</button><button className="btn sm quiet" onClick={() => setNote(null)}>Cancel</button></div>
+                  </div>}
+                  {p.status === "ready" && note?.id === p.id && note.mode === "ask" && <div className="row" style={{ marginTop: ".4rem", gap: ".5rem", maxWidth: 680 }}>
+                    <input style={{ flex: 1 }} autoFocus placeholder="Optional: what should it say? e.g. ask if there's anything else I can do" value={note.hint}
+                      onChange={(e) => setNote({ ...note, hint: e.target.value })} onKeyDown={(e) => e.key === "Enter" && newNote(p.id, note.hint)} />
+                    <button className="btn sm primary" onClick={() => newNote(p.id, note.hint)}>Write it</button>
+                    <button className="btn sm quiet" onClick={() => setNote(null)}>Cancel</button>
+                  </div>}
+                  {p.status === "ready" && !(note?.id === p.id && note.mode !== "busy") && <div className="row" style={{ marginTop: ".35rem", gap: ".5rem", flexWrap: "wrap" }}>
+                    <button className="btn sm quiet" disabled={note?.id === p.id && note.mode === "busy"} onClick={() => newNote(p.id)}><RefreshCw />{note?.id === p.id && note.mode === "busy" ? "Writing a new one..." : "New version"}</button>
+                    <button className="btn sm quiet" onClick={() => setNote({ id: p.id, text: "", hint: "", mode: "ask" })}>Tell it what to say</button>
+                    {p.note && <button className="btn sm quiet" onClick={() => setNote({ id: p.id, text: p.note, hint: "", mode: "edit" })}><Pencil />Edit</button>}
+                  </div>}
                   {p.followup && p.status === "ready" && <button className="btn quiet sm" style={{ paddingLeft: 0 }} onClick={() => setOpen(open === p.id ? null : p.id)}>{open === p.id ? "Hide the follow-up message" : "See the follow-up message"}</button>}
                   {p.followup && p.status === "ready" && open === p.id && <div className="msg" style={{ whiteSpace: "pre-wrap" }}>{p.followup}</div>}
                   {p.followup && ["sent", "connected"].includes(p.status) && <div className="msg" style={{ marginTop: ".45rem", whiteSpace: "pre-wrap" }}>{p.followup}<div className="tiny muted" style={{ marginTop: ".3rem" }}>Send this once they accept</div></div>}

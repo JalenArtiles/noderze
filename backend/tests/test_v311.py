@@ -7,6 +7,7 @@ from fastapi.testclient import TestClient
 
 @pytest.fixture(scope="module")
 def client():
+    import app.models  # noqa: F401  (registers every table, so a run of this file alone starts clean)
     from app.db import Base, SessionLocal, engine
     Base.metadata.drop_all(engine)
     Base.metadata.create_all(engine)
@@ -282,3 +283,41 @@ def test_closed_listing_keeps_linkedin_hello_but_sets_email_aside(client, monkey
         assert O.find(db, linkedin_url="https://www.linkedin.com/search/results/people/?keywords=Flagged+Co").posting_closed
     finally:
         db.close()
+
+
+def test_new_note_rotates_without_claude_and_follows_a_hint_with_it(client, monkeypatch):
+    from app.db import SessionLocal
+    from app.services import outreach as O
+    from app.services.llm import llm
+    db = SessionLocal()
+    try:
+        O.import_items(db, [{"company": "Note Co", "channel": "linkedin", "kind": "applied", "job_title": "Data Analyst Spring Intern, Phoenix",
+                             "linkedin_url": "https://www.linkedin.com/search/results/people/?keywords=Note+Co",
+                             "note": "Hi! I applied and I'm curious how the team turns data into reports. Would love to connect."}], batch="n")
+        db.commit()
+        p = O.find(db, linkedin_url="https://www.linkedin.com/search/results/people/?keywords=Note+Co")
+        p.kind = "applied"
+        db.commit()
+        pid = p.id
+    finally:
+        db.close()
+    monkeypatch.setattr(type(llm), "available", property(lambda self: False))
+    first = client.post(f"/api/prospects/{pid}/new-note", json={}).json()["note"]
+    second = client.post(f"/api/prospects/{pid}/new-note", json={}).json()["note"]
+    assert first != second and "Data Analyst Spring Intern role at Note Co" in first
+    assert all(len(n) <= 200 and "—" not in n for n in (first, second))
+    assert "on my end" in first
+
+    seen = {}
+    monkeypatch.setattr(type(llm), "available", property(lambda self: True))
+    def fake_text(system, prompt, **kw):
+        seen["prompt"] = prompt
+        return '"Hi! I applied to the Data Analyst spring internship. Is there anything else I can do on my end? Thanks!"'
+    monkeypatch.setattr(llm, "text", fake_text)
+    r = client.post(f"/api/prospects/{pid}/new-note", json={"hint": "ask if there's anything else I can do"}).json()
+    assert r["note"] == "Hi! I applied to the Data Analyst spring internship. Is there anything else I can do on my end? Thanks!"
+    assert "anything else I can do" in seen["prompt"] and "Current note" in seen["prompt"]
+    # Too long or off-style from Claude: falls back to a plain version
+    monkeypatch.setattr(llm, "text", lambda *a, **k: "Hello " + "x" * 300)
+    assert len(client.post(f"/api/prospects/{pid}/new-note", json={}).json()["note"]) <= 200
+    assert client.post("/api/prospects/999999/new-note", json={}).status_code == 404
