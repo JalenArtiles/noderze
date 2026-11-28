@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import hmac
+import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
@@ -23,7 +24,10 @@ VERSION = "3.12.0"
 async def lifespan(_: FastAPI):
     init_db()
     mark_interrupted_runs()
-    threading.Thread(target=migrations.run, name="noderze-migrations", daemon=True).start()
+    if os.environ.get("NODERZE_MIGRATIONS_INLINE"):  # tests: finish before the first request, so nothing races
+        migrations.run()
+    else:
+        threading.Thread(target=migrations.run, name="noderze-migrations", daemon=True).start()
     scheduler.reload()
     selfupdate.start()
     yield
