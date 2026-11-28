@@ -219,3 +219,25 @@ def test_same_internship_posted_twice_shows_once(client):
         assert len([j for j in jobs if j.id in ids]) == 1
     finally:
         db.close()
+
+
+def test_requested_search_survives_restarts(client, tmp_path, monkeypatch):
+    from app.config import settings
+    from app.db import SessionLocal
+    from app.services import intern_jobs as IJ
+    monkeypatch.setattr(settings, "data_dir", tmp_path)
+    started = []
+    monkeypatch.setattr("app.workflows.start", lambda kind, subject, fn, **kw: started.append(kind) or 1)
+    monkeypatch.setattr("app.workflows._running_scan", lambda db, kind="x": None)
+    db = SessionLocal()
+    try:
+        assert not IJ.start_pending_search(db)
+        IJ.request_search()
+        assert IJ.start_pending_search(db) and started == ["find_internships"]
+        assert IJ.start_pending_search(db)  # still asked for until a search finishes (a restart may cut it short)
+        IJ.search_finished()
+        assert not IJ.start_pending_search(db)
+        IJ.request_search()
+        assert [IJ.start_pending_search(db) for _ in range(4)] == [True, True, True, False]  # never loops forever
+    finally:
+        db.close()

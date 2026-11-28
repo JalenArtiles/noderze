@@ -447,8 +447,10 @@ def wf_scan_alerts(db: Session, log, rule_id: int | None = None) -> dict:
 
 
 def wf_find_internships(db: Session, log) -> dict:
-    from .services import intern_sources
-    return intern_sources.run(db, log)
+    from .services import intern_jobs, intern_sources
+    out = intern_sources.run(db, log)
+    intern_jobs.search_finished()
+    return out
 
 
 def wf_verify_internships(db: Session, log) -> dict:

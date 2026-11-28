@@ -426,6 +426,45 @@ def import_dropped(db: Session, folder=None) -> int:
     return added
 
 
+def _pending_marker():
+    from ..config import settings
+    return settings.data_dir / "intern-search.pending"
+
+
+def request_search() -> None:
+    """Ask for one spring internship search soon. Kept as a file until a search finishes, so a restart in the
+    middle (an update reloads Noderze) starts it again instead of losing it."""
+    m = _pending_marker()
+    m.parent.mkdir(parents=True, exist_ok=True)
+    m.write_text('{"tries": 0}', encoding="utf-8")
+
+
+def search_finished() -> None:
+    _pending_marker().unlink(missing_ok=True)
+
+
+def start_pending_search(db: Session) -> bool:
+    """Every minute: start the requested search unless one is running. Gives up after three starts (a search that
+    keeps failing never loops); the daily morning search still runs."""
+    import json
+    m = _pending_marker()
+    if not m.exists():
+        return False
+    from ..workflows import WORKFLOWS, _running_scan, start
+    if _running_scan(db, "find_internships"):
+        return False
+    try:
+        tries = int(json.loads(m.read_text(encoding="utf-8")).get("tries", 0))
+    except (ValueError, AttributeError, OSError):
+        tries = 0
+    if tries >= 3:
+        m.unlink(missing_ok=True)
+        return False
+    m.write_text(json.dumps({"at": now().isoformat(timespec="seconds"), "tries": tries + 1}), encoding="utf-8")
+    start("find_internships", "Spring internship search", WORKFLOWS["find_internships"])
+    return True
+
+
 def write_report(db: Session) -> None:
     """data/reports/internships.json: both lists as they stand, with each posting's link and last live check. Read by
     the scheduled tasks (and by Claude when it double-checks a listing)."""

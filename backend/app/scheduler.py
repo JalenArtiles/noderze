@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+import time
 
 from sqlalchemy import select
 
@@ -11,6 +12,8 @@ from .models import AlertRule
 
 log = logging.getLogger(__name__)
 _scheduler = None
+_BOOT = time.monotonic()
+SETTLE_S = 120  # an update restarts Noderze twice in a row; a requested search waits until it has settled
 
 
 _DAYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat", "sun"]
@@ -91,7 +94,7 @@ def drop_folders() -> None:
                      ("intern imports", intern_jobs.import_dropped), ("outreach imports", outreach.import_dropped),
                      ("approved outreach emails", mailer.send_due),
                      ("outreach state", outreach.write_state), ("reply imports", replies.import_dropped),
-                     ("reply watch list", replies.write_watch)):
+                     ("reply watch list", replies.write_watch), ("requested internship search", _pending_search)):
         db = SessionLocal()
         try:
             fn(db)
@@ -99,6 +102,12 @@ def drop_folders() -> None:
             log.exception("%s failed", name)
         finally:
             db.close()
+
+
+def _pending_search(db) -> None:
+    if time.monotonic() - _BOOT >= SETTLE_S:
+        from .services.intern_jobs import start_pending_search
+        start_pending_search(db)
 
 
 def shutdown() -> None:

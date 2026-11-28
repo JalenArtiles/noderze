@@ -159,8 +159,17 @@ def _sales_track(db) -> None:
     db.commit()
     write_report(db)
     if settings.enable_scheduler:
-        from .workflows import WORKFLOWS, start
-        start("find_internships", "Spring internship search", WORKFLOWS["find_internships"])
+        from .services.intern_jobs import request_search
+        request_search()
+
+
+def _search_soon(db) -> None:
+    """The searches started by sales_track_v1 and v2 were cut short by the update's restarts: ask again, this time
+    as a request that survives restarts."""
+    from .config import settings
+    from .services.intern_jobs import request_search
+    if settings.enable_scheduler:
+        request_search()
 
 
 def _sales_track_v2(db) -> None:
@@ -177,7 +186,7 @@ STEPS = [("alerts_baseline_v1", _baseline_alerts), ("available_start_v1", _start
          ("cover_letters_v2", _rewrite_cover_letters), ("next_action_v2", _next_action_v2),
          ("replies_refilter_v1", _refilter_replies), ("intern_verify_v1", _intern_details),
          ("logos_v1", _logos), ("intern_verify_v2", _verify_again), ("sales_track_v1", _sales_track),
-         ("sales_track_v2", _sales_track_v2)]
+         ("sales_track_v2", _sales_track_v2), ("sales_search_v1", _search_soon)]
 
 
 def apply_profile_updates(db) -> int:
